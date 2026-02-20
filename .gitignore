@@ -1,0 +1,20 @@
+﻿# Agent logs (local audit)
+logs/agent/
+
+# Playwright artifacts (recommended)
+playwright-report/
+test-results/
+blob-report/
+
+# Python test/coverage artifacts (recommended)
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+
+# Node artifacts (recommended)
+node_modules/
+
+# Common caches (recommended)
+__pycache__/
+.venv/

@@ -1,0 +1,5 @@
+﻿Name: everything-claude-code
+URL: https://github.com/affaan-m/everything-claude-code
+License: MIT
+VendoredPaths: .agentkit/rules/common/coding-style.md, .agentkit/rules/common/git-workflow.md, .agentkit/rules/common/patterns.md, .agentkit/rules/common/security.md, .agentkit/rules/common/testing.md, .agentkit/rules/stacks/python/STACK.md, .agentkit/rules/stacks/python/coding-style.md, .agentkit/rules/stacks/python/patterns.md, .agentkit/rules/stacks/python/security.md, .agentkit/rules/stacks/python/testing.md, .agentkit/rules/stacks/typescript/STACK.md, .agentkit/rules/stacks/typescript/coding-style.md, .agentkit/rules/stacks/typescript/patterns.md, .agentkit/rules/stacks/typescript/security.md, .agentkit/rules/stacks/typescript/testing.md
+LicenseFile: .agentkit/rules/UPSTREAM_LICENSES/everything-claude-code_MIT.txt

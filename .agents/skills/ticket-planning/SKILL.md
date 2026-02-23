@@ -1,3 +1,8 @@
+---
+name: ticket-planning
+description: Plan and de-risk a ticket with small execution steps, verification, and DoD gates
+---
+
 # SKILL: ticket-planning (Tn → execution plan + DoD)
 
 ## Goal

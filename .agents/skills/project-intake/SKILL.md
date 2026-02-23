@@ -1,3 +1,8 @@
+---
+name: project-intake
+description: Discovery to roadmap workflow for AgentKit
+---
+
 # SKILL: project-intake (Discovery → ROADMAP)
 
 ## Goal

@@ -170,4 +170,16 @@ When vendor rules are updated, `.agentkit/rules/NOTICE` and upstream licenses mu
 - `.agentkit/scripts/vendor_rules.sh`
 
 Do not remove license notices.
-```
+
+## Hard stop: no fake verification / no placeholders
+
+If required tools are missing (uv/pnpm/make/bash), you MUST NOT:
+- rewrite Makefile or verify scripts to "make it pass"
+- add placeholder checks, fake-lint, fake-tests, or “always-pass” runners
+- introduce alternate verification paths that bypass real toolchain execution
+
+Instead:
+- stop and request installing the missing tools (with exact commands)
+- or propose an explicit, separate ticket to add a Windows-native runner (verify.ps1) without changing verification semantics
+
+Presence of any "placeholder verification artifacts" is a hard failure.

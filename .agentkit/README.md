@@ -199,3 +199,24 @@ Rules Router не меняется — он сам подхватит новый
 * файлы в `.agentkit/rules/UPSTREAM_LICENSES/`
 
 Не удаляй notice/license файлы.
+
+---
+
+## Windows verification (recommended)
+
+Use PowerShell runner:
+
+- `pwsh -File .agentkit/scripts/verify.ps1 detect`
+- `pwsh -File .agentkit/scripts/verify.ps1 smoke`
+- `pwsh -File .agentkit/scripts/verify.ps1 local`
+
+Prerequisites (must be installed, no bypass):
+- Git for Windows
+- Python 3.13+
+- GNU Make
+- uv
+- Node.js 20+
+- pnpm
+
+If any prerequisite is missing, verification must fail fast.
+Do NOT introduce placeholder/fake checks to “make it green”.

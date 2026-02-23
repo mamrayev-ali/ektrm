@@ -1,0 +1,9 @@
+# Enforce LF for scripts & markdown to avoid CRLF issues on Windows and Git Bash.
+*.sh     text eol=lf
+*.bash   text eol=lf
+*.ps1    text eol=crlf
+*.md     text eol=lf
+*.toml   text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+Makefile text eol=lf

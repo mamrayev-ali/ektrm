@@ -332,12 +332,14 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - public surface / key exports:
     - 8 шагов wizard: `Заявитель`, `Адрес заявителя`, `ОПС`, `Схема сертификации`, `Данные по продукции`, `Приложение`, `Документы`, `Примечание`.
     - действия: `Сохранить черновик`, `Подписать и отправить`, `Удалить черновик`.
-    - OIDC-сессия + вызовы applications API через gateway.
+    - OIDC-сессия (Authorization Code + PKCE, нативный JS-клиент без `keycloak.js`) + вызовы applications API через gateway.
+    - auth/role gate: при неавторизованной сессии и при роли без `Applicant` wizard скрыт, показывается экран авторизации/ограничения доступа.
   - invariants / assumptions:
     - submit валидирует обязательные поля и форматы (BIN/phone/email);
     - draft допускает неполные данные.
+    - форма заявки доступна только роли `Applicant`; `OPS` не работает с UI wizard заявителя.
   - dependencies:
-    - `services/runtime/app/routers/applications.py`, Keycloak JS adapter.
+    - `services/runtime/app/routers/applications.py`, Keycloak OIDC endpoints (`/auth`, `/token`, `/logout`).
   - tests:
     - ручной smoke + backend API tests (`test_applications_api.py`).
 - `services/runtime/app/seed/reference_data_seed.py` — source-of-truth для seeded справочников и lookup-реестров T3.
@@ -459,6 +461,8 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-05 [auth-ui-gate-applicant-only] Для `frontend/index.html` добавлен UI auth-gate: до авторизации wizard/steps/action-bar скрыты, после входа отображение формы разрешено только роли `Applicant`; для остальных ролей показывается экран «Недостаточно прав».
+- 2026-03-05 [bugfix-keycloak26-oidc-login] Исправлен frontend login для Keycloak 26.1: удалена зависимость от недоступного `/js/keycloak.js` (404), в `frontend/index.html` реализован нативный OIDC Authorization Code + PKCE flow (login/callback/token refresh/logout) с сохранением bearer-контракта для API.
 - 2026-03-05 [t7-certificate-generation-and-snapshot] Реализован T7 backend baseline Ордер 4: добавлены модели `certificate`/`certificate_status_history`, Alembic migration `20260305_0003`, сервис генерации сертификата из `APPROVED` заявки с immutable snapshot, read API (`GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`), интеграция генерации в переход `PROTOCOL_ATTACHED -> APPROVED`, добавлены тесты `test_certificate_service.py`, `test_certificates_api.py` и расширены `test_applications_api.py`.
 - 2026-03-05 [t6-ops-review-and-protocol-attachment] Реализован T6 backend-контур: OPS queue (`GET /applications/ops/queue`), role-gated review transitions, attach protocol (`POST /applications/{id}/protocol/attach`), files-service upload (`POST /files/slots/upload`) через MinIO slot `protocol_test_report`, автоархивирование после отказа с history-нотой уведомления, добавлены тесты `test_application_state_engine.py`, `test_applications_api.py`, `test_files_api.py`.
 - 2026-03-05 [t5-order-3-applicant-ui-wizard] Реализован T5: обновлен `frontend/index.html` в wizard Ордер 3 (8 шагов, submit-валидации, действия `Сохранить черновик`/`Подписать и отправить`/`Удалить черновик`), в backend добавлен `DELETE /applications/{id}/draft` с переводом в `ARCHIVED`, дополнены тесты `test_application_state_engine.py` и `test_applications_api.py`.

@@ -268,6 +268,29 @@
         display: none;
       }
 
+      .is-hidden {
+        display: none !important;
+      }
+
+      .auth-gate {
+        margin-top: 10px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 18px;
+        background: var(--surface-soft);
+      }
+
+      .auth-gate-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+      }
+
+      .auth-gate-text {
+        margin-top: 6px;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
       .section-head {
         padding: 12px 14px;
         border-bottom: 1px solid var(--line);
@@ -519,7 +542,7 @@
     </header>
 
     <div class="shell">
-      <aside class="card sidebar">
+      <aside class="card sidebar is-hidden" id="sidebarPanel">
         <div class="app-meta">
           <div class="meta-id" id="appNumber">Заявка: не создана</div>
           <div class="meta-sub" id="currentStepLabel">Шаг 1 из 8</div>
@@ -534,6 +557,12 @@
           <h1>Заявка на проведение сертификации</h1>
         </div>
 
+        <section class="auth-gate" id="authGate">
+          <div class="auth-gate-title" id="authGateTitle">Проверка сессии...</div>
+          <div class="auth-gate-text" id="authGateText">Подождите, идет инициализация авторизации.</div>
+        </section>
+
+        <div id="protectedContent" class="is-hidden">
         <section class="process" aria-label="Процесс Ордер 3">
           <article class="process-step active">
             <div class="n">01 — Заявитель</div>
@@ -801,6 +830,7 @@
           <button class="btn-primary" id="submitBtn">Подписать и отправить</button>
           <button class="btn-danger" id="deleteDraftBtn">Удалить черновик</button>
         </div>
+        </div>
 
         <section class="session">
           <div class="row" style="margin-bottom: 6px">
@@ -857,6 +887,11 @@
       const currentStepLabel = document.getElementById("currentStepLabel");
       const statusChip = document.getElementById("statusChip");
       const apiBaseLabel = document.getElementById("apiBaseLabel");
+      const sidebarPanel = document.getElementById("sidebarPanel");
+      const protectedContent = document.getElementById("protectedContent");
+      const authGate = document.getElementById("authGate");
+      const authGateTitle = document.getElementById("authGateTitle");
+      const authGateText = document.getElementById("authGateText");
       apiBaseLabel.textContent = config.apiBase;
 
       const sections = Array.from(document.querySelectorAll(".section"));
@@ -873,9 +908,22 @@
         refresh: document.getElementById("refreshBtn"),
       };
 
-      let keycloak;
+      let oidcSession = {
+        authenticated: false,
+        token: null,
+        refreshToken: null,
+        idToken: null,
+        tokenParsed: null,
+        refreshTokenParsed: null,
+      };
       let currentStep = 0;
       let currentApplicationId = null;
+      let authReady = false;
+      const pkceStorage = {
+        verifier: "ektrm_oidc_pkce_verifier",
+        state: "ektrm_oidc_state",
+        tokens: "ektrm_oidc_tokens",
+      };
 
       function writeOutput(title, payload) {
         const body = typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
@@ -1107,16 +1155,295 @@
         return true;
       }
 
-      async function callApi(method, path, body) {
-        if (!keycloak || !keycloak.token) {
+      function toBase64Url(bytes) {
+        const binary = String.fromCharCode(...bytes);
+        return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      }
+
+      function randomString(length = 64) {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+        const random = new Uint8Array(length);
+        crypto.getRandomValues(random);
+        return Array.from(random, (v) => chars[v % chars.length]).join("");
+      }
+
+      async function createCodeChallenge(verifier) {
+        const data = new TextEncoder().encode(verifier);
+        const digest = await crypto.subtle.digest("SHA-256", data);
+        return toBase64Url(new Uint8Array(digest));
+      }
+
+      function decodeJwt(token) {
+        if (!token || token.split(".").length < 2) {
+          return {};
+        }
+        const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+        const normalized = payload.padEnd(payload.length + ((4 - (payload.length % 4)) % 4), "=");
+        try {
+          return JSON.parse(atob(normalized));
+        } catch (_error) {
+          return {};
+        }
+      }
+
+      function storeTokens() {
+        if (!oidcSession.token) {
+          sessionStorage.removeItem(pkceStorage.tokens);
+          return;
+        }
+        sessionStorage.setItem(
+          pkceStorage.tokens,
+          JSON.stringify({
+            token: oidcSession.token,
+            refreshToken: oidcSession.refreshToken,
+            idToken: oidcSession.idToken,
+          }),
+        );
+      }
+
+      function applyTokens(tokenSet) {
+        oidcSession = {
+          authenticated: Boolean(tokenSet && tokenSet.token),
+          token: tokenSet && tokenSet.token ? tokenSet.token : null,
+          refreshToken: tokenSet && tokenSet.refreshToken ? tokenSet.refreshToken : null,
+          idToken: tokenSet && tokenSet.idToken ? tokenSet.idToken : null,
+          tokenParsed: tokenSet && tokenSet.token ? decodeJwt(tokenSet.token) : null,
+          refreshTokenParsed: tokenSet && tokenSet.refreshToken ? decodeJwt(tokenSet.refreshToken) : null,
+        };
+        storeTokens();
+      }
+
+      function clearAuthSession() {
+        applyTokens({ token: null, refreshToken: null, idToken: null });
+      }
+
+      function restoreTokensFromStorage() {
+        const raw = sessionStorage.getItem(pkceStorage.tokens);
+        if (!raw) {
+          clearAuthSession();
+          return;
+        }
+        try {
+          const parsed = JSON.parse(raw);
+          applyTokens({
+            token: parsed.token || null,
+            refreshToken: parsed.refreshToken || null,
+            idToken: parsed.idToken || null,
+          });
+        } catch (_error) {
+          clearAuthSession();
+        }
+      }
+
+      function getRealmBase() {
+        return config.authority.replace(/\/realms\/[^/]+$/, "");
+      }
+
+      function getTokenEndpoint() {
+        return `${config.authority}/protocol/openid-connect/token`;
+      }
+
+      function getAuthorizationEndpoint() {
+        return `${config.authority}/protocol/openid-connect/auth`;
+      }
+
+      function getLogoutEndpoint() {
+        return `${config.authority}/protocol/openid-connect/logout`;
+      }
+
+      function tokenExpiresInSeconds() {
+        const exp = oidcSession.tokenParsed && Number(oidcSession.tokenParsed.exp);
+        if (!exp) {
+          return 0;
+        }
+        const now = Math.floor(Date.now() / 1000);
+        return exp - now;
+      }
+
+      async function requestToken(formData) {
+        const response = await fetch(getTokenEndpoint(), {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams(formData).toString(),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const detail = payload && payload.error_description ? payload.error_description : response.statusText;
+          throw new Error(`OIDC token endpoint: ${response.status} ${detail}`);
+        }
+        return payload;
+      }
+
+      async function refreshAccessToken(minValidity = 30) {
+        if (!oidcSession.authenticated || !oidcSession.token) {
+          return false;
+        }
+        if (tokenExpiresInSeconds() > minValidity) {
+          return false;
+        }
+        if (!oidcSession.refreshToken) {
+          clearAuthSession();
+          throw new Error("Сессия истекла: отсутствует refresh token");
+        }
+        const refreshed = await requestToken({
+          grant_type: "refresh_token",
+          refresh_token: oidcSession.refreshToken,
+          client_id: config.clientId,
+        });
+        applyTokens({
+          token: refreshed.access_token,
+          refreshToken: refreshed.refresh_token || oidcSession.refreshToken,
+          idToken: refreshed.id_token || oidcSession.idToken,
+        });
+        return true;
+      }
+
+      function clearAuthParamsFromUrl() {
+        const next = `${window.location.origin}${window.location.pathname}${window.location.hash || ""}`;
+        window.history.replaceState({}, document.title, next);
+      }
+
+      async function completeAuthorizationCodeFlow() {
+        const params = new URLSearchParams(window.location.search);
+        const authCode = params.get("code");
+        const incomingState = params.get("state");
+        const authError = params.get("error");
+
+        if (!authCode && !authError) {
+          return false;
+        }
+
+        if (authError) {
+          const description = params.get("error_description") || authError;
+          clearAuthParamsFromUrl();
+          clearAuthSession();
+          writeOutput("OIDC ошибка", description);
+          return true;
+        }
+
+        const expectedState = sessionStorage.getItem(pkceStorage.state);
+        const codeVerifier = sessionStorage.getItem(pkceStorage.verifier);
+        sessionStorage.removeItem(pkceStorage.state);
+        sessionStorage.removeItem(pkceStorage.verifier);
+
+        if (!codeVerifier || !expectedState || incomingState !== expectedState) {
+          clearAuthParamsFromUrl();
+          clearAuthSession();
+          writeOutput("OIDC ошибка", "Проверка state/code_verifier не пройдена.");
+          return true;
+        }
+
+        const tokenPayload = await requestToken({
+          grant_type: "authorization_code",
+          code: authCode,
+          client_id: config.clientId,
+          code_verifier: codeVerifier,
+          redirect_uri: `${window.location.origin}${window.location.pathname}`,
+        });
+
+        applyTokens({
+          token: tokenPayload.access_token,
+          refreshToken: tokenPayload.refresh_token,
+          idToken: tokenPayload.id_token,
+        });
+        clearAuthParamsFromUrl();
+        return true;
+      }
+
+      async function loginWithOidc() {
+        const state = randomString(32);
+        const verifier = randomString(96);
+        const challenge = await createCodeChallenge(verifier);
+
+        sessionStorage.setItem(pkceStorage.state, state);
+        sessionStorage.setItem(pkceStorage.verifier, verifier);
+
+        const query = new URLSearchParams({
+          client_id: config.clientId,
+          redirect_uri: `${window.location.origin}${window.location.pathname}`,
+          response_type: "code",
+          scope: "openid profile email",
+          state,
+          code_challenge: challenge,
+          code_challenge_method: "S256",
+        });
+        window.location.assign(`${getAuthorizationEndpoint()}?${query.toString()}`);
+      }
+
+      async function logoutFromOidc() {
+        const postLogoutRedirectUri = `${window.location.origin}${window.location.pathname}`;
+        const logoutParams = new URLSearchParams({
+          post_logout_redirect_uri: postLogoutRedirectUri,
+          client_id: config.clientId,
+        });
+        if (oidcSession.idToken) {
+          logoutParams.set("id_token_hint", oidcSession.idToken);
+        }
+        clearAuthSession();
+        window.location.assign(`${getLogoutEndpoint()}?${logoutParams.toString()}`);
+      }
+
+      function getCurrentRealmRoles() {
+        const parsed = oidcSession.tokenParsed || {};
+        return (parsed.realm_access && parsed.realm_access.roles) || [];
+      }
+
+      function isApplicantUser() {
+        return getCurrentRealmRoles().includes("Applicant");
+      }
+
+      function setProtectedVisibility(visible) {
+        sidebarPanel.classList.toggle("is-hidden", !visible);
+        protectedContent.classList.toggle("is-hidden", !visible);
+        authGate.classList.toggle("is-hidden", visible);
+      }
+
+      function renderAccessGate(mode, realmRoles = []) {
+        if (mode === "authorized") {
+          setProtectedVisibility(true);
+          return;
+        }
+
+        setProtectedVisibility(false);
+        if (mode === "loading") {
+          authGateTitle.textContent = "Проверка сессии...";
+          authGateText.textContent = "Подождите, идет инициализация авторизации.";
+          return;
+        }
+        if (mode === "forbidden") {
+          authGateTitle.textContent = "Недостаточно прав";
+          authGateText.textContent = `Форма заявки доступна только роли Applicant. Текущие роли: ${realmRoles.join(", ") || "-"}.`;
+          return;
+        }
+        authGateTitle.textContent = "Требуется вход в систему";
+        authGateText.textContent = "Чтобы работать с заявкой, нажмите «Войти» и авторизуйтесь под ролью Applicant.";
+      }
+
+      function ensureApplicantAccess() {
+        if (!oidcSession.authenticated || !oidcSession.token) {
           throw new Error("Сначала выполните вход через Keycloak");
         }
-        await keycloak.updateToken(30);
+        if (!isApplicantUser()) {
+          throw new Error("Доступ к форме есть только у роли Applicant");
+        }
+      }
+
+      async function callApi(method, path, body) {
+        if (!oidcSession.authenticated || !oidcSession.token) {
+          throw new Error("Сначала выполните вход через Keycloak");
+        }
+        await refreshAccessToken(30);
+        if (!oidcSession.token) {
+          throw new Error("Сессия истекла. Выполните вход повторно.");
+        }
 
         const response = await fetch(`${config.apiBase}${path}`, {
           method,
           headers: {
-            Authorization: `Bearer ${keycloak.token}`,
+            Authorization: `Bearer ${oidcSession.token}`,
             Accept: "application/json",
             "Content-Type": "application/json",
           },
@@ -1132,6 +1459,7 @@
       }
 
       async function ensureDraftExists(payload) {
+        ensureApplicantAccess();
         if (currentApplicationId) {
           const updated = await callApi("PUT", `/applications/${currentApplicationId}/draft`, payload);
           setStatusChip(updated.status || "DRAFT");
@@ -1147,12 +1475,14 @@
       }
 
       async function saveDraft() {
+        ensureApplicantAccess();
         const payload = buildPayload();
         const response = await ensureDraftExists(payload);
         writeOutput("Черновик сохранен", response);
       }
 
       async function submitApplication() {
+        ensureApplicantAccess();
         const payload = buildPayload();
         if (!validateForSubmit(payload)) {
           return;
@@ -1165,6 +1495,7 @@
       }
 
       async function deleteDraft() {
+        ensureApplicantAccess();
         if (!currentApplicationId) {
           writeOutput("Удаление черновика", "Черновик еще не создан.");
           return;
@@ -1180,6 +1511,10 @@
       }
 
       async function loadExistingDraftFromStorage() {
+        if (!oidcSession.authenticated || !isApplicantUser()) {
+          localStorage.removeItem(config.draftStorageKey);
+          return;
+        }
         const stored = localStorage.getItem(config.draftStorageKey);
         if (!stored) {
           return;
@@ -1206,63 +1541,102 @@
       }
 
       function renderAuthState() {
-        if (!keycloak || !keycloak.authenticated) {
-          authState.textContent = "не авторизован";
+        if (!authReady) {
+          authState.textContent = "проверка сессии";
           username.textContent = "-";
           roles.textContent = "-";
+          buttons.login.disabled = true;
           buttons.logout.disabled = true;
           buttons.refresh.disabled = true;
+          buttons.prev.disabled = true;
+          buttons.next.disabled = true;
           buttons.save.disabled = true;
           buttons.submit.disabled = true;
           buttons.deleteDraft.disabled = true;
-          buttons.login.disabled = false;
+          renderAccessGate("loading");
           return;
         }
 
-        const parsed = keycloak.tokenParsed || {};
-        const realmRoles = (parsed.realm_access && parsed.realm_access.roles) || [];
+        if (!oidcSession.authenticated || !oidcSession.tokenParsed) {
+          authState.textContent = "не авторизован";
+          username.textContent = "-";
+          roles.textContent = "-";
+          buttons.login.disabled = false;
+          buttons.logout.disabled = true;
+          buttons.refresh.disabled = true;
+          buttons.prev.disabled = true;
+          buttons.next.disabled = true;
+          buttons.save.disabled = true;
+          buttons.submit.disabled = true;
+          buttons.deleteDraft.disabled = true;
+          renderAccessGate("unauthenticated");
+          return;
+        }
+
+        const parsed = oidcSession.tokenParsed || {};
+        const realmRoles = getCurrentRealmRoles();
         authState.textContent = "авторизован";
         username.textContent = parsed.preferred_username || parsed.sub || "-";
         roles.textContent = realmRoles.length ? realmRoles.join(", ") : "-";
+        buttons.login.disabled = true;
         buttons.logout.disabled = false;
         buttons.refresh.disabled = false;
+
+        if (!isApplicantUser()) {
+          buttons.prev.disabled = true;
+          buttons.next.disabled = true;
+          buttons.save.disabled = true;
+          buttons.submit.disabled = true;
+          buttons.deleteDraft.disabled = true;
+          renderAccessGate("forbidden", realmRoles);
+          return;
+        }
+
         buttons.save.disabled = false;
         buttons.submit.disabled = false;
         buttons.deleteDraft.disabled = false;
-        buttons.login.disabled = true;
+        renderAccessGate("authorized");
+        renderStep();
       }
 
-      async function initKeycloak() {
-        const script = document.createElement("script");
-        script.src = `${config.authority.replace(/\/realms\/[^/]+$/, "")}/js/keycloak.js`;
-        script.onload = async () => {
-          keycloak = new window.Keycloak({
-            url: config.authority.replace(/\/realms\/[^/]+$/, ""),
-            realm: "ektrm",
-            clientId: config.clientId,
+      async function initAuth() {
+        authReady = false;
+        renderAuthState();
+        try {
+          await completeAuthorizationCodeFlow();
+        } catch (error) {
+          clearAuthSession();
+          writeOutput("OIDC init error", {
+            message: error instanceof Error ? error.message : String(error),
           });
+        }
 
+        if (!oidcSession.authenticated) {
+          restoreTokensFromStorage();
+        }
+
+        if (oidcSession.authenticated) {
           try {
-            const authenticated = await keycloak.init({
-              onLoad: "check-sso",
-              pkceMethod: "S256",
-              checkLoginIframe: false,
-            });
-            renderAuthState();
-            writeOutput("Keycloak init", { authenticated });
-            if (authenticated) {
-              await loadExistingDraftFromStorage();
-            }
+            await refreshAccessToken(5);
           } catch (error) {
-            writeOutput("Keycloak init error", {
+            clearAuthSession();
+            writeOutput("OIDC session warning", {
               message: error instanceof Error ? error.message : String(error),
             });
           }
-        };
-        script.onerror = () => {
-          writeOutput("Ошибка", "Не удалось загрузить keycloak.js. Проверьте Keycloak на localhost:8088.");
-        };
-        document.body.appendChild(script);
+        }
+
+        authReady = true;
+        renderAuthState();
+        writeOutput("OIDC init", {
+          authenticated: oidcSession.authenticated,
+          issuer: config.authority,
+          authServer: getRealmBase(),
+        });
+
+        if (oidcSession.authenticated && isApplicantUser()) {
+          await loadExistingDraftFromStorage();
+        }
       }
 
       buttons.prev.addEventListener("click", () => {
@@ -1310,18 +1684,15 @@
       });
 
       buttons.login.addEventListener("click", async () => {
-        if (!keycloak) {
-          return;
-        }
-        await keycloak.login();
+        await loginWithOidc();
       });
 
       buttons.refresh.addEventListener("click", async () => {
-        if (!keycloak) {
+        if (!oidcSession.authenticated) {
           return;
         }
         try {
-          const refreshed = await keycloak.updateToken(30);
+          const refreshed = await refreshAccessToken(30);
           renderAuthState();
           writeOutput("Обновление токена", { refreshed });
         } catch (error) {
@@ -1332,16 +1703,16 @@
       });
 
       buttons.logout.addEventListener("click", async () => {
-        if (!keycloak) {
+        if (!oidcSession.authenticated) {
           return;
         }
-        await keycloak.logout({ redirectUri: window.location.origin });
+        await logoutFromOidc();
       });
 
       renderStep();
       setStatusChip("DRAFT");
       renderAuthState();
-      initKeycloak();
+      initAuth();
     </script>
   </body>
 </html>

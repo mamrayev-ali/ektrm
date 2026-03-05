@@ -1,8 +1,8 @@
-# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2) + Reference Data (T3) + Order 3 Domain Model (T4) + Applicant Wizard (T5) + OPS Review and Protocol Attachment (T6)
+# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2) + Reference Data (T3) + Order 3 Domain Model (T4) + Applicant Wizard (T5) + OPS Review and Protocol Attachment (T6) + Certificate Generation and Snapshot (T7)
 
 Репозиторий содержит AgentKit-процесс и стартовую контейнерную топологию MVP Phase 1 для e-КТРМ.
 
-Реализовано в тикетах `T1`, `T2`, `T3`, `T4`, `T5` и `T6`:
+Реализовано в тикетах `T1`, `T2`, `T3`, `T4`, `T5`, `T6` и `T7`:
 - docker-compose с обязательными контейнерами платформы;
 - bootstrap-скрипты запуска;
 - минимальные runtime-сервисы с `/health` и `/readiness`;
@@ -15,6 +15,8 @@
 - API-операция удаления черновика: `DELETE /applications/{id}/draft` (переводит заявку в `ARCHIVED`).
 - OPS review-контур: очередь ОПС, role-gated переходы review-статусов, прикрепление протокола и автоархивирование после отказа.
 - files-service API для типизированного слота `protocol_test_report` с загрузкой в MinIO и возвратом metadata для привязки к заявке.
+- baseline Ордер 4: автогенерация сертификата из `APPROVED` заявки, immutable snapshot и базовая история статусов сертификата (`GENERATED`).
+- read API сертификатов: `GET /certificates/{id}` и `GET /certificates/by-application/{application_id}`.
 
 ## Быстрый старт
 
@@ -154,6 +156,22 @@ Demo users:
 7. Проверить role-based visibility:
    - Applicant не может вызывать `GET /applications/ops/queue` и OPS review transitions (ожидается `403`).
 
+## T7 Certificate Generation and Snapshot: как проверить
+
+1. Войти как `ops.demo / Ops123456!` (или Bearer с ролью `OPS`) и довести заявку до `PROTOCOL_ATTACHED`.
+2. Выполнить переход в `APPROVED`:
+   - `POST http://localhost:8080/applications/{id}/transitions` с `{"to_status":"APPROVED"}`.
+3. Проверить, что в ответе появился объект `certificate`:
+   - `status = GENERATED`;
+   - заполнены `certificate_number`, `source_application_id`, `snapshot`.
+4. Проверить read API сертификатов:
+   - `GET http://localhost:8080/certificates/by-application/{application_id}`
+   - `GET http://localhost:8080/certificates/{certificate_id}`
+5. Проверить инварианты:
+   - до `APPROVED` сертификат по заявке не находится (`404`);
+   - Applicant не может читать чужой сертификат (`403`);
+   - snapshot не меняется при последующих изменениях payload заявки.
+
 ## Ключевые документы
 
 - `.agentkit/docs/ROADMAP.md` — milestones и ticket plan.
@@ -175,6 +193,7 @@ Windows (PowerShell):
 
 ## Ограничения текущего этапа
 
-- Ордер 3 для заявителя и OPS API-уровня реализован (wizard + draft/submit/delete + OPS queue/review/protocol attachment). Полноценный OPS UI-экран остается в следующем UI-тикете.
+- Ордер 3 для заявителя и OPS API-уровня реализован (wizard + draft/submit/delete + OPS queue/review/protocol attachment), и добавлен backend baseline T7 для генерации сертификата/snapshot.
+- Полноценные операции Ордер 4 `Подписать`/`Публикация` и реестровый lifecycle остаются в T8.
 - Внешние интеграции (ГБД ЮЛ, НУЦ, госреестры) отключены.
 - Реальная ЭЦП не реализуется.

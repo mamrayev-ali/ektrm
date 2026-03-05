@@ -15,7 +15,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Applicant создает/отправляет заявку, OPS проверяет/возвращает/принимает решение, система формирует сертификат, OPS mock-подписывает, сертификат публикуется в реестр, далее доступны post-issuance действия.
 - Tech stack:
   - Целевой: Angular SPA, Python/FastAPI микросервисы, PostgreSQL + SQLAlchemy/Alembic, Redis + Celery, MinIO, Keycloak, WebSocket, Docker Compose.
-  - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`) + OPS review/protocol attachment API (`T6`).
+  - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`) + OPS review/protocol attachment API (`T6`) + baseline генерации сертификата/snapshot (`T7`).
 - Where to start reading the code:
   - `docker-compose.yml`,
   - `services/runtime/app/main.py`,
@@ -63,6 +63,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Для T3 добавлены reference-data endpoint-ы: `/reference-data/dictionaries`, `/reference-data/dictionaries/{code}/items`, `/reference-data/ops-registry`, `/reference-data/accreditation-attestats`.
   - Для T4/T5 добавлены applications endpoint-ы: `/applications/drafts`, `/applications/{id}/draft` (`PUT` и `DELETE`), `/applications/{id}/submit`, `/applications/{id}/transitions`, `/applications/{id}/history`.
   - Для T6 добавлены OPS/file endpoint-ы: `/applications/ops/queue`, `/applications/{id}/protocol/attach`, `/files/slots/upload`.
+  - Для T7 добавлены certificate endpoint-ы: `/certificates/{id}`, `/certificates/by-application/{application_id}` и генерация сертификата при переходе `PROTOCOL_ATTACHED -> APPROVED`.
 - Error handling strategy:
   - Frontend: пользовательские сообщения + field-level validation state.
   - Backend: структурированные ошибки с доменными кодами и без утечки чувствительных данных.
@@ -113,13 +114,14 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Alembic migration chain + deterministic seed scripts.
   - Реализован baseline migration `20260305_0001` с созданием обязательных справочников и seeded lookup-таблиц.
   - Реализован migration `20260305_0002` для таблиц Ордер 3: `cert_application`, `cert_application_status_history`.
+  - Реализован migration `20260305_0003` для baseline Ордер 4: `certificate`, `certificate_status_history`.
   - Любые изменения схемы через отдельные migration tickets.
 - Rollback approach:
   - Для каждого migration тикета обязателен rollback-план (down migration/compensation).
   - На risky migrations требуется отдельный PR.
 - Critical tables/collections (high level):
   - Applications: `cert_application`, `cert_application_status_history`.
-  - Certificates: `certificate`, `certificate_version`, `certificate_status_history`.
+  - Certificates: `certificate`, `certificate_status_history` (T7 baseline), `certificate_version` (planned in T10).
   - Post-issuance: `post_issuance_application`, `post_issuance_status_history`.
   - Reference: `ref_*`, `ops_registry`, `accreditation_attestat`.
   - Infra/domain cross-cutting: `stored_file`, `notification`, `audit_log`, `field_audit_log`.
@@ -227,43 +229,85 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - public surface / key exports:
     - revision `20260305_0001` (T3) создает таблицы `reference_dictionaries`, `reference_dictionary_items`, `ops_registry`, `accreditation_attestats`.
     - revision `20260305_0002` (T4) создает таблицы `cert_application` и `cert_application_status_history` с уникальностью `application_number`.
+    - revision `20260305_0003` (T7) создает таблицы `certificate` и `certificate_status_history` с инвариантом «одна `APPROVED` заявка -> один baseline сертификат».
   - invariants / assumptions:
     - seed выполняется idempotent-вставками (`ON CONFLICT DO NOTHING`) для стабильного bootstrap.
   - dependencies:
-    - `services/runtime/app/models/reference_data.py`, `services/runtime/app/seed/reference_data_seed.py`.
+    - `services/runtime/app/models/reference_data.py`, `services/runtime/app/models/certificate.py`, `services/runtime/app/seed/reference_data_seed.py`.
   - tests:
-    - `services/runtime/tests/test_reference_data.py` + SQL sanity checks после `alembic upgrade head`.
+    - `services/runtime/tests/test_reference_data.py`, `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py` + SQL sanity checks после `alembic upgrade head`.
 - `services/runtime/app/models/application.py` — SQLAlchemy-модель заявок Ордер 3 и истории статусов.
   - public surface / key exports:
-    - `CertApplication`, `CertApplicationStatusHistory`.
+    - `CertApplication`, `CertApplicationStatusHistory`, связь `CertApplication.certificate` (one-to-one baseline T7).
   - invariants / assumptions:
     - `application_number` уникален;
     - каждое изменение статуса фиксируется в `cert_application_status_history`.
   - dependencies:
-    - `services/runtime/alembic/versions/20260305_0002_t4_order3_domain_model.py`, state-service слой.
+    - `services/runtime/alembic/versions/20260305_0002_t4_order3_domain_model.py`, `services/runtime/alembic/versions/20260305_0003_t7_certificate_generation_snapshot.py`, state-service слой.
   - tests:
-    - `services/runtime/tests/test_application_state_engine.py`, `services/runtime/tests/test_applications_api.py`.
+    - `services/runtime/tests/test_application_state_engine.py`, `services/runtime/tests/test_applications_api.py`, `services/runtime/tests/test_certificate_service.py`.
+- `services/runtime/app/models/certificate.py` — SQLAlchemy-модель baseline сертификата и истории его статусов (T7).
+  - public surface / key exports:
+    - `Certificate`, `CertificateStatusHistory`.
+  - invariants / assumptions:
+    - сертификат создается только из `APPROVED` заявки;
+    - `source_application_id` уникален (one-to-one baseline);
+    - snapshot хранится в `snapshot_json` и не зависит от последующих изменений заявки.
+  - dependencies:
+    - `services/runtime/alembic/versions/20260305_0003_t7_certificate_generation_snapshot.py`, `services/runtime/app/services/certificate_service.py`.
+  - tests:
+    - `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py`.
 - `services/runtime/app/services/application_state_service.py` — доменный state engine Ордер 3.
   - public surface / key exports:
-    - transition map `DRAFT -> ... -> COMPLETED`, submit-валидация обязательных полей, удаление черновика в `ARCHIVED`, OPS queue, attach protocol, автоархивирование после отказа, запись status history.
+    - transition map `DRAFT -> ... -> COMPLETED`, submit-валидация обязательных полей, удаление черновика в `ARCHIVED`, OPS queue, attach protocol, автоархивирование после отказа, запись status history, генерация сертификата при `APPROVED`.
   - invariants / assumptions:
     - недопустимые переходы запрещены (`409`);
     - submit невозможен при неполном payload (`422`);
     - удаление допускается только для статусов `DRAFT`/`REVISION_REQUESTED`.
     - review-переходы требуют роль `OPS` (`403` при нарушении).
+    - переход `PROTOCOL_ATTACHED -> APPROVED` формирует сертификат со статусом `GENERATED`.
   - dependencies:
-    - `services/runtime/app/repositories/application_repository.py`, `app/auth.py`.
+    - `services/runtime/app/repositories/application_repository.py`, `services/runtime/app/services/certificate_service.py`, `app/auth.py`.
   - tests:
-    - `services/runtime/tests/test_application_state_engine.py`.
+    - `services/runtime/tests/test_application_state_engine.py`, `services/runtime/tests/test_certificate_service.py`.
 - `services/runtime/app/routers/applications.py` — API слой Ордер 3.
   - public surface / key exports:
     - endpoint-ы create/update/delete draft, submit, transition, read, history, `GET /applications/ops/queue`, `POST /applications/{id}/protocol/attach`.
+    - при переходе в `APPROVED` ответ включает объект `certificate` c baseline данными созданного сертификата.
   - invariants / assumptions:
     - backend проверяет ownership (`Applicant`) и full-access для `OPS`.
   - dependencies:
-    - `ApplicationStateService`, DB session dependency.
+    - `ApplicationStateService`, `CertificateService`, DB session dependency.
   - tests:
     - `services/runtime/tests/test_applications_api.py`.
+- `services/runtime/app/repositories/certificate_repository.py` — persistence слой сертификатов (T7).
+  - public surface / key exports:
+    - `get_certificate`, `get_by_source_application`, `create_certificate`, `add_history`.
+  - invariants / assumptions:
+    - создание сертификата фиксирует статус `GENERATED` через отдельную history-запись.
+  - dependencies:
+    - `services/runtime/app/models/certificate.py`.
+  - tests:
+    - `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py`.
+- `services/runtime/app/services/certificate_service.py` — доменный сервис генерации и чтения сертификатов (T7).
+  - public surface / key exports:
+    - `generate_for_approved_application`, `get_certificate`, `get_certificate_by_application`.
+  - invariants / assumptions:
+    - генерация разрешена только для `APPROVED`;
+    - ownership enforcement: Applicant только свои сертификаты, OPS — все.
+  - dependencies:
+    - `services/runtime/app/repositories/certificate_repository.py`, `app/auth.py`.
+  - tests:
+    - `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py`.
+- `services/runtime/app/routers/certificates.py` — read API сертификатов (T7 baseline).
+  - public surface / key exports:
+    - `GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`.
+  - invariants / assumptions:
+    - чтение защищено backend RBAC + ownership checks.
+  - dependencies:
+    - `CertificateService`, DB session dependency.
+  - tests:
+    - `services/runtime/tests/test_certificates_api.py`.
 - `services/runtime/app/services/file_slot_service.py` — сервис типизированных file slots в MinIO для T6.
   - public surface / key exports:
     - слот `protocol_test_report`, валидации расширения/размера/base64, генерация object key, upload в MinIO.
@@ -323,7 +367,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `docker-compose.yml`, bootstrap scripts.
   - tests:
     - копирование в `.env` и успешный `docker compose up`.
-- `README.md` — runbook T1..T6 для запуска, auth/reference-data/applications/files smoke.
+- `README.md` — runbook T1..T7 для запуска, auth/reference-data/applications/files/certificates smoke.
   - public surface / key exports:
     - quickstart, контейнерная топология, keycloak bootstrap, verify команды.
   - invariants / assumptions:
@@ -415,6 +459,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-05 [t7-certificate-generation-and-snapshot] Реализован T7 backend baseline Ордер 4: добавлены модели `certificate`/`certificate_status_history`, Alembic migration `20260305_0003`, сервис генерации сертификата из `APPROVED` заявки с immutable snapshot, read API (`GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`), интеграция генерации в переход `PROTOCOL_ATTACHED -> APPROVED`, добавлены тесты `test_certificate_service.py`, `test_certificates_api.py` и расширены `test_applications_api.py`.
 - 2026-03-05 [t6-ops-review-and-protocol-attachment] Реализован T6 backend-контур: OPS queue (`GET /applications/ops/queue`), role-gated review transitions, attach protocol (`POST /applications/{id}/protocol/attach`), files-service upload (`POST /files/slots/upload`) через MinIO slot `protocol_test_report`, автоархивирование после отказа с history-нотой уведомления, добавлены тесты `test_application_state_engine.py`, `test_applications_api.py`, `test_files_api.py`.
 - 2026-03-05 [t5-order-3-applicant-ui-wizard] Реализован T5: обновлен `frontend/index.html` в wizard Ордер 3 (8 шагов, submit-валидации, действия `Сохранить черновик`/`Подписать и отправить`/`Удалить черновик`), в backend добавлен `DELETE /applications/{id}/draft` с переводом в `ARCHIVED`, дополнены тесты `test_application_state_engine.py` и `test_applications_api.py`.
 - 2026-03-05 [t4-order-3-domain-model-and-state-engine] Реализован T4: добавлены модели `cert_application`/`cert_application_status_history`, Alembic migration `20260305_0002`, state engine переходов Ордер 3, applications API (`draft/submit/transitions/history`) и тесты `test_application_state_engine.py`, `test_applications_api.py`.

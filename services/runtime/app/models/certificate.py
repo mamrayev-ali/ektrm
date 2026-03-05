@@ -8,15 +8,24 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
 
-class CertApplication(Base):
-    __tablename__ = "cert_application"
+class Certificate(Base):
+    __tablename__ = "certificate"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    application_number: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
+    certificate_number: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
+    source_application_id: Mapped[int] = mapped_column(
+        ForeignKey("cert_application.id", ondelete="RESTRICT"),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+    source_application_number: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     applicant_subject: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     applicant_username: Mapped[str] = mapped_column(String(255), nullable=False)
-    payload_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    snapshot_json: Mapped[str] = mapped_column(Text, nullable=False)
+    generated_by_subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -25,23 +34,20 @@ class CertApplication(Base):
         onupdate=func.now(),
     )
 
-    status_history: Mapped[list["CertApplicationStatusHistory"]] = relationship(
-        back_populates="application",
+    source_application: Mapped["CertApplication"] = relationship(back_populates="certificate")
+    status_history: Mapped[list["CertificateStatusHistory"]] = relationship(
+        back_populates="certificate",
         cascade="all, delete-orphan",
-        order_by="CertApplicationStatusHistory.changed_at",
-    )
-    certificate: Mapped["Certificate | None"] = relationship(
-        back_populates="source_application",
-        uselist=False,
+        order_by="CertificateStatusHistory.changed_at",
     )
 
 
-class CertApplicationStatusHistory(Base):
-    __tablename__ = "cert_application_status_history"
+class CertificateStatusHistory(Base):
+    __tablename__ = "certificate_status_history"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    application_id: Mapped[int] = mapped_column(
-        ForeignKey("cert_application.id", ondelete="CASCADE"),
+    certificate_id: Mapped[int] = mapped_column(
+        ForeignKey("certificate.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -51,4 +57,4 @@ class CertApplicationStatusHistory(Base):
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), index=True)
 
-    application: Mapped[CertApplication] = relationship(back_populates="status_history")
+    certificate: Mapped[Certificate] = relationship(back_populates="status_history")

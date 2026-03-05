@@ -188,6 +188,27 @@ class ApplicationsApiTests(unittest.TestCase):
         )
         self.assertEqual(attach.status_code, 403)
 
+    def test_approved_transition_returns_generated_certificate(self) -> None:
+        app_id = self._create_and_submit()
+        self._set_auth_user(self._ops_user())
+
+        for to_status in ("REGISTERED", "IN_REVIEW", "PROTOCOL_ATTACHED"):
+            response = self._client.post(
+                f"/applications/{app_id}/transitions",
+                json={"to_status": to_status},
+            )
+            self.assertEqual(response.status_code, 200)
+
+        approved = self._client.post(
+            f"/applications/{app_id}/transitions",
+            json={"to_status": "APPROVED"},
+        )
+        self.assertEqual(approved.status_code, 200)
+        body = approved.json()
+        self.assertEqual(body["status"], "APPROVED")
+        self.assertEqual(body["certificate"]["status"], "GENERATED")
+        self.assertEqual(body["certificate"]["source_application_id"], app_id)
+
     def test_reject_transition_auto_archives(self) -> None:
         app_id = self._create_and_submit()
         self._set_auth_user(self._ops_user())

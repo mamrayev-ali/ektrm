@@ -9,7 +9,9 @@ from sqlalchemy.orm import Session
 from app.auth import CurrentUser, get_current_user
 from app.db import get_session
 from app.repositories.application_repository import ApplicationRepository
+from app.repositories.certificate_repository import CertificateRepository
 from app.services.application_state_service import ApplicationStateService
+from app.services.certificate_service import CertificateService
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -29,7 +31,11 @@ class ProtocolAttachRequest(BaseModel):
 
 
 def _get_service(session: Session = Depends(get_session)) -> ApplicationStateService:
-    return ApplicationStateService(ApplicationRepository(session))
+    certificate_service = CertificateService(CertificateRepository(session))
+    return ApplicationStateService(
+        ApplicationRepository(session),
+        certificate_service=certificate_service,
+    )
 
 
 @router.post("/drafts")

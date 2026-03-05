@@ -56,6 +56,15 @@ def submit_application(
     )
 
 
+@router.delete("/{application_id}/draft")
+def delete_draft(
+    application_id: int,
+    current_user: CurrentUser = Depends(get_current_user),
+    service: ApplicationStateService = Depends(_get_service),
+) -> dict[str, Any]:
+    return service.delete_draft(application_id=application_id, current_user=current_user)
+
+
 @router.post("/{application_id}/transitions")
 def transition_application(
     application_id: int,

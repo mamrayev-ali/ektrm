@@ -3,73 +3,400 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>e-KTRM MVP T2: Auth Baseline</title>
+    <title>e-КТРМ T5: Заявка Ордер 3</title>
     <style>
       :root {
-        --bg-start: #eff6ff;
-        --bg-end: #dbeafe;
-        --card-bg: #ffffff;
-        --text-main: #0f172a;
-        --text-muted: #475569;
-        --accent: #0b6e4f;
-        --accent-hover: #07563e;
-        --danger: #b91c1c;
-        --border: #cbd5e1;
+        --bg-top: #f5f7ef;
+        --bg-bottom: #e7efe6;
+        --surface: #ffffff;
+        --surface-soft: #f7faf5;
+        --text-main: #1f2d22;
+        --text-muted: #5b6d61;
+        --line: #c9d7c9;
+        --brand: #1f6b4b;
+        --brand-strong: #175238;
+        --danger: #9f2e2e;
+        --success: #286239;
+      }
+
+      * {
+        box-sizing: border-box;
       }
 
       body {
         margin: 0;
-        font-family: "Segoe UI", "Noto Sans", sans-serif;
+        min-height: 100vh;
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
         color: var(--text-main);
         background:
-          radial-gradient(circle at 0% 0%, rgba(11, 110, 79, 0.15), transparent 35%),
-          linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+          radial-gradient(circle at 8% 4%, rgba(31, 107, 75, 0.14), transparent 34%),
+          linear-gradient(140deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
       }
 
-      main {
-        max-width: 1040px;
-        margin: 24px auto;
-        padding: 16px;
+      .header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--line);
       }
 
-      .card {
-        background: var(--card-bg);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.09);
-        padding: 20px;
-      }
-
-      h1 {
-        margin: 0 0 8px;
-        font-size: 1.65rem;
-      }
-
-      p {
-        margin: 0;
-        color: var(--text-muted);
-      }
-
-      .grid {
-        margin-top: 20px;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      .header-inner {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         gap: 12px;
       }
 
-      .panel {
-        border: 1px solid var(--border);
+      .brand {
+        font-family: "Palatino Linotype", "Book Antiqua", serif;
+        font-size: 1.4rem;
+        font-weight: 700;
+      }
+
+      .brand em {
+        color: var(--brand);
+        font-style: normal;
+      }
+
+      .menu {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .menu-item {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 7px 12px;
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        background: #fff;
+      }
+
+      .menu-item.active {
+        border-color: var(--brand);
+        color: var(--brand);
+        font-weight: 700;
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.84rem;
+        color: var(--text-muted);
+      }
+
+      .shell {
+        max-width: 1320px;
+        margin: 18px auto;
+        padding: 0 16px 22px;
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 14px;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: 0 12px 28px rgba(24, 40, 31, 0.08);
+      }
+
+      .sidebar {
+        padding: 16px;
+        align-self: start;
+        position: sticky;
+        top: 80px;
+      }
+
+      .app-meta {
+        margin-bottom: 14px;
+        padding: 12px;
         border-radius: 12px;
-        padding: 14px;
-        background: #f8fafc;
+        background: var(--surface-soft);
+        border: 1px solid var(--line);
       }
 
-      .panel h2 {
-        margin: 0 0 10px;
+      .meta-id {
+        font-weight: 700;
+        font-size: 0.98rem;
+      }
+
+      .meta-sub {
+        margin-top: 3px;
+        color: var(--text-muted);
+        font-size: 0.84rem;
+      }
+
+      .chip {
+        display: inline-block;
+        margin-top: 8px;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 0.77rem;
+        font-weight: 700;
+      }
+
+      .chip.warning {
+        color: #6c4a05;
+        background: #fff2c8;
+      }
+
+      .chip.success {
+        color: #184b28;
+        background: #dff3e4;
+      }
+
+      .chip.danger {
+        color: #6f1f1f;
+        background: #ffdede;
+      }
+
+      .steps {
+        display: grid;
+        gap: 7px;
+      }
+
+      .step-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        background: #ffffff;
+        border-radius: 10px;
+        color: var(--text-muted);
+        font-size: 0.88rem;
+        cursor: pointer;
+      }
+
+      .step-item.active {
+        border-color: var(--brand);
+        color: var(--brand);
+        font-weight: 700;
+      }
+
+      .step-item.done {
+        color: #2f5b43;
+      }
+
+      .bullet {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--line);
+        font-size: 0.78rem;
+      }
+
+      .step-item.active .bullet {
+        border-color: var(--brand);
+        background: var(--brand);
+        color: #fff;
+      }
+
+      .main {
+        padding: 16px;
+      }
+      .page-head {
+        margin-bottom: 14px;
+      }
+
+      .page-eyebrow {
+        color: var(--text-muted);
+        font-size: 0.84rem;
+      }
+
+      h1 {
+        margin: 4px 0 0;
+        font-size: 1.6rem;
+      }
+
+      .process {
+        margin-bottom: 12px;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(130px, 1fr));
+        gap: 8px;
+      }
+
+      .process-step {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 9px;
+        background: #fff;
+      }
+
+      .process-step .n {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+
+      .process-step .name {
+        margin-top: 2px;
+        font-weight: 700;
+        font-size: 0.88rem;
+      }
+
+      .process-step .who {
+        margin-top: 2px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .process-step.active {
+        border-color: var(--brand);
+        background: #eff8f2;
+      }
+
+      .section {
+        margin-bottom: 12px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        background: #fff;
+      }
+
+      .section.hidden {
+        display: none;
+      }
+
+      .section-head {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface-soft);
+      }
+
+      .section-title {
         font-size: 1.05rem;
+        font-weight: 700;
       }
 
-      .buttons {
+      .section-sub {
+        margin-top: 2px;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+
+      .section-body {
+        padding: 12px;
+      }
+
+      .grid-2,
+      .grid-3 {
+        display: grid;
+        gap: 10px;
+      }
+
+      .grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .field {
+        display: grid;
+        gap: 5px;
+      }
+
+      .field label {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+
+      .required {
+        color: var(--danger);
+      }
+
+      .field input,
+      .field select,
+      .field textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 9px 10px;
+        font-size: 0.92rem;
+        font-family: inherit;
+        color: var(--text-main);
+        background: #fff;
+      }
+
+      .field textarea {
+        min-height: 96px;
+        resize: vertical;
+      }
+
+      .field .hint {
+        font-size: 0.76rem;
+        color: var(--text-muted);
+      }
+
+      .field.error input,
+      .field.error select,
+      .field.error textarea {
+        border-color: var(--danger);
+        background: #fff3f3;
+      }
+
+      .field .error-text {
+        font-size: 0.76rem;
+        color: var(--danger);
+      }
+
+      .doc-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .doc-item {
+        border: 1px dashed var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        background: var(--surface-soft);
+      }
+
+      .doc-item label {
+        display: block;
+        font-size: 0.8rem;
+        margin-bottom: 6px;
+        color: var(--text-muted);
+      }
+
+      .obligation {
+        margin-top: 10px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        background: #fafdf8;
+      }
+
+      .checks {
+        margin-top: 8px;
+        display: grid;
+        gap: 8px;
+        font-size: 0.84rem;
+      }
+
+      .checks label {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+      }
+
+      .action-bar {
+        margin-top: 8px;
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
@@ -77,147 +404,805 @@
 
       button {
         border: 0;
-        border-radius: 8px;
-        padding: 8px 12px;
-        font-size: 0.92rem;
+        border-radius: 10px;
+        padding: 9px 12px;
+        font-size: 0.9rem;
+        font-family: inherit;
         cursor: pointer;
-        background: var(--accent);
+      }
+      .btn-primary {
+        background: var(--brand);
         color: #fff;
       }
 
-      button:hover {
-        background: var(--accent-hover);
+      .btn-primary:hover {
+        background: var(--brand-strong);
       }
 
-      button[data-variant="danger"] {
-        background: var(--danger);
+      .btn-secondary {
+        background: #e4ece2;
+        color: #234233;
+      }
+
+      .btn-danger {
+        background: #f8dddd;
+        color: #7a2222;
       }
 
       button:disabled {
-        background: #94a3b8;
+        background: #cad7cc;
+        color: #6a7a70;
         cursor: not-allowed;
       }
 
-      .meta {
+      .session {
         margin-top: 12px;
-        font-size: 0.9rem;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px;
+        background: #fbfdfb;
+      }
+
+      .session .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .session-meta {
+        margin-top: 8px;
+        font-size: 0.82rem;
         color: var(--text-muted);
       }
 
-      pre {
-        margin: 0;
-        max-height: 360px;
-        overflow: auto;
-        border-radius: 10px;
-        padding: 12px;
-        background: #0b1220;
-        color: #e2e8f0;
-        font-size: 0.83rem;
-        line-height: 1.45;
-      }
-
-      .code-line {
+      .api-output {
         margin-top: 10px;
-        font-size: 0.9rem;
-        color: var(--text-muted);
+        border: 1px solid #1d2c20;
+        border-radius: 10px;
+        background: #111c14;
+        color: #dcf0df;
+        font-size: 0.8rem;
+        line-height: 1.4;
+        padding: 10px;
+        max-height: 280px;
+        overflow: auto;
       }
 
-      code {
-        background: #e2e8f0;
-        padding: 2px 6px;
-        border-radius: 4px;
+      @media (max-width: 1080px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: static;
+        }
+
+        .process {
+          grid-template-columns: repeat(2, minmax(120px, 1fr));
+        }
+      }
+
+      @media (max-width: 760px) {
+        .header-inner {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .grid-2,
+        .grid-3,
+        .doc-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .process {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
-    <main>
-      <section class="card">
-        <h1>e-KTRM T2: Keycloak + RBAC baseline</h1>
-        <p>
-          Демо-страница авторизации OIDC (Code + PKCE) и проверки ролей
-          <code>Applicant</code> / <code>OPS</code> через gateway backend.
-        </p>
-        <div class="meta">
-          Demo users: <code>applicant.demo / Applicant123!</code>,
-          <code>ops.demo / Ops123456!</code>
+    <header class="header">
+      <div class="header-inner">
+        <div class="brand"><em>e</em>-КТРМ</div>
+        <nav class="menu" aria-label="Главное меню">
+          <span class="menu-item">Главная</span>
+          <span class="menu-item active">Заявки</span>
+          <span class="menu-item">Реестр сертификатов</span>
+          <span class="menu-item">Справочники</span>
+        </nav>
+        <div class="header-right">
+          <span>Ордер 3</span>
+          <span id="authState">не авторизован</span>
         </div>
-      </section>
+      </div>
+    </header>
 
-      <section class="grid">
-        <article class="panel">
-          <h2>Сессия</h2>
-          <div class="buttons">
-            <button id="loginBtn">Войти</button>
-            <button id="logoutBtn" data-variant="danger">Выйти</button>
-            <button id="refreshBtn">Обновить токен</button>
-          </div>
-          <div class="meta">
-            Статус: <strong id="authState">инициализация...</strong>
-          </div>
-          <div class="meta">
-            Пользователь: <span id="username">-</span>
-          </div>
-          <div class="meta">
-            Роли: <span id="roles">-</span>
-          </div>
-        </article>
+    <div class="shell">
+      <aside class="card sidebar">
+        <div class="app-meta">
+          <div class="meta-id" id="appNumber">Заявка: не создана</div>
+          <div class="meta-sub" id="currentStepLabel">Шаг 1 из 8</div>
+          <span class="chip warning" id="statusChip">DRAFT</span>
+        </div>
+        <div class="steps" id="stepsNav"></div>
+      </aside>
 
-        <article class="panel">
-          <h2>Protected API</h2>
-          <div class="buttons">
-            <button id="whoamiBtn">GET /auth/me</button>
-            <button id="applicantBtn">GET /auth/applicant-area</button>
-            <button id="opsBtn">GET /auth/ops-area</button>
+      <main class="card main">
+        <div class="page-head">
+          <div class="page-eyebrow">Сертификация соответствия продукции РК</div>
+          <h1>Заявка на проведение сертификации</h1>
+        </div>
+
+        <section class="process" aria-label="Процесс Ордер 3">
+          <article class="process-step active">
+            <div class="n">01 — Заявитель</div>
+            <div class="name">Подача</div>
+            <div class="who">Заявитель</div>
+          </article>
+          <article class="process-step">
+            <div class="n">02 — Система</div>
+            <div class="name">Регистрация</div>
+            <div class="who">Автоматически</div>
+          </article>
+          <article class="process-step">
+            <div class="n">03 — ОПС</div>
+            <div class="name">Проверка</div>
+            <div class="who">Ответственный ОПС</div>
+          </article>
+          <article class="process-step">
+            <div class="n">04 — ОПС</div>
+            <div class="name">Решение</div>
+            <div class="who">Ответственный ОПС</div>
+          </article>
+          <article class="process-step">
+            <div class="n">05 — Система</div>
+            <div class="name">Сертификат</div>
+            <div class="who">Формирование</div>
+          </article>
+        </section>
+
+        <div id="sectionsWrap">
+          <section class="section" data-step="0">
+            <div class="section-head">
+              <div class="section-title">Заявитель</div>
+              <div class="section-sub">Обязательные данные для подачи заявки</div>
+            </div>
+            <div class="section-body">
+              <div class="grid-3">
+                <div class="field" data-field="certification_kind">
+                  <label>Вид сертификации <span class="required">*</span></label>
+                  <select id="certification_kind">
+                    <option value="">Выберите</option>
+                    <option value="Обязательная">Обязательная</option>
+                    <option value="Добровольная">Добровольная</option>
+                  </select>
+                </div>
+                <div class="field" data-field="applicant_type">
+                  <label>Тип заявителя <span class="required">*</span></label>
+                  <select id="applicant_type">
+                    <option value="">Выберите</option>
+                    <option value="Резидент РК">Резидент РК</option>
+                    <option value="Резидент ЕАЭС">Резидент ЕАЭС</option>
+                  </select>
+                </div>
+                <div class="field" data-field="submission_from">
+                  <label>Подача заявки от <span class="required">*</span></label>
+                  <select id="submission_from">
+                    <option value="">Выберите</option>
+                    <option value="Изготовитель">Изготовитель</option>
+                    <option value="Уполномоченное лицо">Уполномоченное лицо</option>
+                    <option value="Продавец (Импортер)">Продавец (Импортер)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="grid-2" style="margin-top: 10px">
+                <div class="field" data-field="applicant_name">
+                  <label>Полное наименование <span class="required">*</span></label>
+                  <input id="applicant_name" type="text" placeholder="ТОО Пример" />
+                </div>
+                <div class="field" data-field="applicant_bin">
+                  <label>БИН <span class="required">*</span></label>
+                  <input id="applicant_bin" type="text" placeholder="10 цифр" maxlength="10" />
+                  <span class="hint">Формат: 10 цифр</span>
+                </div>
+                <div class="field" data-field="phone">
+                  <label>Мобильный телефон <span class="required">*</span></label>
+                  <input id="phone" type="tel" placeholder="+7(7##) ### ## ##" />
+                </div>
+                <div class="field" data-field="email">
+                  <label>Email <span class="required">*</span></label>
+                  <input id="email" type="email" placeholder="example@company.kz" />
+                </div>
+              </div>
+              <div class="obligation">
+                Настоящей заявкой заявитель подтверждает достоверность данных и соблюдение процедур подтверждения соответствия.
+              </div>
+              <div class="checks">
+                <label>
+                  <input id="agree_procedure" type="checkbox" />
+                  <span>Принимаю обязательство соблюдения процедур</span>
+                </label>
+                <label>
+                  <input id="agree_data" type="checkbox" />
+                  <span>Даю согласие на обработку персональных данных</span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section class="section hidden" data-step="1">
+            <div class="section-head">
+              <div class="section-title">Адрес заявителя</div>
+              <div class="section-sub">Юридический и фактический адрес</div>
+            </div>
+            <div class="section-body">
+              <div class="grid-2">
+                <div class="field" data-field="applicant_address">
+                  <label>Юридический адрес <span class="required">*</span></label>
+                  <input id="applicant_address" type="text" placeholder="г. Алматы, ул. ..." />
+                </div>
+                <div class="field">
+                  <label>Фактический адрес</label>
+                  <input id="actual_address" type="text" placeholder="При наличии" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section hidden" data-step="2">
+            <div class="section-head">
+              <div class="section-title">ОПС</div>
+              <div class="section-sub">Выбор органа и аттестата</div>
+            </div>
+            <div class="section-body">
+              <div class="grid-3">
+                <div class="field" data-field="ops_code">
+                  <label>Орган по подтверждению соответствия <span class="required">*</span></label>
+                  <select id="ops_code">
+                    <option value="">Выберите из реестра</option>
+                    <option value="OPS-KZ-001">OPS-KZ-001 | ТОО Cert KZ</option>
+                    <option value="OPS-KZ-002">OPS-KZ-002 | ТОО National Test</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Аттестат аккредитации</label>
+                  <select id="accreditation_no">
+                    <option value="">Выберите</option>
+                    <option value="KZ.I.00.1234.2022">KZ.I.00.1234.2022</option>
+                    <option value="KZ.I.00.5678.2021">KZ.I.00.5678.2021</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Руководитель ОПС</label>
+                  <input id="ops_manager" type="text" placeholder="ФИО" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section hidden" data-step="3">
+            <div class="section-head">
+              <div class="section-title">Схема сертификации</div>
+              <div class="section-sub">Выбор схемы и параметров</div>
+            </div>
+            <div class="section-body">
+              <div class="grid-2">
+                <div class="field" data-field="cert_scheme_code">
+                  <label>Схема сертификации <span class="required">*</span></label>
+                  <select id="cert_scheme_code">
+                    <option value="">Выберите схему</option>
+                    <option value="SCHEME-1">SCHEME-1</option>
+                    <option value="SCHEME-2">SCHEME-2</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Формат подачи</label>
+                  <select id="submission_format">
+                    <option value="Самостоятельно">Самостоятельно</option>
+                    <option value="ОПС с бумажного носителя">ОПС с бумажного носителя</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section hidden" data-step="4">
+            <div class="section-head">
+              <div class="section-title">Данные по продукции</div>
+              <div class="section-sub">Основные сведения о продукции</div>
+            </div>
+            <div class="section-body">
+              <div class="grid-3">
+                <div class="field" data-field="product_name">
+                  <label>Наименование продукции <span class="required">*</span></label>
+                  <input id="product_name" type="text" placeholder="Например: Насос" />
+                </div>
+                <div class="field">
+                  <label>Код ТН ВЭД</label>
+                  <input id="tnved_code" type="text" placeholder="10 знаков" />
+                </div>
+                <div class="field">
+                  <label>Тип продукции</label>
+                  <input id="product_type" type="text" placeholder="Тип" />
+                </div>
+              </div>
+              <div class="grid-2" style="margin-top: 10px">
+                <div class="field">
+                  <label>Нормативный документ</label>
+                  <input id="normative_doc" type="text" placeholder="ГОСТ/СТ РК/..." />
+                </div>
+                <div class="field">
+                  <label>Документ изготовления</label>
+                  <input id="manufacture_doc" type="text" placeholder="ТУ/СТО/..." />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section hidden" data-step="5">
+            <div class="section-head">
+              <div class="section-title">Приложение</div>
+              <div class="section-sub">Табличные данные по продукции</div>
+            </div>
+            <div class="section-body">
+              <div class="field">
+                <label>Строки приложения (JSON или текст)</label>
+                <textarea id="appendix_rows" placeholder='[{"name":"Позиция 1","qty":"10"}]'></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="section hidden" data-step="6">
+            <div class="section-head">
+              <div class="section-title">Документы для оценки соответствия</div>
+              <div class="section-sub">Подготовьте пакет документов (MVP: UI-уровень)</div>
+            </div>
+            <div class="section-body">
+              <div class="doc-grid">
+                <div class="doc-item">
+                  <label>Заявка с подписью и печатью</label>
+                  <input id="doc_signed" type="file" />
+                </div>
+                <div class="doc-item">
+                  <label>Техническая документация</label>
+                  <input id="doc_tech" type="file" />
+                </div>
+                <div class="doc-item">
+                  <label>Список стандартов</label>
+                  <input id="doc_standards" type="file" />
+                </div>
+                <div class="doc-item">
+                  <label>Иные документы</label>
+                  <input id="doc_other" type="file" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section hidden" data-step="7">
+            <div class="section-head">
+              <div class="section-title">Примечание</div>
+              <div class="section-sub">Дополнительная информация по заявке</div>
+            </div>
+            <div class="section-body">
+              <div class="field">
+                <label>Примечание</label>
+                <textarea id="note" placeholder="Текст примечания"></textarea>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn-secondary" id="prevStepBtn">Назад</button>
+          <button class="btn-secondary" id="nextStepBtn">Сохранить и продолжить</button>
+          <button class="btn-secondary" id="saveDraftBtn">Сохранить черновик</button>
+          <button class="btn-primary" id="submitBtn">Подписать и отправить</button>
+          <button class="btn-danger" id="deleteDraftBtn">Удалить черновик</button>
+        </div>
+
+        <section class="session">
+          <div class="row" style="margin-bottom: 6px">
+            <button class="btn-primary" id="loginBtn">Войти</button>
+            <button class="btn-secondary" id="refreshBtn">Обновить токен</button>
+            <button class="btn-danger" id="logoutBtn">Выйти</button>
           </div>
-          <p class="code-line">
+          <div class="session-meta">
+            Пользователь: <span id="username">-</span> | Роли: <span id="roles">-</span>
+          </div>
+          <div class="session-meta">
             API base: <code id="apiBaseLabel">http://localhost:8080</code>
-          </p>
-        </article>
-
-        <article class="panel" style="grid-column: 1 / -1">
-          <h2>Ответ API / диагностика</h2>
-          <pre id="output">Ожидание действий пользователя...</pre>
-        </article>
-      </section>
-    </main>
+          </div>
+          <pre class="api-output" id="output">Ожидание действий пользователя...</pre>
+        </section>
+      </main>
+    </div>
 
     <script>
       const config = {
         authority: "http://localhost:8088/realms/ektrm",
         clientId: "ektrm-web",
         apiBase: "http://localhost:8080",
+        draftStorageKey: "ektrm_t5_current_application_id",
       };
+
+      const STEP_TITLES = [
+        "Заявитель",
+        "Адрес заявителя",
+        "ОПС",
+        "Схема сертификации",
+        "Данные по продукции",
+        "Приложение",
+        "Документы",
+        "Примечание",
+      ];
+
+      const REQUIRED_FIELDS = [
+        "applicant_name",
+        "applicant_bin",
+        "applicant_address",
+        "ops_code",
+        "cert_scheme_code",
+        "product_name",
+        "phone",
+        "email",
+      ];
 
       const output = document.getElementById("output");
       const authState = document.getElementById("authState");
       const username = document.getElementById("username");
       const roles = document.getElementById("roles");
+      const appNumber = document.getElementById("appNumber");
+      const currentStepLabel = document.getElementById("currentStepLabel");
+      const statusChip = document.getElementById("statusChip");
       const apiBaseLabel = document.getElementById("apiBaseLabel");
       apiBaseLabel.textContent = config.apiBase;
 
+      const sections = Array.from(document.querySelectorAll(".section"));
+      const stepsNav = document.getElementById("stepsNav");
+
       const buttons = {
+        prev: document.getElementById("prevStepBtn"),
+        next: document.getElementById("nextStepBtn"),
+        save: document.getElementById("saveDraftBtn"),
+        submit: document.getElementById("submitBtn"),
+        deleteDraft: document.getElementById("deleteDraftBtn"),
         login: document.getElementById("loginBtn"),
         logout: document.getElementById("logoutBtn"),
         refresh: document.getElementById("refreshBtn"),
-        whoami: document.getElementById("whoamiBtn"),
-        applicant: document.getElementById("applicantBtn"),
-        ops: document.getElementById("opsBtn"),
       };
 
       let keycloak;
+      let currentStep = 0;
+      let currentApplicationId = null;
 
       function writeOutput(title, payload) {
-        const body =
-          typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
+        const body = typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
         output.textContent = `${title}\n\n${body}`;
       }
 
-      function setButtonsDisabled(disabled) {
-        buttons.logout.disabled = disabled;
-        buttons.refresh.disabled = disabled;
-        buttons.whoami.disabled = disabled;
-        buttons.applicant.disabled = disabled;
-        buttons.ops.disabled = disabled;
+      function setStatusChip(status) {
+        statusChip.textContent = status;
+        statusChip.className = "chip";
+        if (status === "ARCHIVED") {
+          statusChip.classList.add("danger");
+          return;
+        }
+        if (status === "SUBMITTED") {
+          statusChip.classList.add("success");
+          return;
+        }
+        statusChip.classList.add("warning");
+      }
+
+      function updateHeaderMeta() {
+        const idText = currentApplicationId ? `Заявка ID: ${currentApplicationId}` : "Заявка: не создана";
+        appNumber.textContent = idText;
+        currentStepLabel.textContent = `Шаг ${currentStep + 1} из ${STEP_TITLES.length}`;
+      }
+
+      function renderStepsNav() {
+        stepsNav.innerHTML = "";
+        STEP_TITLES.forEach((title, index) => {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "step-item";
+          if (index === currentStep) {
+            item.classList.add("active");
+          }
+          if (index < currentStep) {
+            item.classList.add("done");
+          }
+          item.innerHTML = `<span class="bullet">${index + 1}</span><span>${title}</span>`;
+          item.addEventListener("click", () => {
+            currentStep = index;
+            renderStep();
+          });
+          stepsNav.appendChild(item);
+        });
+      }
+
+      function renderStep() {
+        sections.forEach((section, index) => {
+          section.classList.toggle("hidden", index !== currentStep);
+        });
+        buttons.prev.disabled = currentStep === 0;
+        buttons.next.disabled = currentStep >= STEP_TITLES.length - 1;
+        updateHeaderMeta();
+        renderStepsNav();
+      }
+
+      function markFieldError(fieldId, message) {
+        const wrapper = document.querySelector(`.field[data-field="${fieldId}"]`);
+        if (!wrapper) {
+          return;
+        }
+        wrapper.classList.add("error");
+        let errorNode = wrapper.querySelector(".error-text");
+        if (!errorNode) {
+          errorNode = document.createElement("span");
+          errorNode.className = "error-text";
+          wrapper.appendChild(errorNode);
+        }
+        errorNode.textContent = message;
+      }
+
+      function clearFieldErrors() {
+        document.querySelectorAll(".field.error").forEach((wrapper) => {
+          wrapper.classList.remove("error");
+        });
+        document.querySelectorAll(".error-text").forEach((node) => node.remove());
+      }
+
+      function getValue(id) {
+        const element = document.getElementById(id);
+        if (!element) {
+          return "";
+        }
+        if (element.type === "checkbox") {
+          return element.checked;
+        }
+        return typeof element.value === "string" ? element.value.trim() : "";
+      }
+
+      function buildPayload() {
+        const productName = getValue("product_name");
+        let appendixRows = [];
+        const appendixRaw = getValue("appendix_rows");
+        if (appendixRaw) {
+          try {
+            const parsed = JSON.parse(appendixRaw);
+            if (Array.isArray(parsed)) {
+              appendixRows = parsed;
+            }
+          } catch (_err) {
+            appendixRows = [{ raw: appendixRaw }];
+          }
+        }
+
+        return {
+          certification_kind: getValue("certification_kind"),
+          applicant_type: getValue("applicant_type"),
+          submission_from: getValue("submission_from"),
+          applicant_name: getValue("applicant_name"),
+          applicant_bin: getValue("applicant_bin"),
+          phone: getValue("phone"),
+          email: getValue("email"),
+          agree_procedure: getValue("agree_procedure"),
+          agree_data: getValue("agree_data"),
+          applicant_address: getValue("applicant_address"),
+          actual_address: getValue("actual_address"),
+          ops_code: getValue("ops_code"),
+          accreditation_no: getValue("accreditation_no"),
+          ops_manager: getValue("ops_manager"),
+          cert_scheme_code: getValue("cert_scheme_code"),
+          submission_format: getValue("submission_format"),
+          products: productName
+            ? [
+                {
+                  name: productName,
+                  tnved_code: getValue("tnved_code"),
+                  product_type: getValue("product_type"),
+                  normative_doc: getValue("normative_doc"),
+                  manufacture_doc: getValue("manufacture_doc"),
+                },
+              ]
+            : [],
+          appendix_rows: appendixRows,
+          note: getValue("note"),
+        };
+      }
+
+      function applyPayload(payload) {
+        const data = payload && typeof payload === "object" ? payload : {};
+        const keys = [
+          "certification_kind",
+          "applicant_type",
+          "submission_from",
+          "applicant_name",
+          "applicant_bin",
+          "phone",
+          "email",
+          "applicant_address",
+          "actual_address",
+          "ops_code",
+          "accreditation_no",
+          "ops_manager",
+          "cert_scheme_code",
+          "submission_format",
+          "tnved_code",
+          "product_type",
+          "normative_doc",
+          "manufacture_doc",
+          "note",
+        ];
+        keys.forEach((key) => {
+          const element = document.getElementById(key);
+          if (element && typeof data[key] !== "undefined") {
+            element.value = data[key] ?? "";
+          }
+        });
+
+        const productName = Array.isArray(data.products) && data.products[0] ? data.products[0].name || "" : "";
+        const productNameInput = document.getElementById("product_name");
+        if (productNameInput) {
+          productNameInput.value = productName;
+        }
+
+        const appendixRows = document.getElementById("appendix_rows");
+        if (appendixRows && Array.isArray(data.appendix_rows)) {
+          appendixRows.value = JSON.stringify(data.appendix_rows, null, 2);
+        }
+
+        const agreeProcedure = document.getElementById("agree_procedure");
+        const agreeData = document.getElementById("agree_data");
+        if (agreeProcedure) {
+          agreeProcedure.checked = Boolean(data.agree_procedure);
+        }
+        if (agreeData) {
+          agreeData.checked = Boolean(data.agree_data);
+        }
+      }
+
+      function validateForSubmit(payload) {
+        clearFieldErrors();
+        const errors = [];
+
+        REQUIRED_FIELDS.forEach((fieldId) => {
+          const value = fieldId === "product_name" ? payload.products[0]?.name || "" : payload[fieldId];
+          if (!value) {
+            errors.push("Поле обязательно для отправки");
+            markFieldError(fieldId, "Поле обязательно для отправки");
+          }
+        });
+
+        if (payload.applicant_bin && !/^\d{10}$/.test(payload.applicant_bin)) {
+          errors.push("БИН должен содержать 10 цифр");
+          markFieldError("applicant_bin", "БИН должен содержать 10 цифр");
+        }
+
+        if (payload.phone && !/^\+7\(7\d{2}\)\s\d{3}\s\d{2}\s\d{2}$/.test(payload.phone)) {
+          errors.push("Неверный формат телефона");
+          markFieldError("phone", "Формат телефона: +7(7##) ### ## ##");
+        }
+
+        if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+          errors.push("Неверный email");
+          markFieldError("email", "Введите корректный email");
+        }
+
+        if (!payload.agree_procedure) {
+          errors.push("Не отмечено обязательство заявителя");
+        }
+
+        if (!payload.agree_data) {
+          errors.push("Не отмечено согласие на обработку данных");
+        }
+
+        if (errors.length) {
+          writeOutput("Ошибка валидации", { issues: errors });
+          return false;
+        }
+        return true;
+      }
+
+      async function callApi(method, path, body) {
+        if (!keycloak || !keycloak.token) {
+          throw new Error("Сначала выполните вход через Keycloak");
+        }
+        await keycloak.updateToken(30);
+
+        const response = await fetch(`${config.apiBase}${path}`, {
+          method,
+          headers: {
+            Authorization: `Bearer ${keycloak.token}`,
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const message = payload && payload.detail ? JSON.stringify(payload.detail) : response.statusText;
+          throw new Error(`${response.status} ${message}`);
+        }
+        return payload;
+      }
+
+      async function ensureDraftExists(payload) {
+        if (currentApplicationId) {
+          const updated = await callApi("PUT", `/applications/${currentApplicationId}/draft`, payload);
+          setStatusChip(updated.status || "DRAFT");
+          return updated;
+        }
+
+        const created = await callApi("POST", "/applications/drafts", payload);
+        currentApplicationId = created.id;
+        localStorage.setItem(config.draftStorageKey, String(currentApplicationId));
+        setStatusChip(created.status || "DRAFT");
+        updateHeaderMeta();
+        return created;
+      }
+
+      async function saveDraft() {
+        const payload = buildPayload();
+        const response = await ensureDraftExists(payload);
+        writeOutput("Черновик сохранен", response);
+      }
+
+      async function submitApplication() {
+        const payload = buildPayload();
+        if (!validateForSubmit(payload)) {
+          return;
+        }
+
+        await ensureDraftExists(payload);
+        const submitted = await callApi("POST", `/applications/${currentApplicationId}/submit`);
+        setStatusChip(submitted.status || "SUBMITTED");
+        writeOutput("Заявка отправлена", submitted);
+      }
+
+      async function deleteDraft() {
+        if (!currentApplicationId) {
+          writeOutput("Удаление черновика", "Черновик еще не создан.");
+          return;
+        }
+        const confirmDelete = window.confirm("Удалить текущий черновик? Заявка перейдет в ARCHIVED.");
+        if (!confirmDelete) {
+          return;
+        }
+        const deleted = await callApi("DELETE", `/applications/${currentApplicationId}/draft`);
+        setStatusChip(deleted.status || "ARCHIVED");
+        localStorage.removeItem(config.draftStorageKey);
+        writeOutput("Черновик удален", deleted);
+      }
+
+      async function loadExistingDraftFromStorage() {
+        const stored = localStorage.getItem(config.draftStorageKey);
+        if (!stored) {
+          return;
+        }
+        const parsed = Number.parseInt(stored, 10);
+        if (!Number.isInteger(parsed) || parsed <= 0) {
+          localStorage.removeItem(config.draftStorageKey);
+          return;
+        }
+
+        currentApplicationId = parsed;
+        try {
+          const draft = await callApi("GET", `/applications/${currentApplicationId}`);
+          applyPayload(draft.payload || {});
+          setStatusChip(draft.status || "DRAFT");
+          writeOutput("Загружен сохраненный черновик", draft);
+        } catch (error) {
+          currentApplicationId = null;
+          localStorage.removeItem(config.draftStorageKey);
+          writeOutput("Черновик не найден", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
 
       function renderAuthState() {
@@ -225,95 +1210,110 @@
           authState.textContent = "не авторизован";
           username.textContent = "-";
           roles.textContent = "-";
-          setButtonsDisabled(true);
+          buttons.logout.disabled = true;
+          buttons.refresh.disabled = true;
+          buttons.save.disabled = true;
+          buttons.submit.disabled = true;
+          buttons.deleteDraft.disabled = true;
           buttons.login.disabled = false;
           return;
         }
 
         const parsed = keycloak.tokenParsed || {};
-        const realmRoles =
-          (parsed.realm_access && parsed.realm_access.roles) || [];
+        const realmRoles = (parsed.realm_access && parsed.realm_access.roles) || [];
         authState.textContent = "авторизован";
         username.textContent = parsed.preferred_username || parsed.sub || "-";
         roles.textContent = realmRoles.length ? realmRoles.join(", ") : "-";
-        setButtonsDisabled(false);
+        buttons.logout.disabled = false;
+        buttons.refresh.disabled = false;
+        buttons.save.disabled = false;
+        buttons.submit.disabled = false;
+        buttons.deleteDraft.disabled = false;
         buttons.login.disabled = true;
       }
 
-      async function callProtectedApi(path) {
-        if (!keycloak || !keycloak.token) {
-          writeOutput("Ошибка", "Нет bearer-токена. Сначала выполните вход.");
-          return;
-        }
-
-        try {
-          await keycloak.updateToken(30);
-          const response = await fetch(`${config.apiBase}${path}`, {
-            headers: {
-              Authorization: `Bearer ${keycloak.token}`,
-              Accept: "application/json",
-            },
+      async function initKeycloak() {
+        const script = document.createElement("script");
+        script.src = `${config.authority.replace(/\/realms\/[^/]+$/, "")}/js/keycloak.js`;
+        script.onload = async () => {
+          keycloak = new window.Keycloak({
+            url: config.authority.replace(/\/realms\/[^/]+$/, ""),
+            realm: "ektrm",
+            clientId: config.clientId,
           });
-          const payload = await response.json().catch(() => ({}));
-          writeOutput(`${response.status} ${response.statusText} ${path}`, payload);
+
+          try {
+            const authenticated = await keycloak.init({
+              onLoad: "check-sso",
+              pkceMethod: "S256",
+              checkLoginIframe: false,
+            });
+            renderAuthState();
+            writeOutput("Keycloak init", { authenticated });
+            if (authenticated) {
+              await loadExistingDraftFromStorage();
+            }
+          } catch (error) {
+            writeOutput("Keycloak init error", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        };
+        script.onerror = () => {
+          writeOutput("Ошибка", "Не удалось загрузить keycloak.js. Проверьте Keycloak на localhost:8088.");
+        };
+        document.body.appendChild(script);
+      }
+
+      buttons.prev.addEventListener("click", () => {
+        if (currentStep > 0) {
+          currentStep -= 1;
+          renderStep();
+        }
+      });
+
+      buttons.next.addEventListener("click", () => {
+        if (currentStep < STEP_TITLES.length - 1) {
+          currentStep += 1;
+          renderStep();
+        }
+      });
+
+      buttons.save.addEventListener("click", async () => {
+        try {
+          await saveDraft();
         } catch (error) {
-          writeOutput("Ошибка запроса", {
+          writeOutput("Ошибка сохранения черновика", {
             message: error instanceof Error ? error.message : String(error),
           });
         }
-      }
+      });
 
-      async function init() {
+      buttons.submit.addEventListener("click", async () => {
         try {
-          const script = document.createElement("script");
-          script.src = `${config.authority.replace(
-            /\/realms\/[^/]+$/,
-            ""
-          )}/js/keycloak.js`;
-          script.onload = async () => {
-            keycloak = new window.Keycloak({
-              url: config.authority.replace(/\/realms\/[^/]+$/, ""),
-              realm: "ektrm",
-              clientId: config.clientId,
-            });
-
-            try {
-              const authenticated = await keycloak.init({
-                onLoad: "check-sso",
-                pkceMethod: "S256",
-                checkLoginIframe: false,
-              });
-              renderAuthState();
-              writeOutput("Keycloak init", { authenticated });
-            } catch (error) {
-              writeOutput("Keycloak init error", {
-                message: error instanceof Error ? error.message : String(error),
-              });
-            }
-          };
-          script.onerror = () =>
-            writeOutput(
-              "Ошибка",
-              "Не удалось загрузить keycloak.js. Проверьте доступность Keycloak на localhost:8088."
-            );
-          document.body.appendChild(script);
+          await submitApplication();
         } catch (error) {
-          writeOutput("Ошибка инициализации", error);
+          writeOutput("Ошибка отправки заявки", {
+            message: error instanceof Error ? error.message : String(error),
+          });
         }
-      }
+      });
+
+      buttons.deleteDraft.addEventListener("click", async () => {
+        try {
+          await deleteDraft();
+        } catch (error) {
+          writeOutput("Ошибка удаления черновика", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      });
 
       buttons.login.addEventListener("click", async () => {
         if (!keycloak) {
           return;
         }
         await keycloak.login();
-      });
-
-      buttons.logout.addEventListener("click", async () => {
-        if (!keycloak) {
-          return;
-        }
-        await keycloak.logout({ redirectUri: window.location.origin });
       });
 
       buttons.refresh.addEventListener("click", async () => {
@@ -325,18 +1325,23 @@
           renderAuthState();
           writeOutput("Обновление токена", { refreshed });
         } catch (error) {
-          writeOutput("Ошибка refresh", error);
+          writeOutput("Ошибка обновления токена", {
+            message: error instanceof Error ? error.message : String(error),
+          });
         }
       });
 
-      buttons.whoami.addEventListener("click", () => callProtectedApi("/auth/me"));
-      buttons.applicant.addEventListener("click", () =>
-        callProtectedApi("/auth/applicant-area")
-      );
-      buttons.ops.addEventListener("click", () => callProtectedApi("/auth/ops-area"));
+      buttons.logout.addEventListener("click", async () => {
+        if (!keycloak) {
+          return;
+        }
+        await keycloak.logout({ redirectUri: window.location.origin });
+      });
 
-      init();
+      renderStep();
+      setStatusChip("DRAFT");
       renderAuthState();
+      initKeycloak();
     </script>
   </body>
 </html>

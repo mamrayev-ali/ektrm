@@ -95,6 +95,34 @@ class ApplicationsApiTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 409)
 
+    def test_delete_draft_archives_application(self) -> None:
+        created = self._client.post("/applications/drafts", json={"applicant_name": "A"})
+        self.assertEqual(created.status_code, 200)
+        app_id = created.json()["id"]
+
+        deleted = self._client.delete(f"/applications/{app_id}/draft")
+        self.assertEqual(deleted.status_code, 200)
+        self.assertEqual(deleted.json()["status"], "ARCHIVED")
+
+    def test_delete_draft_returns_409_after_submit(self) -> None:
+        payload = {
+            "applicant_name": "ТОО Тест",
+            "applicant_bin": "1234567890",
+            "applicant_address": "г. Алматы",
+            "ops_code": "OPS-KZ-001",
+            "cert_scheme_code": "SCHEME-1",
+            "products": [{"name": "Провод"}],
+        }
+        created = self._client.post("/applications/drafts", json=payload)
+        self.assertEqual(created.status_code, 200)
+        app_id = created.json()["id"]
+
+        submitted = self._client.post(f"/applications/{app_id}/submit")
+        self.assertEqual(submitted.status_code, 200)
+
+        response = self._client.delete(f"/applications/{app_id}/draft")
+        self.assertEqual(response.status_code, 409)
+
 
 if __name__ == "__main__":
     unittest.main()

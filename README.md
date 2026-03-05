@@ -1,17 +1,18 @@
-# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2) + Reference Data (T3) + Order 3 Domain Model (T4)
+# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2) + Reference Data (T3) + Order 3 Domain Model (T4) + Applicant Wizard (T5)
 
 Репозиторий содержит AgentKit-процесс и стартовую контейнерную топологию MVP Phase 1 для e-КТРМ.
 
-Реализовано в тикетах `T1`, `T2`, `T3` и `T4`:
+Реализовано в тикетах `T1`, `T2`, `T3`, `T4` и `T5`:
 - docker-compose с обязательными контейнерами платформы;
 - bootstrap-скрипты запуска;
 - минимальные runtime-сервисы с `/health` и `/readiness`;
-- baseline frontend-страница с OIDC login/logout/refresh и вызовами защищенных API;
+- frontend wizard Ордер 3 (8 шагов) с действиями `Сохранить черновик`, `Подписать и отправить`, `Удалить черновик`;
 - backend JWT verification через Keycloak JWKS и role-gated endpoint-ы `Applicant` / `OPS`.
 - Alembic-миграции и seed обязательных справочников MVP + lookup-таблиц `ops_registry` и `accreditation_attestats`;
 - read-only API справочников для `reference-data-service`.
 - доменная модель Ордер 3 (`cert_application`, `cert_application_status_history`) и state engine переходов;
 - API для черновиков/переходов статусов заявок с хранением истории статусов.
+- API-операция удаления черновика: `DELETE /applications/{id}/draft` (переводит заявку в `ARCHIVED`).
 
 ## Быстрый старт
 
@@ -111,6 +112,19 @@ Demo users:
    - допустимые переходы соответствуют `TECH_SPEC` (раздел 10.8);
    - недопустимый переход должен возвращать `409`.
 
+## T5 Order 3 Applicant Wizard: как проверить
+
+1. Открыть `http://localhost:4200` и выполнить вход (`applicant.demo / Applicant123!`).
+2. Заполнить шаги wizard: `Заявитель` -> `Адрес заявителя` -> `ОПС` -> `Схема сертификации` -> `Данные по продукции` -> `Приложение` -> `Документы` -> `Примечание`.
+3. Нажать `Сохранить черновик`:
+   - backend создает/обновляет draft через `/applications/drafts` и `/applications/{id}/draft`.
+4. Нажать `Подписать и отправить`:
+   - при невалидных полях UI показывает ошибки валидации;
+   - при валидных данных вызывается `/applications/{id}/submit`, статус становится `SUBMITTED`.
+5. Для сохраненного draft нажать `Удалить черновик`:
+   - вызывается `DELETE /applications/{id}/draft`;
+   - заявка переводится в `ARCHIVED`.
+
 ## Ключевые документы
 
 - `.agentkit/docs/ROADMAP.md` — milestones и ticket plan.
@@ -132,6 +146,6 @@ Windows (PowerShell):
 
 ## Ограничения текущего этапа
 
-- Ордер 3 реализован на уровне доменной модели и state engine; UI wizard и OPS review экраны остаются в следующих тикетах.
+- Ордер 3 для заявителя реализован (wizard + draft/submit/delete). OPS review экран и действия остаются в следующем тикете (T6).
 - Внешние интеграции (ГБД ЮЛ, НУЦ, госреестры) отключены.
 - Реальная ЭЦП не реализуется.

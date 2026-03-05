@@ -92,6 +92,11 @@ class ApplicationStateEngineTests(unittest.TestCase):
             )
         self.assertEqual(context.exception.status_code, 422)
 
+    def test_delete_draft_moves_application_to_archived(self) -> None:
+        draft = self._service.create_draft(payload={"applicant_name": "A"}, current_user=self._user)
+        archived = self._service.delete_draft(application_id=draft["id"], current_user=self._user)
+        self.assertEqual(archived["status"], "ARCHIVED")
+
 
 if __name__ == "__main__":
     unittest.main()

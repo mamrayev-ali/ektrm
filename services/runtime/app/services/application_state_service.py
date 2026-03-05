@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from app.auth import CurrentUser
 from app.models.application import CertApplication
 from app.repositories.application_repository import ApplicationRepository
+from app.services.certificate_service import CertificateService
 
 ORDER3_STATUSES = frozenset(
     {
@@ -67,8 +68,13 @@ PROTOCOL_FILE_SLOT = "protocol_test_report"
 
 
 class ApplicationStateService:
-    def __init__(self, repository: ApplicationRepository) -> None:
+    def __init__(
+        self,
+        repository: ApplicationRepository,
+        certificate_service: CertificateService | None = None,
+    ) -> None:
         self._repository = repository
+        self._certificate_service = certificate_service
 
     def create_draft(self, payload: dict[str, Any], current_user: CurrentUser) -> dict[str, Any]:
         application_number = self._new_application_number()
@@ -202,6 +208,12 @@ class ApplicationStateService:
             changed_by_subject=current_user.subject,
             comment=comment,
         )
+        generated_certificate: dict[str, Any] | None = None
+        if normalized == "APPROVED" and self._certificate_service is not None:
+            generated_certificate = self._certificate_service.generate_for_approved_application(
+                application=application,
+                current_user=current_user,
+            )
         if normalized == "REJECTED":
             self._repository.update_status(application, "ARCHIVED")
             self._repository.add_history(
@@ -212,7 +224,10 @@ class ApplicationStateService:
                 comment="Application archived after rejection; applicant notification queued",
             )
         self._repository.commit()
-        return self._serialize_application(application)
+        response = self._serialize_application(application)
+        if generated_certificate is not None:
+            response["certificate"] = generated_certificate
+        return response
 
     def attach_protocol(
         self,

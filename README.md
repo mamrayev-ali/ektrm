@@ -1,12 +1,13 @@
-# e-КТРМ — MVP Platform Bootstrap (T1)
+# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2)
 
 Репозиторий содержит AgentKit-процесс и стартовую контейнерную топологию MVP Phase 1 для e-КТРМ.
 
-Реализовано в тикете `T1`:
+Реализовано в тикетах `T1` и `T2`:
 - docker-compose с обязательными контейнерами платформы;
 - bootstrap-скрипты запуска;
 - минимальные runtime-сервисы с `/health` и `/readiness`;
-- фронтенд-заглушка для дальнейшей Angular реализации.
+- baseline frontend-страница с OIDC login/logout/refresh и вызовами защищенных API;
+- backend JWT verification через Keycloak JWKS и role-gated endpoint-ы `Applicant` / `OPS`.
 
 ## Быстрый старт
 
@@ -56,6 +57,24 @@ Demo users:
 
 Админ Keycloak:
 - логин/пароль задаются через `.env` (`KEYCLOAK_ADMIN_USER`, `KEYCLOAK_ADMIN_PASSWORD`).
+
+## T2 Auth/RBAC baseline: как проверить
+
+1. Открыть фронтенд: `http://localhost:4200`.
+2. Нажать `Войти` и авторизоваться одним из demo users.
+3. Вызвать:
+   - `GET /auth/me` (любой авторизованный пользователь),
+   - `GET /auth/applicant-area` (только роль `Applicant`),
+   - `GET /auth/ops-area` (только роль `OPS`).
+4. Проверить ожидаемое поведение:
+   - при отсутствии токена backend возвращает `401`;
+   - при недостаточной роли backend возвращает `403`.
+
+Публичные endpoint-ы для auth baseline (gateway):
+- `GET http://localhost:8080/auth/config`
+- `GET http://localhost:8080/auth/me` (Bearer required)
+- `GET http://localhost:8080/auth/applicant-area` (Bearer + `Applicant`)
+- `GET http://localhost:8080/auth/ops-area` (Bearer + `OPS`)
 
 ## Ключевые документы
 

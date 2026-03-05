@@ -47,6 +47,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - `/frontend/` — контейнер статического frontend baseline (nginx + OIDC/RBAC demo shell + health probes).
 - `/infra/keycloak/` — realm import для локального Keycloak baseline (`Applicant`, `OPS`).
 - `/scripts/bootstrap.sh`, `/scripts/bootstrap.ps1` — единый bootstrap для локального старта платформы.
+- `/.github/workflows/` — CI automation workflows (GitHub Actions) для PR/push верификации.
 
 ## 2) Key contracts & boundaries
 - Architectural principles:
@@ -305,6 +306,15 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `.agentkit/scripts/verify.sh`, `.agentkit/scripts/verify.ps1`.
   - tests:
     - Запускается напрямую и через verify runners.
+- `.github/workflows/verify-ci.yml` — GitHub Actions workflow для автоматического `make verify-ci`.
+  - public surface / key exports:
+    - автозапуск на `pull_request` в `main` и `push` в `main`/`ticket/**`.
+  - invariants / assumptions:
+    - CI не подменяет локальные проверки; workflow повторяет Makefile-контракт.
+  - dependencies:
+    - `Makefile`, `.agentkit/scripts/verify.sh`, Python toolchain runner.
+  - tests:
+    - статус check в GitHub PR (`verify-ci`).
 
 ## 10) Runbook (minimal)
 - How to run locally (bootstrap stage):
@@ -334,6 +344,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-05 [ci-github-actions-verify-ci] Добавлен workflow `.github/workflows/verify-ci.yml` для автоматического запуска `make verify-ci` на PR/push, чтобы статусы CI отображались в GitHub PR checks.
 - 2026-03-05 [t3-reference-data-and-lookup-registries] Реализован T3 baseline: SQLAlchemy/Alembic DB-слой, migration `20260305_0001` с seed обязательных справочников и lookup-таблиц, read-only API `reference-data`, тесты `test_reference_data.py` и обновленный runbook.
 - 2026-03-05 [t2-keycloak-and-access-model-baseline] Добавлен auth baseline: Keycloak audience mapper, backend JWT/JWKS validation и RBAC endpoint-ы, frontend OIDC demo flow, env/compose auth-конфигурация, кроссплатформенный whitespace gate (`--ignore-cr-at-eol`) и документация T2.
 - 2026-03-05 [t1-platform-bootstrap-and-container-topology] Добавлена контейнерная топология MVP (docker-compose), runtime-сервисный каркас с health/readiness, keycloak realm import, bootstrap-скрипты и обновленный runbook.

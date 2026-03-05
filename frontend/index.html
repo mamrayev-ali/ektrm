@@ -3,30 +3,123 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>e-KTRM MVP Bootstrap</title>
+    <title>e-KTRM MVP T2: Auth Baseline</title>
     <style>
-      body {
-        margin: 0;
-        font-family: "Segoe UI", Tahoma, sans-serif;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3d7ef 100%);
-        color: #0f172a;
+      :root {
+        --bg-start: #eff6ff;
+        --bg-end: #dbeafe;
+        --card-bg: #ffffff;
+        --text-main: #0f172a;
+        --text-muted: #475569;
+        --accent: #0b6e4f;
+        --accent-hover: #07563e;
+        --danger: #b91c1c;
+        --border: #cbd5e1;
       }
 
-      .wrapper {
-        max-width: 920px;
-        margin: 48px auto;
-        padding: 24px;
-        background: rgba(255, 255, 255, 0.88);
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Noto Sans", sans-serif;
+        color: var(--text-main);
+        background:
+          radial-gradient(circle at 0% 0%, rgba(11, 110, 79, 0.15), transparent 35%),
+          linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+      }
+
+      main {
+        max-width: 1040px;
+        margin: 24px auto;
+        padding: 16px;
+      }
+
+      .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
         border-radius: 16px;
-        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.09);
+        padding: 20px;
       }
 
       h1 {
-        margin-top: 0;
+        margin: 0 0 8px;
+        font-size: 1.65rem;
       }
 
-      ul {
-        line-height: 1.7;
+      p {
+        margin: 0;
+        color: var(--text-muted);
+      }
+
+      .grid {
+        margin-top: 20px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 12px;
+      }
+
+      .panel {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+        background: #f8fafc;
+      }
+
+      .panel h2 {
+        margin: 0 0 10px;
+        font-size: 1.05rem;
+      }
+
+      .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 0.92rem;
+        cursor: pointer;
+        background: var(--accent);
+        color: #fff;
+      }
+
+      button:hover {
+        background: var(--accent-hover);
+      }
+
+      button[data-variant="danger"] {
+        background: var(--danger);
+      }
+
+      button:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
+      }
+
+      .meta {
+        margin-top: 12px;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+      }
+
+      pre {
+        margin: 0;
+        max-height: 360px;
+        overflow: auto;
+        border-radius: 10px;
+        padding: 12px;
+        background: #0b1220;
+        color: #e2e8f0;
+        font-size: 0.83rem;
+        line-height: 1.45;
+      }
+
+      .code-line {
+        margin-top: 10px;
+        font-size: 0.9rem;
+        color: var(--text-muted);
       }
 
       code {
@@ -37,17 +130,213 @@
     </style>
   </head>
   <body>
-    <main class="wrapper">
-      <h1>e-KTRM MVP: Platform Bootstrap</h1>
-      <p>
-        Контейнерная платформа T1 поднята. Этот фронтенд-слой служит стартовой точкой
-        для дальнейшей Angular реализации.
-      </p>
-      <ul>
-        <li><code>/health</code> - liveness probe</li>
-        <li><code>/readiness</code> - readiness probe</li>
-        <li>Gateway: <code>http://localhost:8080/health</code></li>
-      </ul>
+    <main>
+      <section class="card">
+        <h1>e-KTRM T2: Keycloak + RBAC baseline</h1>
+        <p>
+          Демо-страница авторизации OIDC (Code + PKCE) и проверки ролей
+          <code>Applicant</code> / <code>OPS</code> через gateway backend.
+        </p>
+        <div class="meta">
+          Demo users: <code>applicant.demo / Applicant123!</code>,
+          <code>ops.demo / Ops123456!</code>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>Сессия</h2>
+          <div class="buttons">
+            <button id="loginBtn">Войти</button>
+            <button id="logoutBtn" data-variant="danger">Выйти</button>
+            <button id="refreshBtn">Обновить токен</button>
+          </div>
+          <div class="meta">
+            Статус: <strong id="authState">инициализация...</strong>
+          </div>
+          <div class="meta">
+            Пользователь: <span id="username">-</span>
+          </div>
+          <div class="meta">
+            Роли: <span id="roles">-</span>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Protected API</h2>
+          <div class="buttons">
+            <button id="whoamiBtn">GET /auth/me</button>
+            <button id="applicantBtn">GET /auth/applicant-area</button>
+            <button id="opsBtn">GET /auth/ops-area</button>
+          </div>
+          <p class="code-line">
+            API base: <code id="apiBaseLabel">http://localhost:8080</code>
+          </p>
+        </article>
+
+        <article class="panel" style="grid-column: 1 / -1">
+          <h2>Ответ API / диагностика</h2>
+          <pre id="output">Ожидание действий пользователя...</pre>
+        </article>
+      </section>
     </main>
+
+    <script>
+      const config = {
+        authority: "http://localhost:8088/realms/ektrm",
+        clientId: "ektrm-web",
+        apiBase: "http://localhost:8080",
+      };
+
+      const output = document.getElementById("output");
+      const authState = document.getElementById("authState");
+      const username = document.getElementById("username");
+      const roles = document.getElementById("roles");
+      const apiBaseLabel = document.getElementById("apiBaseLabel");
+      apiBaseLabel.textContent = config.apiBase;
+
+      const buttons = {
+        login: document.getElementById("loginBtn"),
+        logout: document.getElementById("logoutBtn"),
+        refresh: document.getElementById("refreshBtn"),
+        whoami: document.getElementById("whoamiBtn"),
+        applicant: document.getElementById("applicantBtn"),
+        ops: document.getElementById("opsBtn"),
+      };
+
+      let keycloak;
+
+      function writeOutput(title, payload) {
+        const body =
+          typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
+        output.textContent = `${title}\n\n${body}`;
+      }
+
+      function setButtonsDisabled(disabled) {
+        buttons.logout.disabled = disabled;
+        buttons.refresh.disabled = disabled;
+        buttons.whoami.disabled = disabled;
+        buttons.applicant.disabled = disabled;
+        buttons.ops.disabled = disabled;
+      }
+
+      function renderAuthState() {
+        if (!keycloak || !keycloak.authenticated) {
+          authState.textContent = "не авторизован";
+          username.textContent = "-";
+          roles.textContent = "-";
+          setButtonsDisabled(true);
+          buttons.login.disabled = false;
+          return;
+        }
+
+        const parsed = keycloak.tokenParsed || {};
+        const realmRoles =
+          (parsed.realm_access && parsed.realm_access.roles) || [];
+        authState.textContent = "авторизован";
+        username.textContent = parsed.preferred_username || parsed.sub || "-";
+        roles.textContent = realmRoles.length ? realmRoles.join(", ") : "-";
+        setButtonsDisabled(false);
+        buttons.login.disabled = true;
+      }
+
+      async function callProtectedApi(path) {
+        if (!keycloak || !keycloak.token) {
+          writeOutput("Ошибка", "Нет bearer-токена. Сначала выполните вход.");
+          return;
+        }
+
+        try {
+          await keycloak.updateToken(30);
+          const response = await fetch(`${config.apiBase}${path}`, {
+            headers: {
+              Authorization: `Bearer ${keycloak.token}`,
+              Accept: "application/json",
+            },
+          });
+          const payload = await response.json().catch(() => ({}));
+          writeOutput(`${response.status} ${response.statusText} ${path}`, payload);
+        } catch (error) {
+          writeOutput("Ошибка запроса", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+
+      async function init() {
+        try {
+          const script = document.createElement("script");
+          script.src = `${config.authority.replace(
+            /\/realms\/[^/]+$/,
+            ""
+          )}/js/keycloak.js`;
+          script.onload = async () => {
+            keycloak = new window.Keycloak({
+              url: config.authority.replace(/\/realms\/[^/]+$/, ""),
+              realm: "ektrm",
+              clientId: config.clientId,
+            });
+
+            try {
+              const authenticated = await keycloak.init({
+                onLoad: "check-sso",
+                pkceMethod: "S256",
+                checkLoginIframe: false,
+              });
+              renderAuthState();
+              writeOutput("Keycloak init", { authenticated });
+            } catch (error) {
+              writeOutput("Keycloak init error", {
+                message: error instanceof Error ? error.message : String(error),
+              });
+            }
+          };
+          script.onerror = () =>
+            writeOutput(
+              "Ошибка",
+              "Не удалось загрузить keycloak.js. Проверьте доступность Keycloak на localhost:8088."
+            );
+          document.body.appendChild(script);
+        } catch (error) {
+          writeOutput("Ошибка инициализации", error);
+        }
+      }
+
+      buttons.login.addEventListener("click", async () => {
+        if (!keycloak) {
+          return;
+        }
+        await keycloak.login();
+      });
+
+      buttons.logout.addEventListener("click", async () => {
+        if (!keycloak) {
+          return;
+        }
+        await keycloak.logout({ redirectUri: window.location.origin });
+      });
+
+      buttons.refresh.addEventListener("click", async () => {
+        if (!keycloak) {
+          return;
+        }
+        try {
+          const refreshed = await keycloak.updateToken(30);
+          renderAuthState();
+          writeOutput("Обновление токена", { refreshed });
+        } catch (error) {
+          writeOutput("Ошибка refresh", error);
+        }
+      });
+
+      buttons.whoami.addEventListener("click", () => callProtectedApi("/auth/me"));
+      buttons.applicant.addEventListener("click", () =>
+        callProtectedApi("/auth/applicant-area")
+      );
+      buttons.ops.addEventListener("click", () => callProtectedApi("/auth/ops-area"));
+
+      init();
+      renderAuthState();
+    </script>
   </body>
 </html>

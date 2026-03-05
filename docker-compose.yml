@@ -92,6 +92,12 @@ services:
       REDIS_PORT: 6379
       MINIO_ENDPOINT: minio:9000
       KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:-http://localhost:8088/realms/ektrm}
+      KEYCLOAK_ALLOWED_ISSUERS: ${KEYCLOAK_ALLOWED_ISSUERS:-http://localhost:8088/realms/ektrm,http://keycloak:8080/realms/ektrm}
+      KEYCLOAK_JWKS_URL: ${KEYCLOAK_INTERNAL_JWKS_URL:-http://keycloak:8080/realms/ektrm/protocol/openid-connect/certs}
+      KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-ektrm-api}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
     ports:
       - "${GATEWAY_PORT:-8080}:8000"
     depends_on:
@@ -126,6 +132,12 @@ services:
       REDIS_PORT: 6379
       MINIO_ENDPOINT: minio:9000
       KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:-http://localhost:8088/realms/ektrm}
+      KEYCLOAK_ALLOWED_ISSUERS: ${KEYCLOAK_ALLOWED_ISSUERS:-http://localhost:8088/realms/ektrm,http://keycloak:8080/realms/ektrm}
+      KEYCLOAK_JWKS_URL: ${KEYCLOAK_INTERNAL_JWKS_URL:-http://keycloak:8080/realms/ektrm/protocol/openid-connect/certs}
+      KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-ektrm-api}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
     ports:
       - "${APPLICATIONS_PORT:-8081}:8000"
     depends_on:
@@ -160,6 +172,12 @@ services:
       REDIS_PORT: 6379
       MINIO_ENDPOINT: minio:9000
       KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:-http://localhost:8088/realms/ektrm}
+      KEYCLOAK_ALLOWED_ISSUERS: ${KEYCLOAK_ALLOWED_ISSUERS:-http://localhost:8088/realms/ektrm,http://keycloak:8080/realms/ektrm}
+      KEYCLOAK_JWKS_URL: ${KEYCLOAK_INTERNAL_JWKS_URL:-http://keycloak:8080/realms/ektrm/protocol/openid-connect/certs}
+      KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-ektrm-api}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
     ports:
       - "${CERTIFICATES_PORT:-8082}:8000"
     depends_on:
@@ -194,6 +212,12 @@ services:
       REDIS_PORT: 6379
       MINIO_ENDPOINT: minio:9000
       KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:-http://localhost:8088/realms/ektrm}
+      KEYCLOAK_ALLOWED_ISSUERS: ${KEYCLOAK_ALLOWED_ISSUERS:-http://localhost:8088/realms/ektrm,http://keycloak:8080/realms/ektrm}
+      KEYCLOAK_JWKS_URL: ${KEYCLOAK_INTERNAL_JWKS_URL:-http://keycloak:8080/realms/ektrm/protocol/openid-connect/certs}
+      KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-ektrm-api}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
     ports:
       - "${REFERENCE_DATA_PORT:-8083}:8000"
     depends_on:
@@ -228,6 +252,12 @@ services:
       REDIS_PORT: 6379
       MINIO_ENDPOINT: minio:9000
       KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:-http://localhost:8088/realms/ektrm}
+      KEYCLOAK_ALLOWED_ISSUERS: ${KEYCLOAK_ALLOWED_ISSUERS:-http://localhost:8088/realms/ektrm,http://keycloak:8080/realms/ektrm}
+      KEYCLOAK_JWKS_URL: ${KEYCLOAK_INTERNAL_JWKS_URL:-http://keycloak:8080/realms/ektrm/protocol/openid-connect/certs}
+      KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-ektrm-api}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
     ports:
       - "${FILES_PORT:-8084}:8000"
     depends_on:
@@ -262,6 +292,12 @@ services:
       REDIS_PORT: 6379
       MINIO_ENDPOINT: minio:9000
       KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:-http://localhost:8088/realms/ektrm}
+      KEYCLOAK_ALLOWED_ISSUERS: ${KEYCLOAK_ALLOWED_ISSUERS:-http://localhost:8088/realms/ektrm,http://keycloak:8080/realms/ektrm}
+      KEYCLOAK_JWKS_URL: ${KEYCLOAK_INTERNAL_JWKS_URL:-http://keycloak:8080/realms/ektrm/protocol/openid-connect/certs}
+      KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-ektrm-api}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
     ports:
       - "${NOTIFICATIONS_PORT:-8085}:8000"
     depends_on:

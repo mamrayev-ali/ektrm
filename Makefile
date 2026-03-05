@@ -66,5 +66,5 @@ verify-local: verify-smoke check-no-template-markers check-roadmap-tickets check
 	@echo "OK: verify-local passed."
 
 verify-ci: verify-local check-runtime-artifacts
-	@git diff --check
+	@git diff --check --ignore-cr-at-eol
 	@echo "OK: verify-ci passed."

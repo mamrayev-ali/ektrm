@@ -2,13 +2,29 @@ import os
 import socket
 from datetime import UTC, datetime
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.auth import AUTH_SETTINGS, CurrentUser, get_current_user, require_roles
 
 app = FastAPI(title="e-KTRM Runtime Service", version="0.1.0")
 
 SERVICE_NAME = os.getenv("SERVICE_NAME", "runtime-service")
 APP_ENV = os.getenv("APP_ENV", "local")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+
+
+def _parse_csv(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_parse_csv(os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:4200")),
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
+)
 
 
 def _check_tcp(host: str, port: int, timeout: float = 1.0) -> bool:
@@ -55,6 +71,51 @@ def health() -> dict[str, str]:
         "status": "ok",
         "service": SERVICE_NAME,
         "timestamp_utc": datetime.now(UTC).isoformat(),
+    }
+
+
+@app.get("/auth/config")
+def auth_config() -> dict[str, object]:
+    return {
+        "enabled": AUTH_SETTINGS.enabled,
+        "issuer_allowlist": list(AUTH_SETTINGS.issuer_allowlist),
+        "audiences": list(AUTH_SETTINGS.audiences),
+        "client_id": AUTH_SETTINGS.client_id,
+        "required_roles": list(AUTH_SETTINGS.required_roles),
+    }
+
+
+@app.get("/auth/me")
+def auth_me(current_user: CurrentUser = Depends(get_current_user)) -> dict[str, object]:
+    return {
+        "subject": current_user.subject,
+        "username": current_user.username,
+        "email": current_user.email,
+        "roles": sorted(current_user.roles),
+    }
+
+
+@app.get("/auth/applicant-area")
+def applicant_area(
+    current_user: CurrentUser = Depends(require_roles("Applicant")),
+) -> dict[str, object]:
+    return {
+        "message": "Applicant access granted",
+        "subject": current_user.subject,
+        "username": current_user.username,
+        "roles": sorted(current_user.roles),
+    }
+
+
+@app.get("/auth/ops-area")
+def ops_area(
+    current_user: CurrentUser = Depends(require_roles("OPS")),
+) -> dict[str, object]:
+    return {
+        "message": "OPS access granted",
+        "subject": current_user.subject,
+        "username": current_user.username,
+        "roles": sorted(current_user.roles),
     }
 
 

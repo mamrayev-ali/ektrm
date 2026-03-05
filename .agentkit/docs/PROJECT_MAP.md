@@ -15,10 +15,12 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Applicant создает/отправляет заявку, OPS проверяет/возвращает/принимает решение, система формирует сертификат, OPS mock-подписывает, сертификат публикуется в реестр, далее доступны post-issuance действия.
 - Tech stack:
   - Целевой: Angular SPA, Python/FastAPI микросервисы, PostgreSQL + SQLAlchemy/Alembic, Redis + Celery, MinIO, Keycloak, WebSocket, Docker Compose.
-  - Текущий этап репозитория: docker-compose topology + bootstrap-сценарии + каркасные runtime-сервисы с health/readiness endpoint.
+  - Текущий этап репозитория: docker-compose topology + bootstrap-сценарии + runtime baseline c OIDC/JWT/RBAC (`T2`) и demo protected endpoint-ами.
 - Where to start reading the code:
   - `docker-compose.yml`,
   - `services/runtime/app/main.py`,
+  - `services/runtime/app/auth.py`,
+  - `frontend/index.html`,
   - `infra/keycloak/realm-export.json`,
   - `scripts/bootstrap.sh` и `scripts/bootstrap.ps1`,
   - `README.md`,
@@ -42,7 +44,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - `/logs/agent/` — локальные аудиторские логи тикетов (gitignored).
 - `/docker-compose.yml` — контейнерная топология T1 (core services + infrastructure).
 - `/services/runtime/` — единый Python/FastAPI runtime-шаблон для gateway и доменных сервисов.
-- `/frontend/` — контейнер фронтенд-заглушки (nginx + static entrypoint + health probes).
+- `/frontend/` — контейнер статического frontend baseline (nginx + OIDC/RBAC demo shell + health probes).
 - `/infra/keycloak/` — realm import для локального Keycloak baseline (`Applicant`, `OPS`).
 - `/scripts/bootstrap.sh`, `/scripts/bootstrap.ps1` — единый bootstrap для локального старта платформы.
 
@@ -56,6 +58,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - REST API по доменным группам: applications, certificates, post-issuance, registry, notifications, reference-data.
   - OpenAPI — обязательный контракт backend-to-frontend.
   - Публичный API реестра — read-only.
+  - Для T2 добавлены auth baseline endpoint-ы: `/auth/config`, `/auth/me`, `/auth/applicant-area`, `/auth/ops-area`.
 - Error handling strategy:
   - Frontend: пользовательские сообщения + field-level validation state.
   - Backend: структурированные ошибки с доменными кодами и без утечки чувствительных данных.
@@ -138,12 +141,13 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - Coverage target:
   - Формальный порог coverage будет включен в T13; на текущем этапе проверяется структурная и процессная целостность.
 - “API e2e smoke” definition:
-  - На текущем этапе runtime-API каркасное; smoke ограничен health/readiness проверками и process-contract gates.
+  - На текущем этапе smoke покрывает health/readiness + auth baseline (`401` без токена, `403` при недостаточной роли, role-gated happy-path).
 
 ### CI DoD (must pass before ticket is Done)
 - `make verify-ci` does:
   - Запускает `verify-local`.
   - Дополнительно проверяет наличие `README.md` и `.env.example` как обязательных артефактов runtime-этапа.
+  - Запускает `git diff --check --ignore-cr-at-eol` для строгого whitespace gate без ложных падений на CRLF/LF в mixed Windows/Linux среде.
 - Security scanning policy (high level):
   - На bootstrap этапе — policy/document checks + ручная проверка отсутствия секретов в tracked файлах.
   - На implementation этапе — статический анализ + dependency/security scanning добавляются в `verify-ci`.
@@ -155,7 +159,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - What to check:
     - JWT signature/issuer/audience validation, role visibility, org binding.
   - Where in the code:
-    - future `auth-integration-service`, gateway auth middleware, RBAC guards.
+    - `services/runtime/app/auth.py`, `services/runtime/app/main.py`, `frontend/index.html`, `infra/keycloak/realm-export.json`.
 - Database migrations and status model
   - Why risky:
     - Неверные переходы/схема статусов ломают юридический workflow и traceability.
@@ -192,16 +196,25 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `docker compose up -d --build`, проверка health URL.
 - `services/runtime/app/main.py` — общий каркас FastAPI runtime для сервисов.
   - public surface / key exports:
-    - `GET /`, `GET /health`, `GET /readiness`.
+    - `GET /`, `GET /health`, `GET /readiness`, `GET /auth/config`, `GET /auth/me`, `GET /auth/applicant-area`, `GET /auth/ops-area`.
   - invariants / assumptions:
     - readiness зависит от доступности postgres/redis/minio/keycloak.
   - dependencies:
-    - FastAPI/Uvicorn, env-переменные compose.
+    - FastAPI/Uvicorn, auth dependency layer, env-переменные compose.
   - tests:
     - container healthcheck + ручной HTTP probe.
+- `services/runtime/app/auth.py` — JWT verification и RBAC dependency layer.
+  - public surface / key exports:
+    - `get_current_user`, `require_roles`, `extract_roles`.
+  - invariants / assumptions:
+    - проверяются signature/JWKS, `iss`, `aud`, expiry; backend остаётся source-of-truth для доступа.
+  - dependencies:
+    - PyJWT + Keycloak JWKS endpoint.
+  - tests:
+    - `services/runtime/tests/test_auth.py`.
 - `infra/keycloak/realm-export.json` — baseline realm для локального OIDC/RBAC.
   - public surface / key exports:
-    - realm `ektrm`, роли `Applicant` и `OPS`, demo users.
+    - realm `ektrm`, роли `Applicant` и `OPS`, demo users, audience mapper `ektrm-api`.
   - invariants / assumptions:
     - только локальная/development-конфигурация.
   - dependencies:
@@ -210,14 +223,14 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - загрузка realm при старте keycloak.
 - `.env.example` — единый env-контракт локального запуска.
   - public surface / key exports:
-    - порты сервисов и инфраструктуры, MinIO/Keycloak/DB параметры, feature flags.
+    - порты сервисов и инфраструктуры, MinIO/Keycloak/DB параметры, OIDC/JWKS/CORS и feature flags.
   - invariants / assumptions:
     - не содержит production-secret значений.
   - dependencies:
     - `docker-compose.yml`, bootstrap scripts.
   - tests:
     - копирование в `.env` и успешный `docker compose up`.
-- `README.md` — runbook T1 для запуска и health-check.
+- `README.md` — runbook T1/T2 для запуска, health-check и auth smoke.
   - public surface / key exports:
     - quickstart, контейнерная топология, keycloak bootstrap, verify команды.
   - invariants / assumptions:
@@ -278,6 +291,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Linux/macOS: `./scripts/bootstrap.sh`
   - Windows: `pwsh -File .\\scripts\\bootstrap.ps1`
   - Проверить `http://localhost:8080/health` и `http://localhost:4200/health`
+  - Проверить auth baseline на `http://localhost:4200` (login/logout + `/auth/*` вызовы)
   - Остановить: `docker compose down`
 - Verification:
   - `make verify-smoke`
@@ -299,6 +313,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-05 [t2-keycloak-and-access-model-baseline] Добавлен auth baseline: Keycloak audience mapper, backend JWT/JWKS validation и RBAC endpoint-ы, frontend OIDC demo flow, env/compose auth-конфигурация, кроссплатформенный whitespace gate (`--ignore-cr-at-eol`) и документация T2.
 - 2026-03-05 [t1-platform-bootstrap-and-container-topology] Добавлена контейнерная топология MVP (docker-compose), runtime-сервисный каркас с health/readiness, keycloak realm import, bootstrap-скрипты и обновленный runbook.
 - 2026-03-05 [gitignore-push-2026-03-05] Обновлен `.gitignore` (env/editor/log/build артефакты) и подготовлен репозиторий к публикации изменений.
 - 2026-03-05 [project-intake-2026-03-05] Полностью адаптирован PROJECT_MAP под домен e-КТРМ: архитектура, контракты, риски, verification-карта и runbook.

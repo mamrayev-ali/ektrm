@@ -15,7 +15,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Applicant создает/отправляет заявку, OPS проверяет/возвращает/принимает решение, система формирует сертификат, OPS mock-подписывает, сертификат публикуется в реестр, далее доступны post-issuance действия.
 - Tech stack:
   - Целевой: Angular SPA, Python/FastAPI микросервисы, PostgreSQL + SQLAlchemy/Alembic, Redis + Celery, MinIO, Keycloak, WebSocket, Docker Compose.
-  - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`).
+  - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`) + OPS review/protocol attachment API (`T6`).
 - Where to start reading the code:
   - `docker-compose.yml`,
   - `services/runtime/app/main.py`,
@@ -62,6 +62,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Для T2 добавлены auth baseline endpoint-ы: `/auth/config`, `/auth/me`, `/auth/applicant-area`, `/auth/ops-area`.
   - Для T3 добавлены reference-data endpoint-ы: `/reference-data/dictionaries`, `/reference-data/dictionaries/{code}/items`, `/reference-data/ops-registry`, `/reference-data/accreditation-attestats`.
   - Для T4/T5 добавлены applications endpoint-ы: `/applications/drafts`, `/applications/{id}/draft` (`PUT` и `DELETE`), `/applications/{id}/submit`, `/applications/{id}/transitions`, `/applications/{id}/history`.
+  - Для T6 добавлены OPS/file endpoint-ы: `/applications/ops/queue`, `/applications/{id}/protocol/attach`, `/files/slots/upload`.
 - Error handling strategy:
   - Frontend: пользовательские сообщения + field-level validation state.
   - Backend: структурированные ошибки с доменными кодами и без утечки чувствительных данных.
@@ -87,6 +88,8 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Внешний публичный реестр показывает только опубликованные сертификаты.
   - Backend всегда финальный источник истины для валидности и авторизации.
   - Уникальны номер заявки и номер сертификата; запрещены конфликтующие активные post-issuance процессы на один сертификат без явного разрешения.
+  - Review-переходы Ордер 3 (`REGISTERED`, `IN_REVIEW`, `REVISION_REQUESTED`, `PROTOCOL_ATTACHED`, `APPROVED`, `REJECTED`, `ARCHIVED`, `COMPLETED`) выполняет только роль `OPS`.
+  - Отказ по заявке (`REJECTED`) автоматически приводит к `ARCHIVED` и записи события о постановке уведомления заявителю.
 
 ## 4) Public API surface (if applicable)
 - Where the API contract lives:
@@ -204,6 +207,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `GET /`, `GET /health`, `GET /readiness`, `GET /auth/config`, `GET /auth/me`, `GET /auth/applicant-area`, `GET /auth/ops-area`.
     - для `reference-data-service` и `gateway-service`: `GET /reference-data/dictionaries`, `GET /reference-data/dictionaries/{code}/items`, `GET /reference-data/ops-registry`, `GET /reference-data/accreditation-attestats`.
     - для `applications-service` и `gateway-service`: `POST /applications/drafts`, `PUT /applications/{id}/draft`, `DELETE /applications/{id}/draft`, `POST /applications/{id}/submit`, `POST /applications/{id}/transitions`, `GET /applications/{id}`, `GET /applications/{id}/history`.
+    - для `files-service` и `gateway-service`: `POST /files/slots/upload`.
   - invariants / assumptions:
     - readiness зависит от доступности postgres/redis/minio/keycloak.
   - dependencies:
@@ -241,24 +245,45 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/tests/test_application_state_engine.py`, `services/runtime/tests/test_applications_api.py`.
 - `services/runtime/app/services/application_state_service.py` — доменный state engine Ордер 3.
   - public surface / key exports:
-    - transition map `DRAFT -> ... -> COMPLETED`, submit-валидация обязательных полей, удаление черновика в `ARCHIVED`, запись status history.
+    - transition map `DRAFT -> ... -> COMPLETED`, submit-валидация обязательных полей, удаление черновика в `ARCHIVED`, OPS queue, attach protocol, автоархивирование после отказа, запись status history.
   - invariants / assumptions:
     - недопустимые переходы запрещены (`409`);
     - submit невозможен при неполном payload (`422`);
     - удаление допускается только для статусов `DRAFT`/`REVISION_REQUESTED`.
+    - review-переходы требуют роль `OPS` (`403` при нарушении).
   - dependencies:
     - `services/runtime/app/repositories/application_repository.py`, `app/auth.py`.
   - tests:
     - `services/runtime/tests/test_application_state_engine.py`.
 - `services/runtime/app/routers/applications.py` — API слой Ордер 3.
   - public surface / key exports:
-    - endpoint-ы create/update/delete draft, submit, transition, read, history.
+    - endpoint-ы create/update/delete draft, submit, transition, read, history, `GET /applications/ops/queue`, `POST /applications/{id}/protocol/attach`.
   - invariants / assumptions:
     - backend проверяет ownership (`Applicant`) и full-access для `OPS`.
   - dependencies:
     - `ApplicationStateService`, DB session dependency.
   - tests:
     - `services/runtime/tests/test_applications_api.py`.
+- `services/runtime/app/services/file_slot_service.py` — сервис типизированных file slots в MinIO для T6.
+  - public surface / key exports:
+    - слот `protocol_test_report`, валидации расширения/размера/base64, генерация object key, upload в MinIO.
+  - invariants / assumptions:
+    - upload протокола доступен только роли `OPS`;
+    - поддерживаются форматы `pdf/doc/docx/xls/xlsx/jpg/jpeg/png`;
+    - default size-limit 25MB (`FILE_UPLOAD_MAX_BYTES`).
+  - dependencies:
+    - `services/runtime/app/routers/files.py`, MinIO (`minio` Python SDK), env `MINIO_*`.
+  - tests:
+    - `services/runtime/tests/test_files_api.py`.
+- `services/runtime/app/routers/files.py` — API для загрузки в типизированные file slots.
+  - public surface / key exports:
+    - `POST /files/slots/upload`.
+  - invariants / assumptions:
+    - возвращает metadata для последующей привязки в `applications/{id}/protocol/attach`.
+  - dependencies:
+    - `FileSlotService`, auth dependency layer.
+  - tests:
+    - `services/runtime/tests/test_files_api.py`.
 - `frontend/index.html` — T5 wizard UI для заявителя (Ордер 3).
   - public surface / key exports:
     - 8 шагов wizard: `Заявитель`, `Адрес заявителя`, `ОПС`, `Схема сертификации`, `Данные по продукции`, `Приложение`, `Документы`, `Примечание`.
@@ -298,7 +323,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `docker-compose.yml`, bootstrap scripts.
   - tests:
     - копирование в `.env` и успешный `docker compose up`.
-- `README.md` — runbook T1/T2/T3 для запуска, auth smoke и reference-data migration/api smoke.
+- `README.md` — runbook T1..T6 для запуска, auth/reference-data/applications/files smoke.
   - public surface / key exports:
     - quickstart, контейнерная топология, keycloak bootstrap, verify команды.
   - invariants / assumptions:
@@ -390,6 +415,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-05 [t6-ops-review-and-protocol-attachment] Реализован T6 backend-контур: OPS queue (`GET /applications/ops/queue`), role-gated review transitions, attach protocol (`POST /applications/{id}/protocol/attach`), files-service upload (`POST /files/slots/upload`) через MinIO slot `protocol_test_report`, автоархивирование после отказа с history-нотой уведомления, добавлены тесты `test_application_state_engine.py`, `test_applications_api.py`, `test_files_api.py`.
 - 2026-03-05 [t5-order-3-applicant-ui-wizard] Реализован T5: обновлен `frontend/index.html` в wizard Ордер 3 (8 шагов, submit-валидации, действия `Сохранить черновик`/`Подписать и отправить`/`Удалить черновик`), в backend добавлен `DELETE /applications/{id}/draft` с переводом в `ARCHIVED`, дополнены тесты `test_application_state_engine.py` и `test_applications_api.py`.
 - 2026-03-05 [t4-order-3-domain-model-and-state-engine] Реализован T4: добавлены модели `cert_application`/`cert_application_status_history`, Alembic migration `20260305_0002`, state engine переходов Ордер 3, applications API (`draft/submit/transitions/history`) и тесты `test_application_state_engine.py`, `test_applications_api.py`.
 - 2026-03-05 [ci-github-actions-verify-ci] Добавлен workflow `.github/workflows/verify-ci.yml` для автоматического запуска `make verify-ci` на PR/push, чтобы статусы CI отображались в GitHub PR checks.

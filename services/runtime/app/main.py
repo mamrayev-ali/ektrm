@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import AUTH_SETTINGS, CurrentUser, get_current_user, require_roles
 from app.routers.applications import router as applications_router
+from app.routers.files import router as files_router
 from app.routers.reference_data import router as reference_data_router
 
 app = FastAPI(title="e-KTRM Runtime Service", version="0.1.0")
@@ -16,6 +17,7 @@ APP_ENV = os.getenv("APP_ENV", "local")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 REFERENCE_DATA_SERVICES = {"reference-data-service", "gateway-service"}
 APPLICATION_SERVICES = {"applications-service", "gateway-service"}
+FILE_SERVICES = {"files-service", "gateway-service"}
 
 
 def _parse_csv(value: str) -> list[str]:
@@ -35,6 +37,9 @@ if SERVICE_NAME in REFERENCE_DATA_SERVICES:
 
 if SERVICE_NAME in APPLICATION_SERVICES:
     app.include_router(applications_router)
+
+if SERVICE_NAME in FILE_SERVICES:
+    app.include_router(files_router)
 
 
 def _check_tcp(host: str, port: int, timeout: float = 1.0) -> bool:

@@ -10,6 +10,7 @@ from app.routers.applications import router as applications_router
 from app.routers.certificates import router as certificates_router
 from app.routers.files import router as files_router
 from app.routers.reference_data import router as reference_data_router
+from app.routers.registry import router as registry_router
 
 app = FastAPI(title="e-KTRM Runtime Service", version="0.1.0")
 
@@ -20,6 +21,7 @@ REFERENCE_DATA_SERVICES = {"reference-data-service", "gateway-service"}
 APPLICATION_SERVICES = {"applications-service", "gateway-service"}
 FILE_SERVICES = {"files-service", "gateway-service"}
 CERTIFICATE_SERVICES = {"certificates-service", "gateway-service"}
+REGISTRY_SERVICES = {"certificates-service", "gateway-service"}
 
 
 def _parse_csv(value: str) -> list[str]:
@@ -45,6 +47,9 @@ if SERVICE_NAME in FILE_SERVICES:
 
 if SERVICE_NAME in CERTIFICATE_SERVICES:
     app.include_router(certificates_router)
+
+if SERVICE_NAME in REGISTRY_SERVICES:
+    app.include_router(registry_router)
 
 
 def _check_tcp(host: str, port: int, timeout: float = 1.0) -> bool:

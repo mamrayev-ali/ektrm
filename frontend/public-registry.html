@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>e-КТРМ — Публичный реестр сертификатов</title>
+    <style>
+      :root {
+        --bg: #f4f6fb;
+        --card: #ffffff;
+        --ink: #0f172a;
+        --muted: #54627a;
+        --line: #d9dfeb;
+        --accent: #0f766e;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: radial-gradient(circle at top right, #dff7f3 0%, var(--bg) 45%);
+        color: var(--ink);
+        font-family: "Segoe UI", Tahoma, sans-serif;
+      }
+
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        overflow: hidden;
+      }
+
+      .head {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 12px;
+      }
+
+      .title {
+        font-size: 24px;
+        font-weight: 800;
+        margin: 0;
+      }
+
+      .sub {
+        margin-top: 6px;
+        color: var(--muted);
+      }
+
+      .controls {
+        display: flex;
+        gap: 8px;
+      }
+
+      input,
+      button {
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        padding: 10px 12px;
+        font: inherit;
+      }
+
+      button {
+        background: var(--accent);
+        color: #fff;
+        border-color: transparent;
+        cursor: pointer;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      thead {
+        background: #f8fafc;
+      }
+
+      .empty {
+        padding: 22px;
+        color: var(--muted);
+      }
+
+      .meta {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 920px) {
+        .head {
+          align-items: stretch;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <section class="card">
+        <header class="head">
+          <div>
+            <h1 class="title">Публичный реестр сертификатов</h1>
+            <div class="sub">Показываются только опубликованные сертификаты (read-only).</div>
+            <div class="meta" id="metaInfo">Загрузка...</div>
+          </div>
+          <div class="controls">
+            <input id="searchInput" type="search" placeholder="Поиск по номеру сертификата" />
+            <button id="refreshBtn" type="button">Обновить</button>
+          </div>
+        </header>
+        <div style="overflow-x: auto">
+          <table aria-label="Публичный реестр сертификатов">
+            <thead>
+              <tr>
+                <th>Номер сертификата</th>
+                <th>Номер заявки</th>
+                <th>Статус</th>
+                <th>Наименование заявителя</th>
+                <th>Продукция</th>
+                <th>Опубликован</th>
+              </tr>
+            </thead>
+            <tbody id="registryBody"></tbody>
+          </table>
+          <div class="empty" id="emptyState" hidden>В реестре пока нет опубликованных сертификатов.</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const config = {
+        apiBase: "http://localhost:8080",
+      };
+
+      const bodyNode = document.getElementById("registryBody");
+      const emptyNode = document.getElementById("emptyState");
+      const metaInfo = document.getElementById("metaInfo");
+      const refreshBtn = document.getElementById("refreshBtn");
+      const searchInput = document.getElementById("searchInput");
+
+      function formatDateTime(value) {
+        if (!value) {
+          return "-";
+        }
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+          return value;
+        }
+        return parsed.toLocaleString("ru-RU");
+      }
+
+      function renderRows(items) {
+        bodyNode.innerHTML = "";
+        if (!Array.isArray(items) || items.length === 0) {
+          emptyNode.hidden = false;
+          return;
+        }
+        emptyNode.hidden = true;
+
+        items.forEach((item) => {
+          const row = document.createElement("tr");
+          const values = [
+            item.certificate_number || "-",
+            item.source_application_number || "-",
+            item.status || "-",
+            item.applicant_name || "-",
+            item.product_name || "-",
+            formatDateTime(item.published_at),
+          ];
+          values.forEach((value) => {
+            const cell = document.createElement("td");
+            cell.textContent = String(value);
+            row.appendChild(cell);
+          });
+          bodyNode.appendChild(row);
+        });
+      }
+
+      async function loadRegistry() {
+        refreshBtn.disabled = true;
+        const search = searchInput.value.trim();
+        const query = search ? `?limit=200&search=${encodeURIComponent(search)}` : "?limit=200";
+        try {
+          const response = await fetch(`${config.apiBase}/registry/public${query}`, {
+            method: "GET",
+            headers: { Accept: "application/json" },
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(`${response.status} ${JSON.stringify(payload.detail || payload)}`);
+          }
+          const items = Array.isArray(payload.items) ? payload.items : [];
+          renderRows(items);
+          metaInfo.textContent = `Записей: ${items.length}. Обновлено: ${new Date().toLocaleString("ru-RU")}`;
+        } catch (error) {
+          renderRows([]);
+          metaInfo.textContent = `Ошибка загрузки: ${error instanceof Error ? error.message : String(error)}`;
+        } finally {
+          refreshBtn.disabled = false;
+        }
+      }
+
+      refreshBtn.addEventListener("click", loadRegistry);
+      searchInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          loadRegistry();
+        }
+      });
+
+      loadRegistry();
+    </script>
+  </body>
+</html>

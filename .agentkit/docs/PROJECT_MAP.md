@@ -15,7 +15,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Applicant создает/отправляет заявку, OPS проверяет/возвращает/принимает решение, система формирует сертификат, OPS mock-подписывает, сертификат публикуется в реестр, далее доступны post-issuance действия.
 - Tech stack:
   - Целевой: Angular SPA, Python/FastAPI микросервисы, PostgreSQL + SQLAlchemy/Alembic, Redis + Celery, MinIO, Keycloak, WebSocket, Docker Compose.
-  - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`) + OPS review/protocol attachment API (`T6`) + baseline генерации сертификата/snapshot (`T7`).
+  - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`) + OPS review/protocol attachment API (`T6`) + baseline генерации сертификата/snapshot (`T7`) + mock-sign/publish и внутренний/публичный реестры (`T8`).
 - Where to start reading the code:
   - `docker-compose.yml`,
   - `services/runtime/app/main.py`,
@@ -64,6 +64,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Для T4/T5 добавлены applications endpoint-ы: `/applications/drafts`, `/applications/{id}/draft` (`PUT` и `DELETE`), `/applications/{id}/submit`, `/applications/{id}/transitions`, `/applications/{id}/history`.
   - Для T6 добавлены OPS/file endpoint-ы: `/applications/ops/queue`, `/applications/{id}/protocol/attach`, `/files/slots/upload`.
   - Для T7 добавлены certificate endpoint-ы: `/certificates/{id}`, `/certificates/by-application/{application_id}` и генерация сертификата при переходе `PROTOCOL_ATTACHED -> APPROVED`.
+  - Для T8 добавлены certificate/registry endpoint-ы: `POST /certificates/{id}/sign` (OPS mock-sign + auto publish), `GET /registry/internal` (role-aware visibility), `GET /registry/public` (read-only без авторизации).
 - Error handling strategy:
   - Frontend: пользовательские сообщения + field-level validation state.
   - Backend: структурированные ошибки с доменными кодами и без утечки чувствительных данных.
@@ -97,10 +98,10 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Целевой контракт: OpenAPI в backend-сервисах (будет добавлен в тикетах реализации).
 - Versioning strategy:
   - Semver API namespace (`/api/v1/...`) и эволюционные non-breaking изменения в рамках версии.
-- Critical endpoints / operations (planned):
+- Critical endpoints / operations (planned/implemented baseline):
   - `POST /applications/drafts`, `POST /applications/{id}/submit`, `POST /applications/{id}/review-actions`
   - `POST /applications/{id}/protocol`, `POST /applications/{id}/decision`
-  - `GET /certificates`, `POST /certificates/{id}/sign-mock`, `POST /certificates/{id}/publish`
+  - `GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`, `POST /certificates/{id}/sign`
   - `POST /post-issuance/drafts`, `POST /post-issuance/{id}/submit`, `POST /post-issuance/{id}/decision`
   - `GET /registry/public`
   - `GET /notifications`, `POST /notifications/{id}/read`
@@ -115,13 +116,14 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Реализован baseline migration `20260305_0001` с созданием обязательных справочников и seeded lookup-таблиц.
   - Реализован migration `20260305_0002` для таблиц Ордер 3: `cert_application`, `cert_application_status_history`.
   - Реализован migration `20260305_0003` для baseline Ордер 4: `certificate`, `certificate_status_history`.
+  - Реализован migration `20260305_0004` для T8: поля подписи/публикации сертификата + `certificate_registry_publication`.
   - Любые изменения схемы через отдельные migration tickets.
 - Rollback approach:
   - Для каждого migration тикета обязателен rollback-план (down migration/compensation).
   - На risky migrations требуется отдельный PR.
 - Critical tables/collections (high level):
   - Applications: `cert_application`, `cert_application_status_history`.
-  - Certificates: `certificate`, `certificate_status_history` (T7 baseline), `certificate_version` (planned in T10).
+  - Certificates: `certificate`, `certificate_status_history`, `certificate_registry_publication` (T8 baseline), `certificate_version` (planned in T10).
   - Post-issuance: `post_issuance_application`, `post_issuance_status_history`.
   - Reference: `ref_*`, `ops_registry`, `accreditation_attestat`.
   - Infra/domain cross-cutting: `stored_file`, `notification`, `audit_log`, `field_audit_log`.
@@ -230,6 +232,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - revision `20260305_0001` (T3) создает таблицы `reference_dictionaries`, `reference_dictionary_items`, `ops_registry`, `accreditation_attestats`.
     - revision `20260305_0002` (T4) создает таблицы `cert_application` и `cert_application_status_history` с уникальностью `application_number`.
     - revision `20260305_0003` (T7) создает таблицы `certificate` и `certificate_status_history` с инвариантом «одна `APPROVED` заявка -> один baseline сертификат».
+    - revision `20260305_0004` (T8) добавляет `signed_by_subject`/`signed_at`/`published_at` в `certificate` и таблицу `certificate_registry_publication`.
   - invariants / assumptions:
     - seed выполняется idempotent-вставками (`ON CONFLICT DO NOTHING`) для стабильного bootstrap.
   - dependencies:
@@ -246,15 +249,16 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/alembic/versions/20260305_0002_t4_order3_domain_model.py`, `services/runtime/alembic/versions/20260305_0003_t7_certificate_generation_snapshot.py`, state-service слой.
   - tests:
     - `services/runtime/tests/test_application_state_engine.py`, `services/runtime/tests/test_applications_api.py`, `services/runtime/tests/test_certificate_service.py`.
-- `services/runtime/app/models/certificate.py` — SQLAlchemy-модель baseline сертификата и истории его статусов (T7).
+- `services/runtime/app/models/certificate.py` — SQLAlchemy-модель baseline сертификата, истории статусов и событий публикации (T7/T8).
   - public surface / key exports:
-    - `Certificate`, `CertificateStatusHistory`.
+    - `Certificate`, `CertificateStatusHistory`, `CertificateRegistryPublication`.
   - invariants / assumptions:
     - сертификат создается только из `APPROVED` заявки;
     - `source_application_id` уникален (one-to-one baseline);
-    - snapshot хранится в `snapshot_json` и не зависит от последующих изменений заявки.
+    - snapshot хранится в `snapshot_json` и не зависит от последующих изменений заявки;
+    - T8 фиксирует `signed_at`/`published_at` и отдельные publication events.
   - dependencies:
-    - `services/runtime/alembic/versions/20260305_0003_t7_certificate_generation_snapshot.py`, `services/runtime/app/services/certificate_service.py`.
+    - `services/runtime/alembic/versions/20260305_0003_t7_certificate_generation_snapshot.py`, `services/runtime/alembic/versions/20260305_0004_t8_mock_signing_publication_registry.py`, `services/runtime/app/services/certificate_service.py`.
   - tests:
     - `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py`.
 - `services/runtime/app/services/application_state_service.py` — доменный state engine Ордер 3.
@@ -280,30 +284,42 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `ApplicationStateService`, `CertificateService`, DB session dependency.
   - tests:
     - `services/runtime/tests/test_applications_api.py`.
-- `services/runtime/app/repositories/certificate_repository.py` — persistence слой сертификатов (T7).
+- `services/runtime/app/repositories/certificate_repository.py` — persistence слой сертификатов и реестров (T7/T8).
   - public surface / key exports:
-    - `get_certificate`, `get_by_source_application`, `create_certificate`, `add_history`.
+    - `get_certificate`, `get_by_source_application`, `create_certificate`, `add_history`, `add_publication`, `list_internal_registry`, `list_public_registry`.
   - invariants / assumptions:
-    - создание сертификата фиксирует статус `GENERATED` через отдельную history-запись.
+    - создание сертификата фиксирует статус `GENERATED` через отдельную history-запись;
+    - public registry выдается только для сертификатов с `published_at`.
   - dependencies:
     - `services/runtime/app/models/certificate.py`.
   - tests:
     - `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py`.
-- `services/runtime/app/services/certificate_service.py` — доменный сервис генерации и чтения сертификатов (T7).
+- `services/runtime/app/services/certificate_service.py` — доменный сервис генерации, подписи/публикации и реестров сертификатов (T7/T8).
   - public surface / key exports:
-    - `generate_for_approved_application`, `get_certificate`, `get_certificate_by_application`.
+    - `generate_for_approved_application`, `sign_and_publish`, `get_certificate`, `get_certificate_by_application`, `list_internal_registry`, `list_public_registry`.
   - invariants / assumptions:
     - генерация разрешена только для `APPROVED`;
+    - mock-sign+publish разрешены только для роли `OPS` и статуса `GENERATED`;
     - ownership enforcement: Applicant только свои сертификаты, OPS — все.
   - dependencies:
     - `services/runtime/app/repositories/certificate_repository.py`, `app/auth.py`.
   - tests:
     - `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py`.
-- `services/runtime/app/routers/certificates.py` — read API сертификатов (T7 baseline).
+- `services/runtime/app/routers/certificates.py` — API сертификатов (T7/T8).
   - public surface / key exports:
-    - `GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`.
+    - `GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`, `POST /certificates/{id}/sign`.
   - invariants / assumptions:
-    - чтение защищено backend RBAC + ownership checks.
+    - чтение защищено backend RBAC + ownership checks;
+    - операция sign доступна только `OPS`.
+  - dependencies:
+    - `CertificateService`, DB session dependency.
+  - tests:
+    - `services/runtime/tests/test_certificates_api.py`.
+- `services/runtime/app/routers/registry.py` — API внутренних/публичных реестров сертификатов (T8).
+  - public surface / key exports:
+    - `GET /registry/internal` (Applicant/OPS), `GET /registry/public` (без auth).
+  - invariants / assumptions:
+    - public endpoint read-only и отдает только опубликованные сертификаты.
   - dependencies:
     - `CertificateService`, DB session dependency.
   - tests:
@@ -328,7 +344,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `FileSlotService`, auth dependency layer.
   - tests:
     - `services/runtime/tests/test_files_api.py`.
-- `frontend/index.html` — T5/T6 UI для заявителя и OPS (Ордер 3).
+- `frontend/index.html` — T5/T6/T8 UI для заявителя и OPS (Ордер 3 + внутренний реестр сертификатов).
   - public surface / key exports:
     - default-экран раздела `Заявки`: полноширинный реестр заявок текущего пользователя (табличный список без детального перехода/действий) + кнопка `Подать новую заявку`.
     - отдельный OPS-экран: полноширинный реестр отправленных заявок заявителей для роли `OPS` (на базе `GET /applications/ops/queue`) с action `Открыть`.
@@ -336,7 +352,8 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - действия формы: `К списку заявок`, `Сохранить черновик`, `Подписать и отправить`, `Удалить черновик`; при возврате в реестр выполняется confirm при несохраненной новой форме.
     - OPS-режим формы (визуально тот же layout): read-only данные заявки + блок действий `ОПС: Проверка и решение` (`Принять`, `На доработку`, `Прикрепить протокол`, `Принять решение`, `Завершить`) с вызовами существующих T6/T7 endpoint-ов.
     - визуал процесса `Подача -> Регистрация -> Проверка -> Решение -> Сертификат` подсвечивается по текущему статусу заявки.
-    - OIDC-сессия (Authorization Code + PKCE, нативный JS-клиент без `keycloak.js`) + вызовы applications API через gateway.
+    - внутренний реестр сертификатов с действием `Подписать` для `OPS` (вызов `POST /certificates/{id}/sign`) и ссылкой на публичный read-only реестр.
+    - OIDC-сессия (Authorization Code + PKCE, нативный JS-клиент без `keycloak.js`) + вызовы applications/certificates/registry API через gateway.
     - auth/role gate: при неавторизованной сессии рабочие экраны и header скрыты, показывается центрированное окно входа (логотип + кнопка Keycloak). Для `OPS` отображается OPS-реестр, а не экран `Нет доступа`.
   - invariants / assumptions:
     - submit валидирует обязательные поля и форматы (BIN=12 digits/phone mask/email);
@@ -346,6 +363,15 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/app/routers/applications.py`, Keycloak OIDC endpoints (`/auth`, `/token`, `/logout`).
   - tests:
     - ручной smoke + backend API tests (`test_applications_api.py`).
+- `frontend/public-registry.html` — отдельная публичная read-only страница реестра сертификатов (T8).
+  - public surface / key exports:
+    - listing опубликованных сертификатов через `GET /registry/public`.
+  - invariants / assumptions:
+    - без авторизации, без операций записи.
+  - dependencies:
+    - `services/runtime/app/routers/registry.py`, gateway CORS/config.
+  - tests:
+    - ручной smoke (browser).
 - `services/runtime/app/seed/reference_data_seed.py` — source-of-truth для seeded справочников и lookup-реестров T3.
   - public surface / key exports:
     - обязательные dictionary codes (TECH_SPEC section 15.2), причины Ордер 5, seed для `ops_registry` и `accreditation_attestats`.
@@ -373,7 +399,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `docker-compose.yml`, bootstrap scripts.
   - tests:
     - копирование в `.env` и успешный `docker compose up`.
-- `README.md` — runbook T1..T7 для запуска, auth/reference-data/applications/files/certificates smoke.
+- `README.md` — runbook T1..T8 для запуска, auth/reference-data/applications/files/certificates/registry smoke.
   - public surface / key exports:
     - quickstart, контейнерная топология, keycloak bootstrap, verify команды.
   - invariants / assumptions:
@@ -465,6 +491,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-05 [t8-mock-signing-publication-registry] Реализован T8 baseline Ордер 4: добавлены migration `20260305_0004` и модель `certificate_registry_publication`, расширены `certificate` полями подписи/публикации (`signed_by_subject`, `signed_at`, `published_at`), реализован endpoint `POST /certificates/{id}/sign` (mock-sign + auto publish `SIGNED -> PUBLISHED -> ACTIVE`), добавлены реестровые endpoint-ы `GET /registry/internal` и `GET /registry/public`, расширены тесты `test_certificate_service.py`/`test_certificates_api.py`, обновлен UI внутреннего реестра в `frontend/index.html` и добавлена публичная страница `frontend/public-registry.html`.
 - 2026-03-05 [ops-review-decision-ui] В `frontend/index.html` реализован OPS workflow UI в дизайне текущей формы: в OPS-реестре добавлено действие `Открыть`, заявка открывается в read-only режиме с тем же process layout (`Подача -> Регистрация -> Проверка -> Решение -> Сертификат`) и подсветкой шага по статусу; добавлены OPS-действия `Принять`, `На доработку`, `Прикрепить протокол`, `Принять решение`, `Завершить` с интеграцией в существующие API (`/applications/{id}/transitions`, `/files/slots/upload`, `/applications/{id}/protocol/attach`, `/certificates/by-application/{application_id}`), плюс блок history переходов.
 - 2026-03-05 [ui-registry-ops-auth-bin12-phone-mask] Обновлен UX раздела `Заявки`: applicant-реестр сделан полноширинным, добавлен confirm при возврате из несохраненной новой формы, auth-screen переведен в центрированный режим (логотип + кнопка Keycloak без header), для роли `OPS` добавлен отдельный полноширинный реестр отправленных заявок, BIN-валидация изменена на 12 цифр (frontend+backend), добавлена автоподстановочная маска телефона; расширены backend-тесты и обновлены test payloads.
 - 2026-03-05 [applications-registry-and-auth-gate] Обновлен Applicant UI и applications API: добавлен endpoint `GET /applications/mine`, раздел `Заявки` переведен на default-реестр заявок текущего пользователя с кнопкой `Подать новую заявку`, wizard вынесен в отдельный режим формы, auth/forbidden gate снова центрирован и показывает OIDC init-метаданные; расширены API тесты (`test_mine_returns_only_current_user_applications`).

@@ -1,75 +1,32 @@
-# Local rules (project-specific)
+# Local Rules — e-КТРМ
 
-This directory is reserved for **project-specific rules** that should NOT be mixed with:
-- `.agentkit/rules/common/` (general rules for any repo)
-- `.agentkit/rules/stacks/*` (language/framework-specific rule packs)
+Этот каталог содержит только **локальные правила проекта e-КТРМ**.
+Главный источник требований: `.agentkit/_temp/TECH_SPEC.md`.
 
-## What belongs here
-Use `local/` for rules that are unique to **this repository** or organization context, for example:
-- architectural decisions specific to this repo (module boundaries, layering, naming conventions)
-- domain-specific constraints and invariants
-- required documentation locations (PRD links, runbooks, ADRs)
-- CI/CD conventions specific to this repo (ONLY what is safe to describe; do not store secrets)
-- required security headers/policies used in this repo
-- code ownership conventions
-- release/versioning conventions
-- environments and deployment expectations (high level)
+## Source precedence
+1. `.agentkit/_temp/TECH_SPEC.md`
+2. `.agentkit/_temp/PDF_ORDERS_DETAILED.md`
+3. BPMN-изображения из `.agentkit/_temp/order_*.jpg`
+4. Общие инженерные правила из `.agentkit/rules/common/*`
 
-## What does NOT belong here
-Do not put these here:
-- general coding style rules (use `common/`)
-- language/framework rules (use `stacks/<stack>/`)
-- secrets, keys, tokens, credentials (never store in repo)
+Если есть конфликт между локальными правилами и `TECH_SPEC.md`, приоритет у `TECH_SPEC.md`.
 
-## Recommended files
-You can structure local rules as multiple focused files, for example:
-- `architecture.md`
-- `domain.md`
-- `security.md`
-- `testing.md`
-- `ci.md`
-- `ui-design.md` (if you have specific design system constraints)
-- `integrations.md`
+## File index
+- `architecture.md` — границы сервисов, dependency direction, ownership данных, event-model.
+- `domain.md` — роли, статусы, переходы и инварианты по Ордер 3/4/5.
+- `security.md` — Keycloak/JWT/RBAC правила, redaction и политика секретов.
+- `testing.md` — обязательная матрица тестов и минимальный acceptance набор.
+- `ci.md` — verification/DoD контракт и policy gates по тикетам.
+- `ui-design.md` — UI/UX правила и ограничения вкладок/состояний.
+- `integrations.md` — допустимые и запрещенные интеграции MVP, конфигурационный контракт.
 
-Keep files small and specific.
+## What must not be placed here
+- Общие coding-style правила (для этого есть `common/`).
+- Специфичные правила языка/фреймворка (для этого `stacks/<stack>/`).
+- Любые секреты (ключи, токены, пароли, certs).
 
-## How the agent should use local rules
-- The agent MUST always load `local/` (even if it is empty).
-- The agent must mention in the ticket log:
+## Agent usage contract
+- Agent всегда загружает `common + local`.
+- Agent обязан писать в лог тикета:
   - `[RULES] loaded dirs: common, local, ...`
-
-## Template: minimal `architecture.md` (copy/paste)
-# Architecture (local)
-
-## Modules / boundaries
-- ...
-
-## Dependency direction
-- ...
-
-## Data flow
-- ...
-
-## High-risk areas
-- ...
-
-## Naming conventions
-- ...
-
-## Template: minimal security.md (copy/paste)
-# Security (local)
-
-## Auth / permissions model
-- ...
-
-## Security headers
-- ...
-
-## Sensitive data handling
-- ...
-
-## Allowed origins / CORS
-- ...
-
-## Logging (redaction)
-- ...
+- При любых изменениях в репозитории Agent обновляет `.agentkit/docs/PROJECT_MAP.md` в том же тикете.

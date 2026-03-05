@@ -1,5 +1,11 @@
-﻿# Agent logs (local audit)
+# Agent logs (local audit)
 logs/agent/
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+!.env.example
 
 # Playwright artifacts (recommended)
 playwright-report/
@@ -14,7 +20,28 @@ htmlcov/
 
 # Node artifacts (recommended)
 node_modules/
+dist/
+build/
 
 # Common caches (recommended)
 __pycache__/
 .venv/
+.mypy_cache/
+.ruff_cache/
+
+# IDE / editor files
+.vscode/
+.idea/
+*.swp
+
+# Generic logs and temp artifacts
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+tmp/
+temp/
+
+# Local requirement source docs (not tracked)
+.agentkit/_temp

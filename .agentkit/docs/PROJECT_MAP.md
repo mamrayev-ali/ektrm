@@ -1,4 +1,4 @@
-# PROJECT_MAP (template)
+# PROJECT_MAP — e-КТРМ (AgentKit Adaptation Stage)
 
 This file is the persistent, human-readable **map of the repository**.
 It exists so that a new agent chat can quickly understand **what lives where**, **why it exists**, and **what contracts matter**.
@@ -10,84 +10,231 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 
 ## 0) TL;DR
 - What this system does:
+  - Репозиторий хранит процессный каркас AgentKit и адаптируется под продукт e-КТРМ (сертификация продукции РК, MVP Phase 1) с приоритетом Ордер 3 -> Ордер 4 -> Ордер 5 (без возобновления).
 - Key user flows:
+  - Applicant создает/отправляет заявку, OPS проверяет/возвращает/принимает решение, система формирует сертификат, OPS mock-подписывает, сертификат публикуется в реестр, далее доступны post-issuance действия.
 - Tech stack:
+  - Целевой: Angular SPA, Python/FastAPI микросервисы, PostgreSQL + SQLAlchemy/Alembic, Redis + Celery, MinIO, Keycloak, WebSocket, Docker Compose.
+  - Текущий этап репозитория: документация, правила и verification-контракт; продуктовый код сервисов еще не создан.
 - Where to start reading the code:
+  - `.agentkit/_temp/TECH_SPEC.md` (источник истины по домену),
+  - `.agentkit/docs/ROADMAP.md`,
+  - `.agentkit/rules/local/*.md`,
+  - `Makefile`,
+  - `.agentkit/scripts/verify.sh` и `.agentkit/scripts/verify.ps1`.
 
 ## 1) Repo structure (high level)
-> Describe directories as subsystems/modules. Do NOT dump the entire tree.
-
-- `/...` — purpose, boundaries, ownership
-- `/...` — purpose, boundaries, ownership
+- `/.agentkit/` — процессный каркас AgentKit (правила, шаблоны, документация, скрипты верификации).
+  - Ownership: команда разработки/архитектор процесса.
+  - Boundary: инфраструктура процесса, не бизнес-код продукта.
+- `/.agentkit/docs/` — живые документы проекта (`ROADMAP.md`, `PROJECT_MAP.md`).
+  - Boundary: описание планов, структуры и контрактов; обновляются в каждом тикете.
+- `/.agentkit/rules/common/` — универсальные правила разработки.
+  - Boundary: общие инженерные практики, не доменная специфика e-КТРМ.
+- `/.agentkit/rules/local/` — проектные правила e-КТРМ (архитектура, домен, безопасность, тестирование, интеграции, CI).
+  - Boundary: локальные инструкции, привязанные к `TECH_SPEC.md`.
+- `/.agentkit/scripts/` — универсальные verify-раннеры (`verify.sh`, `verify.ps1`) и вендор-утилиты.
+- `/.agentkit/_temp/` — рабочие исходники аналитики (`TECH_SPEC.md`, `PDF_ORDERS_DETAILED.md`, BPMN jpg).
+  - Boundary: источник требований на этапе intake/adaptation; каталог gitignored.
+- `/.agents/skills/` — локальные навыки Codex (`project-intake`, `ticket-planning`).
+- `/logs/agent/` — локальные аудиторские логи тикетов (gitignored).
 
 ## 2) Key contracts & boundaries
-- Architectural principles (layering, dependency direction, “clean architecture” expectations)
-- Public interfaces (APIs, schemas, events)
-- Error handling strategy
-- Logging/observability conventions (where logs go, correlation IDs if any)
+- Architectural principles:
+  - Микросервисный стиль с прагматичной укрупненностью сервисов для MVP.
+  - Явное разделение слоев: `router -> service -> persistence`.
+  - Бизнес-переходы статусов кодируются доменными сервисами, не контроллерами.
+  - Snapshot-подход для сертификатов: сертификат не зависит от «живой» заявки после генерации.
+- Public interfaces:
+  - REST API по доменным группам: applications, certificates, post-issuance, registry, notifications, reference-data.
+  - OpenAPI — обязательный контракт backend-to-frontend.
+  - Публичный API реестра — read-only.
+- Error handling strategy:
+  - Frontend: пользовательские сообщения + field-level validation state.
+  - Backend: структурированные ошибки с доменными кодами и без утечки чувствительных данных.
+- Logging/observability conventions:
+  - Audit обязателен для CRUD/статусов/публикации/подписи/архивирования.
+  - Field-level audit обязателен для критичных полей (номер/статус/срок сертификата, причины post-issuance, ключевые реквизиты).
+  - Correlation-id должен пробрасываться через gateway и сервисы (планируемый контракт на этапе реализации).
 
 ## 3) Domain map (important concepts)
 - Core domain entities:
+  - `cert_application`, `certificate`, `certificate_version`, `post_issuance_application`.
+  - `stored_file`, `notification`, `audit_log`, `field_audit_log`.
+  - Reference/lookup: ОПС, аттестаты, схемы, статусы, причины действий.
 - Main business rules:
+  - Активные роли MVP: только `Applicant` и `OPS`.
+  - Order 3: workflow заявка -> review -> decision -> generate certificate.
+  - Order 4: mock-sign + publication in internal/public registry.
+  - Order 5: reissue/suspend/terminate (resume explicitly out of scope).
+  - Post-issuance forms prefill from source certificate.
 - Invariants (things that must always be true):
+  - Сертификат создается только из одобренной заявки.
+  - Каждое успешное post-issuance действие создает историю состояния/версий.
+  - Внешний публичный реестр показывает только опубликованные сертификаты.
+  - Backend всегда финальный источник истины для валидности и авторизации.
+  - Уникальны номер заявки и номер сертификата; запрещены конфликтующие активные post-issuance процессы на один сертификат без явного разрешения.
 
 ## 4) Public API surface (if applicable)
-- Where the API contract lives (OpenAPI/Swagger/Proto/etc.):
+- Where the API contract lives:
+  - Целевой контракт: OpenAPI в backend-сервисах (будет добавлен в тикетах реализации).
 - Versioning strategy:
-- Critical endpoints / operations (only list critical ones):
-  - ...
-  - ...
+  - Semver API namespace (`/api/v1/...`) и эволюционные non-breaking изменения в рамках версии.
+- Critical endpoints / operations (planned):
+  - `POST /applications/drafts`, `POST /applications/{id}/submit`, `POST /applications/{id}/review-actions`
+  - `POST /applications/{id}/protocol`, `POST /applications/{id}/decision`
+  - `GET /certificates`, `POST /certificates/{id}/sign-mock`, `POST /certificates/{id}/publish`
+  - `POST /post-issuance/drafts`, `POST /post-issuance/{id}/submit`, `POST /post-issuance/{id}/decision`
+  - `GET /registry/public`
+  - `GET /notifications`, `POST /notifications/{id}/read`
 
 ## 5) Data & migrations (if applicable)
 - Database(s):
+  - PostgreSQL (основная доменная БД).
+  - Redis (брокер/кэш/реaltime support).
+  - MinIO (S3-compatible object storage).
 - Migration approach:
+  - Alembic migration chain + deterministic seed scripts.
+  - Любые изменения схемы через отдельные migration tickets.
 - Rollback approach:
-- Critical tables/collections (high level only):
+  - Для каждого migration тикета обязателен rollback-план (down migration/compensation).
+  - На risky migrations требуется отдельный PR.
+- Critical tables/collections (high level):
+  - Applications: `cert_application`, `cert_application_status_history`.
+  - Certificates: `certificate`, `certificate_version`, `certificate_status_history`.
+  - Post-issuance: `post_issuance_application`, `post_issuance_status_history`.
+  - Reference: `ref_*`, `ops_registry`, `accreditation_attestat`.
+  - Infra/domain cross-cutting: `stored_file`, `notification`, `audit_log`, `field_audit_log`.
 
 ## 6) Frontend / UI surface (if applicable)
 - Routing approach:
+  - Angular SPA route guards as UX layer; backend authorization is mandatory enforcement.
 - State management approach:
+  - Feature-level state by domain modules (applications, certificates, registry, notifications).
+  - Realtime updates via WebSocket + fallback refresh.
 - Where styles/tokens live:
-- How UI is verified vs design (Figma references, Playwright checks):
+  - Базовый визуальный источник: `prototype.html`.
+  - Локальные UI-правила: `.agentkit/rules/local/ui-design.md`.
+- How UI is verified vs design:
+  - Сверка на этапе разработки по `prototype.html`, `TECH_SPEC.md`, `PDF_ORDERS_DETAILED.md` и BPMN jpg.
+  - Для e2e smoke планируется Playwright-пакет (тикет T13).
 
 ## 7) Testing & verification map
 ### Local DoD (must pass before asking to push)
 - `make verify-local` does:
-  - ...
+  - Проверяет целостность AgentKit-адаптации:
+    - наличие критичных файлов docs/rules/scripts;
+    - отсутствие template-маркеров;
+    - наличие ticket-плана в ROADMAP;
+    - наличие changelog-записи в PROJECT_MAP;
+    - наличие всех обязательных local rules файлов.
 - Coverage target:
+  - Для текущего адаптационного этапа coverage не применяется; будет зафиксирован после появления runtime-кода (см. ROADMAP T13).
 - “API e2e smoke” definition:
-  - ...
+  - На текущем этапе отсутствует runtime API; smoke ограничен process-contract checks.
 
 ### CI DoD (must pass before ticket is Done)
 - `make verify-ci` does:
-  - ...
+  - Запускает `verify-local`.
+  - Дополнительно проверяет наличие `README.md` и `.env.example` как обязательных артефактов runtime-этапа.
 - Security scanning policy (high level):
-  - ...
+  - На adaptation этапе — policy/document checks.
+  - На implementation этапе — статический анализ + dependency/security scanning добавляются в `verify-ci`.
 
 ## 8) High-risk areas
-> Only list areas that require extra scrutiny (auth/permissions, migrations, public contracts, headers, payments, etc.)
-
-- Area:
+- Auth / permissions / role mapping
   - Why risky:
+    - Ошибка в claim/role mapping ломает границы доступа Applicant/OPS.
   - What to check:
+    - JWT signature/issuer/audience validation, role visibility, org binding.
   - Where in the code:
+    - future `auth-integration-service`, gateway auth middleware, RBAC guards.
+- Database migrations and status model
+  - Why risky:
+    - Неверные переходы/схема статусов ломают юридический workflow и traceability.
+  - What to check:
+    - migration plan + rollback, enum transitions, history integrity.
+  - Where in the code:
+    - future Alembic migrations, applications/certificates/post-issuance services.
+- Public registry API contract
+  - Why risky:
+    - Внешний read-only контракт чувствителен к несовместимым изменениям.
+  - What to check:
+    - schema stability, published-only filter, pagination/filter compatibility.
+  - Where in the code:
+    - future gateway + certificates/registry endpoints.
+- Security headers and sensitive logging
+  - Why risky:
+    - Возможны утечки персональных данных и security misconfiguration.
+  - What to check:
+    - redaction policy, no secrets in logs, response header baseline.
+  - Where in the code:
+    - future gateway middleware, service logging configuration.
 
 ## 9) File registry (only important files)
-> Keep this tight. Add entries only for “high-leverage” files:
-> entrypoints, public interfaces, complex business logic, high-risk code.
-
-- `path/to/file` — purpose
+- `.agentkit/_temp/TECH_SPEC.md` — главный доменный контракт MVP (локальный source-of-truth).
   - public surface / key exports:
+    - Scope, роли, статусы, сущности, API-группы, требования к качеству.
   - invariants / assumptions:
+    - Order 3/4/5 required, resume forbidden in MVP.
   - dependencies:
+    - PDF analytics + BPMN jpg as secondary evidence.
   - tests:
+    - Используется как чеклист для acceptance mapping.
+- `.agentkit/_temp/PDF_ORDERS_DETAILED.md` — детальная аналитика PDF-ордеров.
+  - public surface / key exports:
+    - Подтвержденные шаги, таблицы, роли, справочники, page-by-page карта.
+  - invariants / assumptions:
+    - При конфликте уступает `TECH_SPEC.md`.
+  - dependencies:
+    - OCR/diagram interpretation.
+  - tests:
+    - Источник для seed словарей и QA-сценариев.
+- `.agentkit/docs/ROADMAP.md` — поэтапный delivery-план и ticket breakdown.
+  - public surface / key exports:
+    - Milestones и T1..Tn.
+  - invariants / assumptions:
+    - Один тикет = один чат = завершенный цикл изменений.
+  - dependencies:
+    - TECH_SPEC + local rules.
+  - tests:
+    - Проверяется make-targets на отсутствие шаблонов и наличие тикетов.
+- `.agentkit/rules/local/*.md` — проектные guardrails для архитектуры, домена, security, testing, integrations, CI, UI.
+  - public surface / key exports:
+    - Практические правила реализации для будущих тикетов.
+  - invariants / assumptions:
+    - Не конфликтуют с `TECH_SPEC`.
+  - dependencies:
+    - `.agentkit/rules/common/*`.
+  - tests:
+    - Проверяются verify-targets на наличие.
+- `Makefile` — verification contract для локального и CI DoD.
+  - public surface / key exports:
+    - `verify-smoke`, `verify-local`, `verify-ci`.
+  - invariants / assumptions:
+    - Никаких placeholder/fake passes.
+  - dependencies:
+    - `.agentkit/scripts/verify.sh`, `.agentkit/scripts/verify.ps1`.
+  - tests:
+    - Запускается напрямую и через verify runners.
 
 ## 10) Runbook (minimal)
-- How to run locally:
+- How to run locally (current adaptation stage):
+  - `make verify-smoke`
+  - `make verify-local`
+  - `make verify-ci`
+  - Linux/macOS: `./.agentkit/scripts/verify.sh local`
+  - Windows: `pwsh -File .agentkit/scripts/verify.ps1 local`
 - Required env vars:
+  - На adaptation этапе обязательных runtime env vars нет.
+  - На implementation этапе должны появиться в `.env.example` (Keycloak, DB, Redis, MinIO, service URLs).
 - Troubleshooting:
+  - Если `verify.sh` недоступен на Windows, использовать `verify.ps1`.
+  - Если падает DOC-gate, убедиться что `.agentkit/docs/PROJECT_MAP.md` изменен в том же тикете.
+  - Если падает verify-local из-за template markers, очистить placeholder-текст в docs/rules.
 
 ---
 
 ## Map changelog (most recent first)
-- YYYY-MM-DD [TICKET] What changed in PROJECT_MAP and why
+- 2026-03-05 [gitignore-push-2026-03-05] Обновлен `.gitignore` (env/editor/log/build артефакты) и подготовлен репозиторий к публикации изменений.
+- 2026-03-05 [project-intake-2026-03-05] Полностью адаптирован PROJECT_MAP под домен e-КТРМ: архитектура, контракты, риски, verification-карта и runbook.

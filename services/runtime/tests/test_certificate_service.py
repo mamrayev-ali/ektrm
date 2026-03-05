@@ -79,6 +79,15 @@ class CertificateServiceTests(unittest.TestCase):
             current_user=self._ops,
         )
 
+    def _approve_with_certificate(self) -> dict:
+        app = self._move_to_protocol_attached()
+        approved = self._application_service.transition(
+            application_id=app["id"],
+            to_status="APPROVED",
+            current_user=self._ops,
+        )
+        return approved["certificate"]
+
     def test_approved_transition_generates_certificate(self) -> None:
         app = self._move_to_protocol_attached()
         approved = self._application_service.transition(
@@ -122,6 +131,40 @@ class CertificateServiceTests(unittest.TestCase):
         with self.assertRaises(HTTPException) as context:
             self._certificate_service.generate_for_approved_application(
                 application=application_row,
+                current_user=self._ops,
+            )
+        self.assertEqual(context.exception.status_code, 409)
+
+    def test_sign_and_publish_sets_active_status_and_metadata(self) -> None:
+        certificate = self._approve_with_certificate()
+        signed = self._certificate_service.sign_and_publish(
+            certificate_id=certificate["id"],
+            current_user=self._ops,
+            comment="Mock signature",
+        )
+        self.assertEqual(signed["status"], "ACTIVE")
+        self.assertEqual(signed["signed_by_subject"], "ops-1")
+        self.assertIsNotNone(signed["signed_at"])
+        self.assertIsNotNone(signed["published_at"])
+
+    def test_sign_and_publish_requires_ops_role(self) -> None:
+        certificate = self._approve_with_certificate()
+        with self.assertRaises(HTTPException) as context:
+            self._certificate_service.sign_and_publish(
+                certificate_id=certificate["id"],
+                current_user=self._applicant,
+            )
+        self.assertEqual(context.exception.status_code, 403)
+
+    def test_sign_and_publish_rejects_double_sign(self) -> None:
+        certificate = self._approve_with_certificate()
+        self._certificate_service.sign_and_publish(
+            certificate_id=certificate["id"],
+            current_user=self._ops,
+        )
+        with self.assertRaises(HTTPException) as context:
+            self._certificate_service.sign_and_publish(
+                certificate_id=certificate["id"],
                 current_user=self._ops,
             )
         self.assertEqual(context.exception.status_code, 409)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -26,6 +26,9 @@ class Certificate(Base):
     snapshot_json: Mapped[str] = mapped_column(Text, nullable=False)
     generated_by_subject: Mapped[str] = mapped_column(String(255), nullable=False)
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    signed_by_subject: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    signed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -39,6 +42,11 @@ class Certificate(Base):
         back_populates="certificate",
         cascade="all, delete-orphan",
         order_by="CertificateStatusHistory.changed_at",
+    )
+    registry_publications: Mapped[list["CertificateRegistryPublication"]] = relationship(
+        back_populates="certificate",
+        cascade="all, delete-orphan",
+        order_by="CertificateRegistryPublication.published_at",
     )
 
 
@@ -58,3 +66,21 @@ class CertificateStatusHistory(Base):
     changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), index=True)
 
     certificate: Mapped[Certificate] = relationship(back_populates="status_history")
+
+
+class CertificateRegistryPublication(Base):
+    __tablename__ = "certificate_registry_publication"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    certificate_id: Mapped[int] = mapped_column(
+        ForeignKey("certificate.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    visibility: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    is_public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    published_by_subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), index=True)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    certificate: Mapped[Certificate] = relationship(back_populates="registry_publications")

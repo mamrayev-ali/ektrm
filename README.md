@@ -1,8 +1,8 @@
-# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2) + Reference Data (T3) + Order 3 Domain Model (T4) + Applicant Wizard (T5) + OPS Review and Protocol Attachment (T6) + Certificate Generation and Snapshot (T7)
+# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2) + Reference Data (T3) + Order 3 Domain Model (T4) + Applicant Wizard (T5) + OPS Review and Protocol Attachment (T6) + Certificate Generation and Snapshot (T7) + Mock Signing and Registry (T8)
 
 Репозиторий содержит AgentKit-процесс и стартовую контейнерную топологию MVP Phase 1 для e-КТРМ.
 
-Реализовано в тикетах `T1`, `T2`, `T3`, `T4`, `T5`, `T6` и `T7`:
+Реализовано в тикетах `T1`, `T2`, `T3`, `T4`, `T5`, `T6`, `T7` и `T8`:
 - docker-compose с обязательными контейнерами платформы;
 - bootstrap-скрипты запуска;
 - минимальные runtime-сервисы с `/health` и `/readiness`;
@@ -17,6 +17,11 @@
 - files-service API для типизированного слота `protocol_test_report` с загрузкой в MinIO и возвратом metadata для привязки к заявке.
 - baseline Ордер 4: автогенерация сертификата из `APPROVED` заявки, immutable snapshot и базовая история статусов сертификата (`GENERATED`).
 - read API сертификатов: `GET /certificates/{id}` и `GET /certificates/by-application/{application_id}`.
+- действие `Подписать` (mock-sign) для роли `OPS` с автоматической публикацией сертификата во внутренний/публичный реестры.
+- registry API:
+  - `GET /registry/internal` (Applicant: только свои, OPS: все),
+  - `GET /registry/public` (без авторизации, read-only только опубликованные).
+- UI внутреннего реестра сертификатов (`frontend/index.html`) + отдельная публичная страница (`/public-registry.html`).
 
 ## Быстрый старт
 
@@ -181,6 +186,25 @@ Demo users:
    - Applicant не может читать чужой сертификат (`403`);
    - snapshot не меняется при последующих изменениях payload заявки.
 
+## T8 Mock Signing, Publication and Registry: как проверить
+
+1. Войти как `ops.demo / Ops123456!` и убедиться, что есть сертификат в статусе `GENERATED` (после `APPROVED` в Ордер 3).
+2. Подписать сертификат:
+   - UI: раздел `Реестр сертификатов` -> действие `Подписать`;
+   - API: `POST http://localhost:8080/certificates/{certificate_id}/sign` с body `{"comment":"..."}`.
+3. Проверить результат подписи:
+   - статус становится `ACTIVE`;
+   - заполнены поля `signed_by_subject`, `signed_at`, `published_at`.
+4. Проверить внутренний реестр:
+   - `GET http://localhost:8080/registry/internal` (Bearer required);
+   - роль `OPS` видит все записи, роль `Applicant` видит только свои.
+5. Проверить публичный read-only реестр:
+   - `GET http://localhost:8080/registry/public` (без Bearer);
+   - UI: `http://localhost:4200/public-registry.html`.
+6. Проверить ограничения:
+   - подпись сертификата не-ролью `OPS` возвращает `403`;
+   - повторная подпись уже активного сертификата возвращает `409`.
+
 ## Ключевые документы
 
 - `.agentkit/docs/ROADMAP.md` — milestones и ticket plan.
@@ -202,7 +226,7 @@ Windows (PowerShell):
 
 ## Ограничения текущего этапа
 
-- Ордер 3 для заявителя и OPS API-уровня реализован (wizard + draft/submit/delete + OPS queue/review/protocol attachment), и добавлен backend baseline T7 для генерации сертификата/snapshot.
-- Полноценные операции Ордер 4 `Подписать`/`Публикация` и реестровый lifecycle остаются в T8.
+- Ордер 3 для заявителя и OPS API-уровня реализован (wizard + draft/submit/delete + OPS queue/review/protocol attachment), Ордер 4 baseline T7+T8 покрывает генерацию, mock-sign и публикацию в реестры.
+- Расширенный поиск/фильтрация публичного реестра и расширенные карточки сертификатов пока не реализованы.
 - Внешние интеграции (ГБД ЮЛ, НУЦ, госреестры) отключены.
 - Реальная ЭЦП не реализуется.

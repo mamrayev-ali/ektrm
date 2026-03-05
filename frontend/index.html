@@ -677,10 +677,10 @@
       <div class="header-inner">
         <div class="brand"><em>e</em>-КТРМ</div>
         <nav class="menu" aria-label="Главное меню">
-          <span class="menu-item">Главная</span>
-          <span class="menu-item active">Заявки</span>
-          <span class="menu-item">Реестр сертификатов</span>
-          <span class="menu-item">Справочники</span>
+          <span class="menu-item" id="menuHome">Главная</span>
+          <span class="menu-item active" id="menuApplications">Заявки</span>
+          <span class="menu-item" id="menuCertificates">Реестр сертификатов</span>
+          <span class="menu-item" id="menuDictionaries">Справочники</span>
         </nav>
         <div class="header-right">
           <span>Ордер 3</span>
@@ -763,6 +763,39 @@
               </table>
               <div class="registry-empty is-hidden" id="opsRegistryEmpty">
                 Отправленных заявок пока нет.
+              </div>
+            </div>
+          </section>
+
+          <section class="registry-view is-hidden" id="certificatesRegistryView">
+            <div class="registry-head">
+              <div>
+                <div class="registry-title">Реестр сертификатов</div>
+                <div class="registry-sub">
+                  Внутренний реестр сертификатов: OPS видит все записи, заявитель — только свои.
+                </div>
+              </div>
+              <a class="btn-secondary" href="/public-registry.html" target="_blank" rel="noopener noreferrer">
+                Публичный реестр
+              </a>
+            </div>
+            <div class="registry-table-wrap">
+              <table class="registry-table" aria-label="Реестр сертификатов">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Номер сертификата</th>
+                    <th>Номер заявки</th>
+                    <th>Статус</th>
+                    <th>Подписан</th>
+                    <th>Опубликован</th>
+                    <th>Действия</th>
+                  </tr>
+                </thead>
+                <tbody id="certificatesRegistryBody"></tbody>
+              </table>
+              <div class="registry-empty is-hidden" id="certificatesRegistryEmpty">
+                Внутренний реестр сертификатов пока пуст.
               </div>
             </div>
           </section>
@@ -1141,11 +1174,18 @@
       const protectedContent = document.getElementById("protectedContent");
       const registryView = document.getElementById("registryView");
       const opsRegistryView = document.getElementById("opsRegistryView");
+      const certificatesRegistryView = document.getElementById("certificatesRegistryView");
       const formView = document.getElementById("formView");
       const applicationsRegistryBody = document.getElementById("applicationsRegistryBody");
       const applicationsRegistryEmpty = document.getElementById("applicationsRegistryEmpty");
       const opsRegistryBody = document.getElementById("opsRegistryBody");
       const opsRegistryEmpty = document.getElementById("opsRegistryEmpty");
+      const certificatesRegistryBody = document.getElementById("certificatesRegistryBody");
+      const certificatesRegistryEmpty = document.getElementById("certificatesRegistryEmpty");
+      const menuHome = document.getElementById("menuHome");
+      const menuApplications = document.getElementById("menuApplications");
+      const menuCertificates = document.getElementById("menuCertificates");
+      const menuDictionaries = document.getElementById("menuDictionaries");
       const authGate = document.getElementById("authGate");
       const authGateTitle = document.getElementById("authGateTitle");
       const authGateText = document.getElementById("authGateText");
@@ -1307,6 +1347,21 @@
         renderStepsNav();
       }
 
+      function setActiveMenu(target) {
+        const entries = {
+          home: menuHome,
+          applications: menuApplications,
+          certificates: menuCertificates,
+          dictionaries: menuDictionaries,
+        };
+        Object.entries(entries).forEach(([key, element]) => {
+          if (!element) {
+            return;
+          }
+          element.classList.toggle("active", key === target);
+        });
+      }
+
       function setFormButtonsEnabled(enabled) {
         buttons.prev.disabled = !enabled || currentStep === 0;
         buttons.next.disabled = !enabled || currentStep >= STEP_TITLES.length - 1;
@@ -1401,6 +1456,59 @@
         });
       }
 
+      function renderCertificatesRegistry(items) {
+        certificatesRegistryBody.innerHTML = "";
+        if (!Array.isArray(items) || items.length === 0) {
+          certificatesRegistryEmpty.classList.remove("is-hidden");
+          return;
+        }
+        certificatesRegistryEmpty.classList.add("is-hidden");
+
+        items.forEach((certificate) => {
+          const row = document.createElement("tr");
+          const idCell = document.createElement("td");
+          idCell.textContent = String(certificate.id ?? "-");
+          const numberCell = document.createElement("td");
+          numberCell.textContent = certificate.certificate_number || "-";
+          const appNumberCell = document.createElement("td");
+          appNumberCell.textContent = certificate.source_application_number || "-";
+          const statusCell = document.createElement("td");
+          statusCell.textContent = certificate.status || "-";
+          const signedAtCell = document.createElement("td");
+          signedAtCell.textContent = formatDateTime(certificate.signed_at);
+          const publishedAtCell = document.createElement("td");
+          publishedAtCell.textContent = formatDateTime(certificate.published_at);
+          const actionCell = document.createElement("td");
+
+          if (isOpsUser() && normalizeStatus(certificate.status) === "GENERATED") {
+            const signButton = document.createElement("button");
+            signButton.type = "button";
+            signButton.className = "btn-secondary registry-action";
+            signButton.textContent = "Подписать";
+            signButton.addEventListener("click", async () => {
+              try {
+                const signed = await callApi("POST", `/certificates/${certificate.id}/sign`, {
+                  comment: "Подписано ОПС (T8)",
+                });
+                await loadInternalCertificatesRegistry();
+                writeOutput("Сертификат подписан и опубликован", signed);
+              } catch (error) {
+                writeOutput("Ошибка подписи сертификата", {
+                  message: error instanceof Error ? error.message : String(error),
+                  certificate_id: certificate.id,
+                });
+              }
+            });
+            actionCell.appendChild(signButton);
+          } else {
+            actionCell.textContent = "-";
+          }
+
+          row.append(idCell, numberCell, appNumberCell, statusCell, signedAtCell, publishedAtCell, actionCell);
+          certificatesRegistryBody.appendChild(row);
+        });
+      }
+
       async function loadApplicationsRegistry() {
         ensureApplicantAccess();
         const response = await callApi("GET", "/applications/mine?limit=200");
@@ -1425,6 +1533,16 @@
         const response = await callApi("GET", `/applications/ops/queue?limit=200&statuses=${encodeURIComponent(statuses)}`);
         const items = Array.isArray(response.items) ? response.items : [];
         renderOpsRegistry(items);
+        return items;
+      }
+
+      async function loadInternalCertificatesRegistry() {
+        if (!oidcSession.authenticated || !oidcSession.token) {
+          throw new Error("Сначала выполните вход через Keycloak");
+        }
+        const response = await callApi("GET", "/registry/internal?limit=200");
+        const items = Array.isArray(response.items) ? response.items : [];
+        renderCertificatesRegistry(items);
         return items;
       }
 
@@ -1590,12 +1708,14 @@
         currentFormMode = "applicant";
         currentOpsApplication = null;
         currentApplicationId = null;
+        setActiveMenu("applications");
         pageEyebrow.textContent = "Раздел заявок";
         pageTitle.textContent = "Заявки";
         shellContainer.classList.add("single-column");
         sidebarPanel.classList.add("is-hidden");
         registryView.classList.remove("is-hidden");
         opsRegistryView.classList.add("is-hidden");
+        certificatesRegistryView.classList.add("is-hidden");
         formView.classList.add("is-hidden");
         setApplicantFormReadOnly(false);
         setApplicantActionsVisible(true);
@@ -1611,12 +1731,36 @@
         currentFormMode = "ops";
         currentOpsApplication = null;
         currentApplicationId = null;
+        setActiveMenu("applications");
         pageEyebrow.textContent = "Раздел заявок ОПС";
         pageTitle.textContent = "Реестр заявок заявителей";
         shellContainer.classList.add("single-column");
         sidebarPanel.classList.add("is-hidden");
         registryView.classList.add("is-hidden");
         opsRegistryView.classList.remove("is-hidden");
+        certificatesRegistryView.classList.add("is-hidden");
+        formView.classList.add("is-hidden");
+        setApplicantActionsVisible(false);
+        setOpsActionsVisible(false);
+        setOpsButtonsEnabled(false);
+        setFormButtonsEnabled(false);
+        buttons.createApplication.disabled = true;
+        updateHeaderMeta();
+      }
+
+      function showCertificatesRegistryView() {
+        currentView = "cert-registry";
+        currentFormMode = "applicant";
+        currentOpsApplication = null;
+        currentApplicationId = null;
+        setActiveMenu("certificates");
+        pageEyebrow.textContent = "Раздел сертификатов";
+        pageTitle.textContent = "Реестр сертификатов";
+        shellContainer.classList.add("single-column");
+        sidebarPanel.classList.add("is-hidden");
+        registryView.classList.add("is-hidden");
+        opsRegistryView.classList.add("is-hidden");
+        certificatesRegistryView.classList.remove("is-hidden");
         formView.classList.add("is-hidden");
         setApplicantActionsVisible(false);
         setOpsActionsVisible(false);
@@ -1629,6 +1773,7 @@
       function showFormView(mode = "applicant") {
         currentFormMode = mode === "ops" ? "ops" : "applicant";
         currentView = currentFormMode === "ops" ? "ops-form" : "form";
+        setActiveMenu("applications");
         if (currentFormMode === "ops") {
           pageEyebrow.textContent = "Раздел заявок ОПС";
           pageTitle.textContent = "Проверка и решение по заявке";
@@ -1642,6 +1787,7 @@
         sidebarPanel.classList.remove("is-hidden");
         registryView.classList.add("is-hidden");
         opsRegistryView.classList.add("is-hidden");
+        certificatesRegistryView.classList.add("is-hidden");
         formView.classList.remove("is-hidden");
         setApplicantFormReadOnly(currentFormMode === "ops");
         setApplicantActionsVisible(currentFormMode === "applicant");
@@ -2129,6 +2275,7 @@
           sidebarPanel.classList.add("is-hidden");
           registryView.classList.add("is-hidden");
           opsRegistryView.classList.add("is-hidden");
+          certificatesRegistryView.classList.add("is-hidden");
           formView.classList.add("is-hidden");
           setOpsActionsVisible(false);
           setApplicantActionsVisible(true);
@@ -2501,6 +2648,54 @@
         }
       }
 
+      menuApplications.addEventListener("click", async () => {
+        try {
+          if (!oidcSession.authenticated) {
+            throw new Error("Для доступа к внутренним разделам выполните вход через Keycloak");
+          }
+          if (isOpsUser()) {
+            await loadOpsRegistry();
+            showOpsRegistryView();
+            return;
+          }
+          if (isApplicantUser()) {
+            await loadApplicationsRegistry();
+            showRegistryView();
+            return;
+          }
+          throw new Error("Недостаточно прав для раздела заявок");
+        } catch (error) {
+          writeOutput("Ошибка открытия раздела заявок", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      });
+
+      menuCertificates.addEventListener("click", async () => {
+        try {
+          if (!oidcSession.authenticated) {
+            throw new Error("Для доступа к внутреннему реестру выполните вход через Keycloak");
+          }
+          if (!isOpsUser() && !isApplicantUser()) {
+            throw new Error("Недостаточно прав для раздела сертификатов");
+          }
+          await loadInternalCertificatesRegistry();
+          showCertificatesRegistryView();
+        } catch (error) {
+          writeOutput("Ошибка открытия реестра сертификатов", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      });
+
+      menuHome.addEventListener("click", () => {
+        writeOutput("Главная", "Раздел 'Главная' будет расширен в следующих тикетах.");
+      });
+
+      menuDictionaries.addEventListener("click", () => {
+        writeOutput("Справочники", "CRUD-экран справочников не входит в MVP текущего этапа.");
+      });
+
       buttons.prev.addEventListener("click", () => {
         if (currentStep > 0) {
           currentStep -= 1;
@@ -2707,6 +2902,7 @@
       renderStep();
       setStatusChip("DRAFT");
       renderProcessByStatus("DRAFT");
+      setActiveMenu("applications");
       setApplicantActionsVisible(true);
       setOpsActionsVisible(false);
       setOpsButtonsEnabled(false);

@@ -17,6 +17,7 @@ from app.models import certificate as certificate_models  # noqa: F401
 from app.models.base import Base
 from app.routers.applications import router as applications_router
 from app.routers.certificates import router as certificates_router
+from app.routers.registry import router as registry_router
 
 
 class CertificatesApiTests(unittest.TestCase):
@@ -35,6 +36,7 @@ class CertificatesApiTests(unittest.TestCase):
         self._app = FastAPI()
         self._app.include_router(applications_router)
         self._app.include_router(certificates_router)
+        self._app.include_router(registry_router)
 
         def _session_override() -> Iterator[Session]:
             session = self._session_factory()
@@ -146,6 +148,66 @@ class CertificatesApiTests(unittest.TestCase):
 
         response = self._client.get(f"/certificates/by-application/{app_id}")
         self.assertEqual(response.status_code, 404)
+
+    def test_sign_certificate_happy_path(self) -> None:
+        _, certificate_id = self._create_approved_application()
+        self._set_auth_user(self._ops_user())
+
+        response = self._client.post(f"/certificates/{certificate_id}/sign", json={"comment": "Подписано ОПС"})
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["status"], "ACTIVE")
+        self.assertEqual(body["signed_by_subject"], "ops-1")
+        self.assertIsNotNone(body["signed_at"])
+        self.assertIsNotNone(body["published_at"])
+
+    def test_sign_certificate_requires_ops_role(self) -> None:
+        _, certificate_id = self._create_approved_application()
+        self._set_auth_user(self._other_applicant_user())
+
+        response = self._client.post(f"/certificates/{certificate_id}/sign", json={"comment": "forbidden"})
+        self.assertEqual(response.status_code, 403)
+
+    def test_internal_registry_for_ops_and_public_registry_visibility(self) -> None:
+        _, certificate_id = self._create_approved_application()
+        self._set_auth_user(self._ops_user())
+        signed = self._client.post(f"/certificates/{certificate_id}/sign", json={"comment": "publish"})
+        self.assertEqual(signed.status_code, 200)
+
+        internal = self._client.get("/registry/internal")
+        self.assertEqual(internal.status_code, 200)
+        internal_ids = {item["id"] for item in internal.json()["items"]}
+        self.assertIn(certificate_id, internal_ids)
+
+        public = self._client.get("/registry/public")
+        self.assertEqual(public.status_code, 200)
+        public_ids = {item["id"] for item in public.json()["items"]}
+        self.assertIn(certificate_id, public_ids)
+
+    def test_internal_registry_filters_applicant_records(self) -> None:
+        _, certificate_id = self._create_approved_application()
+        self._set_auth_user(self._ops_user())
+        signed = self._client.post(f"/certificates/{certificate_id}/sign", json={"comment": "publish"})
+        self.assertEqual(signed.status_code, 200)
+
+        self._set_auth_user(self._other_applicant_user())
+        mine = self._client.get("/registry/internal")
+        self.assertEqual(mine.status_code, 200)
+        self.assertEqual(mine.json()["total"], 0)
+
+        self._set_auth_user(
+            CurrentUser(
+                subject="applicant-1",
+                username="applicant.demo",
+                email="applicant@example.local",
+                roles=frozenset({"Applicant"}),
+                claims={},
+            )
+        )
+        mine_owner = self._client.get("/registry/internal")
+        self.assertEqual(mine_owner.status_code, 200)
+        ids = {item["id"] for item in mine_owner.json()["items"]}
+        self.assertIn(certificate_id, ids)
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Applicant создает/отправляет заявку, OPS проверяет/возвращает/принимает решение, система формирует сертификат, OPS mock-подписывает, сертификат публикуется в реестр, далее доступны post-issuance действия.
 - Tech stack:
   - Целевой: Angular SPA, Python/FastAPI микросервисы, PostgreSQL + SQLAlchemy/Alembic, Redis + Celery, MinIO, Keycloak, WebSocket, Docker Compose.
-  - Текущий этап репозитория: docker-compose topology + bootstrap-сценарии + runtime baseline c OIDC/JWT/RBAC (`T2`) и demo protected endpoint-ами.
+  - Текущий этап репозитория: docker-compose topology + bootstrap-сценарии + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`: Alembic migrations, seeded dictionaries, lookup registries, read-only API).
 - Where to start reading the code:
   - `docker-compose.yml`,
   - `services/runtime/app/main.py`,
@@ -59,6 +59,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - OpenAPI — обязательный контракт backend-to-frontend.
   - Публичный API реестра — read-only.
   - Для T2 добавлены auth baseline endpoint-ы: `/auth/config`, `/auth/me`, `/auth/applicant-area`, `/auth/ops-area`.
+  - Для T3 добавлены reference-data endpoint-ы: `/reference-data/dictionaries`, `/reference-data/dictionaries/{code}/items`, `/reference-data/ops-registry`, `/reference-data/accreditation-attestats`.
 - Error handling strategy:
   - Frontend: пользовательские сообщения + field-level validation state.
   - Backend: структурированные ошибки с доменными кодами и без утечки чувствительных данных.
@@ -105,6 +106,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - MinIO (S3-compatible object storage).
 - Migration approach:
   - Alembic migration chain + deterministic seed scripts.
+  - Реализован baseline migration `20260305_0001` с созданием обязательных справочников и seeded lookup-таблиц.
   - Любые изменения схемы через отдельные migration tickets.
 - Rollback approach:
   - Для каждого migration тикета обязателен rollback-план (down migration/compensation).
@@ -197,6 +199,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - `services/runtime/app/main.py` — общий каркас FastAPI runtime для сервисов.
   - public surface / key exports:
     - `GET /`, `GET /health`, `GET /readiness`, `GET /auth/config`, `GET /auth/me`, `GET /auth/applicant-area`, `GET /auth/ops-area`.
+    - для `reference-data-service` и `gateway-service`: `GET /reference-data/dictionaries`, `GET /reference-data/dictionaries/{code}/items`, `GET /reference-data/ops-registry`, `GET /reference-data/accreditation-attestats`.
   - invariants / assumptions:
     - readiness зависит от доступности postgres/redis/minio/keycloak.
   - dependencies:
@@ -212,6 +215,24 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - PyJWT + Keycloak JWKS endpoint.
   - tests:
     - `services/runtime/tests/test_auth.py`.
+- `services/runtime/alembic.ini` + `services/runtime/alembic/*` — миграции и seed-контракт reference-data слоя.
+  - public surface / key exports:
+    - revision `20260305_0001` (T3) создает таблицы `reference_dictionaries`, `reference_dictionary_items`, `ops_registry`, `accreditation_attestats`.
+  - invariants / assumptions:
+    - seed выполняется idempotent-вставками (`ON CONFLICT DO NOTHING`) для стабильного bootstrap.
+  - dependencies:
+    - `services/runtime/app/models/reference_data.py`, `services/runtime/app/seed/reference_data_seed.py`.
+  - tests:
+    - `services/runtime/tests/test_reference_data.py` + SQL sanity checks после `alembic upgrade head`.
+- `services/runtime/app/seed/reference_data_seed.py` — source-of-truth для seeded справочников и lookup-реестров T3.
+  - public surface / key exports:
+    - обязательные dictionary codes (TECH_SPEC section 15.2), причины Ордер 5, seed для `ops_registry` и `accreditation_attestats`.
+  - invariants / assumptions:
+    - длинные юридические основания хранятся в максимально близкой к аналитике формулировке.
+  - dependencies:
+    - Alembic revision `20260305_0001`, reference-data repository/service layer.
+  - tests:
+    - `services/runtime/tests/test_reference_data.py`.
 - `infra/keycloak/realm-export.json` — baseline realm для локального OIDC/RBAC.
   - public surface / key exports:
     - realm `ektrm`, роли `Applicant` и `OPS`, demo users, audience mapper `ektrm-api`.
@@ -230,7 +251,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `docker-compose.yml`, bootstrap scripts.
   - tests:
     - копирование в `.env` и успешный `docker compose up`.
-- `README.md` — runbook T1/T2 для запуска, health-check и auth smoke.
+- `README.md` — runbook T1/T2/T3 для запуска, auth smoke и reference-data migration/api smoke.
   - public surface / key exports:
     - quickstart, контейнерная топология, keycloak bootstrap, verify команды.
   - invariants / assumptions:
@@ -313,6 +334,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-05 [t3-reference-data-and-lookup-registries] Реализован T3 baseline: SQLAlchemy/Alembic DB-слой, migration `20260305_0001` с seed обязательных справочников и lookup-таблиц, read-only API `reference-data`, тесты `test_reference_data.py` и обновленный runbook.
 - 2026-03-05 [t2-keycloak-and-access-model-baseline] Добавлен auth baseline: Keycloak audience mapper, backend JWT/JWKS validation и RBAC endpoint-ы, frontend OIDC demo flow, env/compose auth-конфигурация, кроссплатформенный whitespace gate (`--ignore-cr-at-eol`) и документация T2.
 - 2026-03-05 [t1-platform-bootstrap-and-container-topology] Добавлена контейнерная топология MVP (docker-compose), runtime-сервисный каркас с health/readiness, keycloak realm import, bootstrap-скрипты и обновленный runbook.
 - 2026-03-05 [gitignore-push-2026-03-05] Обновлен `.gitignore` (env/editor/log/build артефакты) и подготовлен репозиторий к публикации изменений.

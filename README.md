@@ -1,13 +1,15 @@
-# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2)
+# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2) + Reference Data (T3)
 
 Репозиторий содержит AgentKit-процесс и стартовую контейнерную топологию MVP Phase 1 для e-КТРМ.
 
-Реализовано в тикетах `T1` и `T2`:
+Реализовано в тикетах `T1`, `T2` и `T3`:
 - docker-compose с обязательными контейнерами платформы;
 - bootstrap-скрипты запуска;
 - минимальные runtime-сервисы с `/health` и `/readiness`;
 - baseline frontend-страница с OIDC login/logout/refresh и вызовами защищенных API;
 - backend JWT verification через Keycloak JWKS и role-gated endpoint-ы `Applicant` / `OPS`.
+- Alembic-миграции и seed обязательных справочников MVP + lookup-таблиц `ops_registry` и `accreditation_attestats`;
+- read-only API справочников для `reference-data-service`.
 
 ## Быстрый старт
 
@@ -75,6 +77,21 @@ Demo users:
 - `GET http://localhost:8080/auth/me` (Bearer required)
 - `GET http://localhost:8080/auth/applicant-area` (Bearer + `Applicant`)
 - `GET http://localhost:8080/auth/ops-area` (Bearer + `OPS`)
+
+## T3 Reference Data baseline: как применить и проверить
+
+1. Применить миграции:
+   - `python -m alembic -c services/runtime/alembic.ini upgrade head`
+2. Проверить, что таблицы созданы:
+   - `reference_dictionaries`
+   - `reference_dictionary_items`
+   - `ops_registry`
+   - `accreditation_attestats`
+3. Проверить read-only endpoint-ы (с Bearer токеном):
+   - `GET http://localhost:8080/reference-data/dictionaries`
+   - `GET http://localhost:8080/reference-data/dictionaries/termination_reason/items`
+   - `GET http://localhost:8080/reference-data/ops-registry`
+   - `GET http://localhost:8080/reference-data/accreditation-attestats`
 
 ## Ключевые документы
 

@@ -1,8 +1,8 @@
-# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2) + Reference Data (T3)
+# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2) + Reference Data (T3) + Order 3 Domain Model (T4)
 
 Репозиторий содержит AgentKit-процесс и стартовую контейнерную топологию MVP Phase 1 для e-КТРМ.
 
-Реализовано в тикетах `T1`, `T2` и `T3`:
+Реализовано в тикетах `T1`, `T2`, `T3` и `T4`:
 - docker-compose с обязательными контейнерами платформы;
 - bootstrap-скрипты запуска;
 - минимальные runtime-сервисы с `/health` и `/readiness`;
@@ -10,6 +10,8 @@
 - backend JWT verification через Keycloak JWKS и role-gated endpoint-ы `Applicant` / `OPS`.
 - Alembic-миграции и seed обязательных справочников MVP + lookup-таблиц `ops_registry` и `accreditation_attestats`;
 - read-only API справочников для `reference-data-service`.
+- доменная модель Ордер 3 (`cert_application`, `cert_application_status_history`) и state engine переходов;
+- API для черновиков/переходов статусов заявок с хранением истории статусов.
 
 ## Быстрый старт
 
@@ -93,6 +95,22 @@ Demo users:
    - `GET http://localhost:8080/reference-data/ops-registry`
    - `GET http://localhost:8080/reference-data/accreditation-attestats`
 
+## T4 Order 3 Domain Model: как применить и проверить
+
+1. Применить миграции:
+   - `python -m alembic -c services/runtime/alembic.ini upgrade head`
+2. Проверить новые таблицы:
+   - `cert_application`
+   - `cert_application_status_history`
+3. Проверить API Ордер 3 через gateway (с Bearer токеном):
+   - создать черновик: `POST http://localhost:8080/applications/drafts`
+   - отправить заявку: `POST http://localhost:8080/applications/{id}/submit`
+   - выполнить переход: `POST http://localhost:8080/applications/{id}/transitions`
+   - получить историю: `GET http://localhost:8080/applications/{id}/history`
+4. Проверить базовую матрицу переходов:
+   - допустимые переходы соответствуют `TECH_SPEC` (раздел 10.8);
+   - недопустимый переход должен возвращать `409`.
+
 ## Ключевые документы
 
 - `.agentkit/docs/ROADMAP.md` — milestones и ticket plan.
@@ -114,6 +132,6 @@ Windows (PowerShell):
 
 ## Ограничения текущего этапа
 
-- Реальная бизнес-логика ордеров 3/4/5 не реализована (каркасный runtime).
+- Ордер 3 реализован на уровне доменной модели и state engine; UI wizard и OPS review экраны остаются в следующих тикетах.
 - Внешние интеграции (ГБД ЮЛ, НУЦ, госреестры) отключены.
 - Реальная ЭЦП не реализуется.

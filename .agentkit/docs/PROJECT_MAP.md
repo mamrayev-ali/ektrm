@@ -1,4 +1,4 @@
-# PROJECT_MAP — e-КТРМ (AgentKit Adaptation Stage)
+# PROJECT_MAP — e-КТРМ (Platform Bootstrap Stage)
 
 This file is the persistent, human-readable **map of the repository**.
 It exists so that a new agent chat can quickly understand **what lives where**, **why it exists**, and **what contracts matter**.
@@ -10,18 +10,20 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 
 ## 0) TL;DR
 - What this system does:
-  - Репозиторий хранит процессный каркас AgentKit и адаптируется под продукт e-КТРМ (сертификация продукции РК, MVP Phase 1) с приоритетом Ордер 3 -> Ордер 4 -> Ордер 5 (без возобновления).
+  - Репозиторий хранит процессный каркас AgentKit и базовую runtime-платформу e-КТРМ (MVP Phase 1) с приоритетом Ордер 3 -> Ордер 4 -> Ордер 5 (без возобновления).
 - Key user flows:
   - Applicant создает/отправляет заявку, OPS проверяет/возвращает/принимает решение, система формирует сертификат, OPS mock-подписывает, сертификат публикуется в реестр, далее доступны post-issuance действия.
 - Tech stack:
   - Целевой: Angular SPA, Python/FastAPI микросервисы, PostgreSQL + SQLAlchemy/Alembic, Redis + Celery, MinIO, Keycloak, WebSocket, Docker Compose.
-  - Текущий этап репозитория: документация, правила и verification-контракт; продуктовый код сервисов еще не создан.
+  - Текущий этап репозитория: docker-compose topology + bootstrap-сценарии + каркасные runtime-сервисы с health/readiness endpoint.
 - Where to start reading the code:
+  - `docker-compose.yml`,
+  - `services/runtime/app/main.py`,
+  - `infra/keycloak/realm-export.json`,
+  - `scripts/bootstrap.sh` и `scripts/bootstrap.ps1`,
+  - `README.md`,
   - `.agentkit/_temp/TECH_SPEC.md` (источник истины по домену),
-  - `.agentkit/docs/ROADMAP.md`,
-  - `.agentkit/rules/local/*.md`,
-  - `Makefile`,
-  - `.agentkit/scripts/verify.sh` и `.agentkit/scripts/verify.ps1`.
+  - `.agentkit/docs/ROADMAP.md`.
 
 ## 1) Repo structure (high level)
 - `/.agentkit/` — процессный каркас AgentKit (правила, шаблоны, документация, скрипты верификации).
@@ -38,6 +40,11 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Boundary: источник требований на этапе intake/adaptation; каталог gitignored.
 - `/.agents/skills/` — локальные навыки Codex (`project-intake`, `ticket-planning`).
 - `/logs/agent/` — локальные аудиторские логи тикетов (gitignored).
+- `/docker-compose.yml` — контейнерная топология T1 (core services + infrastructure).
+- `/services/runtime/` — единый Python/FastAPI runtime-шаблон для gateway и доменных сервисов.
+- `/frontend/` — контейнер фронтенд-заглушки (nginx + static entrypoint + health probes).
+- `/infra/keycloak/` — realm import для локального Keycloak baseline (`Applicant`, `OPS`).
+- `/scripts/bootstrap.sh`, `/scripts/bootstrap.ps1` — единый bootstrap для локального старта платформы.
 
 ## 2) Key contracts & boundaries
 - Architectural principles:
@@ -122,23 +129,23 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ## 7) Testing & verification map
 ### Local DoD (must pass before asking to push)
 - `make verify-local` does:
-  - Проверяет целостность AgentKit-адаптации:
+  - Проверяет целостность AgentKit + bootstrap-контракта:
     - наличие критичных файлов docs/rules/scripts;
     - отсутствие template-маркеров;
     - наличие ticket-плана в ROADMAP;
     - наличие changelog-записи в PROJECT_MAP;
     - наличие всех обязательных local rules файлов.
 - Coverage target:
-  - Для текущего адаптационного этапа coverage не применяется; будет зафиксирован после появления runtime-кода (см. ROADMAP T13).
+  - Формальный порог coverage будет включен в T13; на текущем этапе проверяется структурная и процессная целостность.
 - “API e2e smoke” definition:
-  - На текущем этапе отсутствует runtime API; smoke ограничен process-contract checks.
+  - На текущем этапе runtime-API каркасное; smoke ограничен health/readiness проверками и process-contract gates.
 
 ### CI DoD (must pass before ticket is Done)
 - `make verify-ci` does:
   - Запускает `verify-local`.
   - Дополнительно проверяет наличие `README.md` и `.env.example` как обязательных артефактов runtime-этапа.
 - Security scanning policy (high level):
-  - На adaptation этапе — policy/document checks.
+  - На bootstrap этапе — policy/document checks + ручная проверка отсутствия секретов в tracked файлах.
   - На implementation этапе — статический анализ + dependency/security scanning добавляются в `verify-ci`.
 
 ## 8) High-risk areas
@@ -172,6 +179,53 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - future gateway middleware, service logging configuration.
 
 ## 9) File registry (only important files)
+- `docker-compose.yml` — контейнерная карта MVP foundation.
+  - public surface / key exports:
+    - сервисы `gateway`, `applications`, `certificates`, `reference-data`, `files`, `notifications`, `frontend`;
+    - инфраструктура `postgres`, `redis`, `minio`, `keycloak`.
+  - invariants / assumptions:
+    - каждый runtime-сервис обязан иметь доступный `/health`;
+    - bootstrap выполняется без модификации внешних Docker-проектов.
+  - dependencies:
+    - `.env(.example)`, `services/runtime`, `frontend`, `infra/keycloak`.
+  - tests:
+    - `docker compose up -d --build`, проверка health URL.
+- `services/runtime/app/main.py` — общий каркас FastAPI runtime для сервисов.
+  - public surface / key exports:
+    - `GET /`, `GET /health`, `GET /readiness`.
+  - invariants / assumptions:
+    - readiness зависит от доступности postgres/redis/minio/keycloak.
+  - dependencies:
+    - FastAPI/Uvicorn, env-переменные compose.
+  - tests:
+    - container healthcheck + ручной HTTP probe.
+- `infra/keycloak/realm-export.json` — baseline realm для локального OIDC/RBAC.
+  - public surface / key exports:
+    - realm `ektrm`, роли `Applicant` и `OPS`, demo users.
+  - invariants / assumptions:
+    - только локальная/development-конфигурация.
+  - dependencies:
+    - контейнер Keycloak с `--import-realm`.
+  - tests:
+    - загрузка realm при старте keycloak.
+- `.env.example` — единый env-контракт локального запуска.
+  - public surface / key exports:
+    - порты сервисов и инфраструктуры, MinIO/Keycloak/DB параметры, feature flags.
+  - invariants / assumptions:
+    - не содержит production-secret значений.
+  - dependencies:
+    - `docker-compose.yml`, bootstrap scripts.
+  - tests:
+    - копирование в `.env` и успешный `docker compose up`.
+- `README.md` — runbook T1 для запуска и health-check.
+  - public surface / key exports:
+    - quickstart, контейнерная топология, keycloak bootstrap, verify команды.
+  - invariants / assumptions:
+    - инструкции синхронизированы с `docker-compose.yml` и `.env.example`.
+  - dependencies:
+    - scripts/bootstrap.*, verify scripts.
+  - tests:
+    - smoke-прогон команд из раздела «Быстрый старт».
 - `.agentkit/_temp/TECH_SPEC.md` — главный доменный контракт MVP (локальный source-of-truth).
   - public surface / key exports:
     - Scope, роли, статусы, сущности, API-группы, требования к качеству.
@@ -219,16 +273,25 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - Запускается напрямую и через verify runners.
 
 ## 10) Runbook (minimal)
-- How to run locally (current adaptation stage):
+- How to run locally (bootstrap stage):
+  - `cp .env.example .env` (или `Copy-Item .env.example .env`)
+  - Linux/macOS: `./scripts/bootstrap.sh`
+  - Windows: `pwsh -File .\\scripts\\bootstrap.ps1`
+  - Проверить `http://localhost:8080/health` и `http://localhost:4200/health`
+  - Остановить: `docker compose down`
+- Verification:
   - `make verify-smoke`
   - `make verify-local`
   - `make verify-ci`
   - Linux/macOS: `./.agentkit/scripts/verify.sh local`
   - Windows: `pwsh -File .agentkit/scripts/verify.ps1 local`
 - Required env vars:
-  - На adaptation этапе обязательных runtime env vars нет.
-  - На implementation этапе должны появиться в `.env.example` (Keycloak, DB, Redis, MinIO, service URLs).
+  - Обязательные runtime переменные уже заданы в `.env.example`:
+    - сервисные порты (`GATEWAY_PORT`, `APPLICATIONS_PORT`, ...);
+    - инфраструктура (`POSTGRES_*`, `REDIS_*`, `MINIO_*`, `KEYCLOAK_*`);
+    - OIDC и feature flags.
 - Troubleshooting:
+  - Если порты заняты локально, переопределить `*_PORT`/`*_EXPOSE_PORT` в `.env`.
   - Если `verify.sh` недоступен на Windows, использовать `verify.ps1`.
   - Если падает DOC-gate, убедиться что `.agentkit/docs/PROJECT_MAP.md` изменен в том же тикете.
   - Если падает verify-local из-за template markers, очистить placeholder-текст в docs/rules.
@@ -236,5 +299,6 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-05 [t1-platform-bootstrap-and-container-topology] Добавлена контейнерная топология MVP (docker-compose), runtime-сервисный каркас с health/readiness, keycloak realm import, bootstrap-скрипты и обновленный runbook.
 - 2026-03-05 [gitignore-push-2026-03-05] Обновлен `.gitignore` (env/editor/log/build артефакты) и подготовлен репозиторий к публикации изменений.
 - 2026-03-05 [project-intake-2026-03-05] Полностью адаптирован PROJECT_MAP под домен e-КТРМ: архитектура, контракты, риски, verification-карта и runbook.

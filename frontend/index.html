@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>e-KTRM MVP Bootstrap</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3d7ef 100%);
+        color: #0f172a;
+      }
+
+      .wrapper {
+        max-width: 920px;
+        margin: 48px auto;
+        padding: 24px;
+        background: rgba(255, 255, 255, 0.88);
+        border-radius: 16px;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+      }
+
+      h1 {
+        margin-top: 0;
+      }
+
+      ul {
+        line-height: 1.7;
+      }
+
+      code {
+        background: #e2e8f0;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrapper">
+      <h1>e-KTRM MVP: Platform Bootstrap</h1>
+      <p>
+        Контейнерная платформа T1 поднята. Этот фронтенд-слой служит стартовой точкой
+        для дальнейшей Angular реализации.
+      </p>
+      <ul>
+        <li><code>/health</code> - liveness probe</li>
+        <li><code>/readiness</code> - readiness probe</li>
+        <li>Gateway: <code>http://localhost:8080/health</code></li>
+      </ul>
+    </main>
+  </body>
+</html>

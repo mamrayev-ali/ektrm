@@ -1,0 +1,90 @@
+{
+  "realm": "ektrm",
+  "enabled": true,
+  "displayName": "e-KTRM Local Realm",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "Applicant",
+        "description": "Applicant role for MVP"
+      },
+      {
+        "name": "OPS",
+        "description": "OPS role for MVP"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "ektrm-web",
+      "name": "e-KTRM Web",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "redirectUris": [
+        "http://localhost:4200/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4200"
+      ],
+      "defaultClientScopes": [
+        "profile",
+        "email",
+        "roles"
+      ]
+    },
+    {
+      "clientId": "ektrm-api",
+      "name": "e-KTRM API",
+      "enabled": true,
+      "publicClient": true,
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "applicant.demo",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "Applicant",
+      "email": "applicant@example.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Applicant123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "Applicant"
+      ]
+    },
+    {
+      "username": "ops.demo",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "OPS",
+      "email": "ops@example.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Ops123456!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "OPS"
+      ]
+    }
+  ]
+}

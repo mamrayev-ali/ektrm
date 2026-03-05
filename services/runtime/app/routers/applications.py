@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -17,6 +17,15 @@ router = APIRouter(prefix="/applications", tags=["applications"])
 class TransitionRequest(BaseModel):
     to_status: str = Field(min_length=2, max_length=32)
     comment: str | None = Field(default=None, max_length=2000)
+
+
+class ProtocolAttachRequest(BaseModel):
+    slot: str = Field(min_length=2, max_length=64)
+    object_key: str = Field(min_length=5, max_length=1024)
+    file_name: str = Field(min_length=1, max_length=255)
+    content_type: str = Field(min_length=3, max_length=255)
+    size_bytes: int = Field(ge=1, le=25 * 1024 * 1024)
+    etag: str | None = Field(default=None, max_length=128)
 
 
 def _get_service(session: Session = Depends(get_session)) -> ApplicationStateService:
@@ -77,6 +86,37 @@ def transition_application(
         to_status=request.to_status,
         current_user=current_user,
         comment=request.comment,
+    )
+
+
+@router.post("/{application_id}/protocol/attach")
+def attach_protocol(
+    application_id: int,
+    request: ProtocolAttachRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    service: ApplicationStateService = Depends(_get_service),
+) -> dict[str, Any]:
+    return service.attach_protocol(
+        application_id=application_id,
+        current_user=current_user,
+        metadata=request.model_dump(),
+    )
+
+
+@router.get("/ops/queue")
+def get_ops_queue(
+    statuses: str | None = Query(default=None, description="CSV statuses for queue filter"),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    current_user: CurrentUser = Depends(get_current_user),
+    service: ApplicationStateService = Depends(_get_service),
+) -> dict[str, Any]:
+    parsed_statuses = tuple(item for item in (statuses or "").split(",") if item.strip()) or None
+    return service.get_ops_queue(
+        current_user=current_user,
+        statuses=parsed_statuses,
+        limit=limit,
+        offset=offset,
     )
 
 

@@ -1,8 +1,8 @@
-# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2) + Reference Data (T3) + Order 3 Domain Model (T4) + Applicant Wizard (T5)
+# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2) + Reference Data (T3) + Order 3 Domain Model (T4) + Applicant Wizard (T5) + OPS Review and Protocol Attachment (T6)
 
 Репозиторий содержит AgentKit-процесс и стартовую контейнерную топологию MVP Phase 1 для e-КТРМ.
 
-Реализовано в тикетах `T1`, `T2`, `T3`, `T4` и `T5`:
+Реализовано в тикетах `T1`, `T2`, `T3`, `T4`, `T5` и `T6`:
 - docker-compose с обязательными контейнерами платформы;
 - bootstrap-скрипты запуска;
 - минимальные runtime-сервисы с `/health` и `/readiness`;
@@ -13,6 +13,8 @@
 - доменная модель Ордер 3 (`cert_application`, `cert_application_status_history`) и state engine переходов;
 - API для черновиков/переходов статусов заявок с хранением истории статусов.
 - API-операция удаления черновика: `DELETE /applications/{id}/draft` (переводит заявку в `ARCHIVED`).
+- OPS review-контур: очередь ОПС, role-gated переходы review-статусов, прикрепление протокола и автоархивирование после отказа.
+- files-service API для типизированного слота `protocol_test_report` с загрузкой в MinIO и возвратом metadata для привязки к заявке.
 
 ## Быстрый старт
 
@@ -125,6 +127,33 @@ Demo users:
    - вызывается `DELETE /applications/{id}/draft`;
    - заявка переводится в `ARCHIVED`.
 
+## T6 OPS Review and Protocol Attachment: как проверить
+
+1. Войти как `ops.demo / Ops123456!` (или использовать Bearer с ролью `OPS`).
+2. Получить очередь ОПС:
+   - `GET http://localhost:8080/applications/ops/queue`
+   - опционально фильтр: `?statuses=IN_REVIEW,PROTOCOL_ATTACHED`.
+3. Выполнить review-переходы заявки:
+   - `POST http://localhost:8080/applications/{id}/transitions` с `{"to_status":"REGISTERED"}`;
+   - `POST ...` с `{"to_status":"IN_REVIEW"}`.
+4. Загрузить протокол в `files-service` (через gateway):
+   - `POST http://localhost:8080/files/slots/upload`
+   - body:
+     - `application_id`,
+     - `slot=protocol_test_report`,
+     - `file_name` (pdf/doc/docx/xls/xlsx/jpg/jpeg/png),
+     - `content_base64`,
+     - `content_type`.
+5. Привязать протокол к заявке:
+   - `POST http://localhost:8080/applications/{id}/protocol/attach`
+   - body содержит metadata из шага upload (`slot`, `object_key`, `file_name`, `content_type`, `size_bytes`, `etag`).
+   - ожидаемый результат: статус `PROTOCOL_ATTACHED`.
+6. Проверить отказную ветку:
+   - `POST http://localhost:8080/applications/{id}/transitions` с `{"to_status":"REJECTED","comment":"..."}`.
+   - ожидаемый результат: заявка автоматически переходит в `ARCHIVED`, в истории есть записи `REJECTED` и `ARCHIVED`.
+7. Проверить role-based visibility:
+   - Applicant не может вызывать `GET /applications/ops/queue` и OPS review transitions (ожидается `403`).
+
 ## Ключевые документы
 
 - `.agentkit/docs/ROADMAP.md` — milestones и ticket plan.
@@ -146,6 +175,6 @@ Windows (PowerShell):
 
 ## Ограничения текущего этапа
 
-- Ордер 3 для заявителя реализован (wizard + draft/submit/delete). OPS review экран и действия остаются в следующем тикете (T6).
+- Ордер 3 для заявителя и OPS API-уровня реализован (wizard + draft/submit/delete + OPS queue/review/protocol attachment). Полноценный OPS UI-экран остается в следующем UI-тикете.
 - Внешние интеграции (ГБД ЮЛ, НУЦ, госреестры) отключены.
 - Реальная ЭЦП не реализуется.

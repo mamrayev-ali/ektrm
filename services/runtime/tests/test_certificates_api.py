@@ -82,7 +82,7 @@ class CertificatesApiTests(unittest.TestCase):
     def _payload(self) -> dict:
         return {
             "applicant_name": "ТОО Тест",
-            "applicant_bin": "1234567890",
+            "applicant_bin": "123456789012",
             "applicant_address": "г. Алматы",
             "ops_code": "OPS-KZ-001",
             "cert_scheme_code": "SCHEME-1",

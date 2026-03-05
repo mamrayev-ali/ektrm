@@ -259,7 +259,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py`.
 - `services/runtime/app/services/application_state_service.py` — доменный state engine Ордер 3.
   - public surface / key exports:
-    - transition map `DRAFT -> ... -> COMPLETED`, submit-валидация обязательных полей, удаление черновика в `ARCHIVED`, OPS queue, attach protocol, автоархивирование после отказа, запись status history, генерация сертификата при `APPROVED`.
+    - transition map `DRAFT -> ... -> COMPLETED`, submit-валидация обязательных полей (включая `applicant_bin` = 12 цифр), удаление черновика в `ARCHIVED`, OPS queue, реестр заявок текущего пользователя (`list_my_applications`), attach protocol, автоархивирование после отказа, запись status history, генерация сертификата при `APPROVED`.
   - invariants / assumptions:
     - недопустимые переходы запрещены (`409`);
     - submit невозможен при неполном payload (`422`);
@@ -272,7 +272,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/tests/test_application_state_engine.py`, `services/runtime/tests/test_certificate_service.py`.
 - `services/runtime/app/routers/applications.py` — API слой Ордер 3.
   - public surface / key exports:
-    - endpoint-ы create/update/delete draft, submit, transition, read, history, `GET /applications/ops/queue`, `POST /applications/{id}/protocol/attach`.
+    - endpoint-ы create/update/delete draft, submit, transition, read, history, `GET /applications/ops/queue`, `GET /applications/mine`, `POST /applications/{id}/protocol/attach`.
     - при переходе в `APPROVED` ответ включает объект `certificate` c baseline данными созданного сертификата.
   - invariants / assumptions:
     - backend проверяет ownership (`Applicant`) и full-access для `OPS`.
@@ -330,14 +330,16 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/tests/test_files_api.py`.
 - `frontend/index.html` — T5 wizard UI для заявителя (Ордер 3).
   - public surface / key exports:
-    - 8 шагов wizard: `Заявитель`, `Адрес заявителя`, `ОПС`, `Схема сертификации`, `Данные по продукции`, `Приложение`, `Документы`, `Примечание`.
-    - действия: `Сохранить черновик`, `Подписать и отправить`, `Удалить черновик`.
+    - default-экран раздела `Заявки`: полноширинный реестр заявок текущего пользователя (табличный список без детального перехода/действий) + кнопка `Подать новую заявку`.
+    - отдельный OPS-экран: полноширинный реестр отправленных заявок заявителей для роли `OPS` (на базе `GET /applications/ops/queue`).
+    - отдельный режим wizard (8 шагов): `Заявитель`, `Адрес заявителя`, `ОПС`, `Схема сертификации`, `Данные по продукции`, `Приложение`, `Документы`, `Примечание`.
+    - действия формы: `К списку заявок`, `Сохранить черновик`, `Подписать и отправить`, `Удалить черновик`; при возврате в реестр выполняется confirm при несохраненной новой форме.
     - OIDC-сессия (Authorization Code + PKCE, нативный JS-клиент без `keycloak.js`) + вызовы applications API через gateway.
-    - auth/role gate: при неавторизованной сессии и при роли без `Applicant` wizard скрыт, показывается экран авторизации/ограничения доступа.
+    - auth/role gate: при неавторизованной сессии рабочие экраны и header скрыты, показывается центрированное окно входа (логотип + кнопка Keycloak). Для `OPS` отображается OPS-реестр, а не экран `Нет доступа`.
   - invariants / assumptions:
-    - submit валидирует обязательные поля и форматы (BIN/phone/email);
+    - submit валидирует обязательные поля и форматы (BIN=12 digits/phone mask/email);
     - draft допускает неполные данные.
-    - форма заявки доступна только роли `Applicant`; `OPS` не работает с UI wizard заявителя.
+    - форма подачи доступна только роли `Applicant`; роль `OPS` работает с собственным реестровым экраном.
   - dependencies:
     - `services/runtime/app/routers/applications.py`, Keycloak OIDC endpoints (`/auth`, `/token`, `/logout`).
   - tests:
@@ -461,6 +463,8 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-05 [ui-registry-ops-auth-bin12-phone-mask] Обновлен UX раздела `Заявки`: applicant-реестр сделан полноширинным, добавлен confirm при возврате из несохраненной новой формы, auth-screen переведен в центрированный режим (логотип + кнопка Keycloak без header), для роли `OPS` добавлен отдельный полноширинный реестр отправленных заявок, BIN-валидация изменена на 12 цифр (frontend+backend), добавлена автоподстановочная маска телефона; расширены backend-тесты и обновлены test payloads.
+- 2026-03-05 [applications-registry-and-auth-gate] Обновлен Applicant UI и applications API: добавлен endpoint `GET /applications/mine`, раздел `Заявки` переведен на default-реестр заявок текущего пользователя с кнопкой `Подать новую заявку`, wizard вынесен в отдельный режим формы, auth/forbidden gate снова центрирован и показывает OIDC init-метаданные; расширены API тесты (`test_mine_returns_only_current_user_applications`).
 - 2026-03-05 [auth-ui-gate-applicant-only] Для `frontend/index.html` добавлен UI auth-gate: до авторизации wizard/steps/action-bar скрыты, после входа отображение формы разрешено только роли `Applicant`; для остальных ролей показывается экран «Недостаточно прав».
 - 2026-03-05 [bugfix-keycloak26-oidc-login] Исправлен frontend login для Keycloak 26.1: удалена зависимость от недоступного `/js/keycloak.js` (404), в `frontend/index.html` реализован нативный OIDC Authorization Code + PKCE flow (login/callback/token refresh/logout) с сохранением bearer-контракта для API.
 - 2026-03-05 [t7-certificate-generation-and-snapshot] Реализован T7 backend baseline Ордер 4: добавлены модели `certificate`/`certificate_status_history`, Alembic migration `20260305_0003`, сервис генерации сертификата из `APPROVED` заявки с immutable snapshot, read API (`GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`), интеграция генерации в переход `PROTOCOL_ATTACHED -> APPROVED`, добавлены тесты `test_certificate_service.py`, `test_certificates_api.py` и расширены `test_applications_api.py`.

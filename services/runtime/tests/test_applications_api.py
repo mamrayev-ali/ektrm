@@ -70,7 +70,7 @@ class ApplicationsApiTests(unittest.TestCase):
     def _applicant_payload(self) -> dict:
         return {
             "applicant_name": "ТОО Тест",
-            "applicant_bin": "1234567890",
+            "applicant_bin": "123456789012",
             "applicant_address": "г. Алматы",
             "ops_code": "OPS-KZ-001",
             "cert_scheme_code": "SCHEME-1",
@@ -101,6 +101,18 @@ class ApplicationsApiTests(unittest.TestCase):
         detail = response.json()["detail"]
         self.assertIn("missing_fields", detail)
 
+    def test_submit_returns_422_for_invalid_bin(self) -> None:
+        payload = self._applicant_payload()
+        payload["applicant_bin"] = "1234567890"
+        created = self._client.post("/applications/drafts", json=payload)
+        self.assertEqual(created.status_code, 200)
+        app_id = created.json()["id"]
+
+        response = self._client.post(f"/applications/{app_id}/submit")
+        self.assertEqual(response.status_code, 422)
+        detail = response.json()["detail"]
+        self.assertEqual(detail["field"], "applicant_bin")
+
     def test_invalid_transition_returns_409(self) -> None:
         created = self._client.post("/applications/drafts", json={"applicant_name": "A"})
         self.assertEqual(created.status_code, 200)
@@ -129,6 +141,40 @@ class ApplicationsApiTests(unittest.TestCase):
     def test_applicant_cannot_access_ops_queue(self) -> None:
         response = self._client.get("/applications/ops/queue")
         self.assertEqual(response.status_code, 403)
+
+    def test_mine_returns_only_current_user_applications(self) -> None:
+        first = self._client.post("/applications/drafts", json={"applicant_name": "A"})
+        second = self._client.post("/applications/drafts", json={"applicant_name": "B"})
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+
+        self._set_auth_user(
+            CurrentUser(
+                subject="another-applicant",
+                username="another.demo",
+                email="another@example.local",
+                roles=frozenset({"Applicant"}),
+                claims={},
+            )
+        )
+        foreign = self._client.post("/applications/drafts", json={"applicant_name": "C"})
+        self.assertEqual(foreign.status_code, 200)
+
+        self._set_auth_user(
+            CurrentUser(
+                subject="applicant-1",
+                username="applicant.demo",
+                email="applicant@example.local",
+                roles=frozenset({"Applicant"}),
+                claims={},
+            )
+        )
+        mine = self._client.get("/applications/mine")
+        self.assertEqual(mine.status_code, 200)
+        ids = [item["id"] for item in mine.json()["items"]]
+        self.assertIn(first.json()["id"], ids)
+        self.assertIn(second.json()["id"], ids)
+        self.assertNotIn(foreign.json()["id"], ids)
 
     def test_ops_queue_returns_items_for_review_statuses(self) -> None:
         app_id = self._create_and_submit()

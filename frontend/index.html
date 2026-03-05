@@ -101,6 +101,10 @@
         gap: 14px;
       }
 
+      .shell.single-column {
+        grid-template-columns: 1fr;
+      }
+
       .card {
         background: var(--surface);
         border: 1px solid var(--line);
@@ -206,6 +210,18 @@
       .main {
         padding: 16px;
       }
+
+      .main.auth-only {
+        min-height: 640px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .main.auth-only .page-head {
+        display: none;
+      }
+
       .page-head {
         margin-bottom: 14px;
       }
@@ -273,11 +289,24 @@
       }
 
       .auth-gate {
-        margin-top: 10px;
+        margin: 0 auto;
         border: 1px solid var(--line);
         border-radius: 14px;
         padding: 18px;
         background: var(--surface-soft);
+        width: min(640px, 100%);
+        text-align: center;
+      }
+
+      .auth-gate-logo {
+        font-family: "Palatino Linotype", "Book Antiqua", serif;
+        font-size: 1.9rem;
+        font-weight: 700;
+      }
+
+      .auth-gate-logo em {
+        color: var(--brand);
+        font-style: normal;
       }
 
       .auth-gate-title {
@@ -289,6 +318,69 @@
         margin-top: 6px;
         color: var(--text-muted);
         font-size: 0.9rem;
+      }
+
+      .auth-gate-meta {
+        margin-top: 10px;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+      }
+
+      #authGateLoginBtn {
+        margin-top: 12px;
+      }
+
+      .registry-view {
+        margin-bottom: 12px;
+      }
+
+      .registry-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .registry-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+      }
+
+      .registry-sub {
+        margin-top: 2px;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+
+      .registry-table-wrap {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+      }
+
+      .registry-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .registry-table th,
+      .registry-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.88rem;
+        text-align: left;
+      }
+
+      .registry-table thead {
+        background: var(--surface-soft);
+      }
+
+      .registry-empty {
+        padding: 16px;
+        color: var(--text-muted);
+        font-size: 0.88rem;
       }
 
       .section-head {
@@ -521,11 +613,16 @@
         .process {
           grid-template-columns: 1fr;
         }
+
+        .registry-head {
+          flex-direction: column;
+          align-items: flex-start;
+        }
       }
     </style>
   </head>
   <body>
-    <header class="header">
+    <header class="header" id="appHeader">
       <div class="header-inner">
         <div class="brand"><em>e</em>-КТРМ</div>
         <nav class="menu" aria-label="Главное меню">
@@ -541,7 +638,7 @@
       </div>
     </header>
 
-    <div class="shell">
+    <div class="shell" id="shellContainer">
       <aside class="card sidebar is-hidden" id="sidebarPanel">
         <div class="app-meta">
           <div class="meta-id" id="appNumber">Заявка: не создана</div>
@@ -551,18 +648,74 @@
         <div class="steps" id="stepsNav"></div>
       </aside>
 
-      <main class="card main">
+      <main class="card main" id="mainPanel">
         <div class="page-head">
-          <div class="page-eyebrow">Сертификация соответствия продукции РК</div>
-          <h1>Заявка на проведение сертификации</h1>
+          <div class="page-eyebrow" id="pageEyebrow">Раздел заявок</div>
+          <h1 id="pageTitle">Заявки</h1>
         </div>
 
         <section class="auth-gate" id="authGate">
+          <div class="auth-gate-logo"><em>e</em>-КТРМ</div>
           <div class="auth-gate-title" id="authGateTitle">Проверка сессии...</div>
           <div class="auth-gate-text" id="authGateText">Подождите, идет инициализация авторизации.</div>
+          <div class="auth-gate-meta" id="authGateMeta">OIDC init: ожидание инициализации...</div>
+          <button class="btn-primary" id="authGateLoginBtn">Войти через Keycloak</button>
         </section>
 
         <div id="protectedContent" class="is-hidden">
+          <section class="registry-view is-hidden" id="registryView">
+            <div class="registry-head">
+              <div>
+                <div class="registry-title">Реестр моих заявок</div>
+                <div class="registry-sub">Список заявок текущего пользователя без действий и переходов в детали.</div>
+              </div>
+              <button class="btn-primary" id="createApplicationBtn">Подать новую заявку</button>
+            </div>
+            <div class="registry-table-wrap">
+              <table class="registry-table" aria-label="Реестр заявок">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Номер заявки</th>
+                    <th>Статус</th>
+                    <th>Обновлено</th>
+                  </tr>
+                </thead>
+                <tbody id="applicationsRegistryBody"></tbody>
+              </table>
+              <div class="registry-empty is-hidden" id="applicationsRegistryEmpty">
+                У текущего пользователя пока нет заявок.
+              </div>
+            </div>
+          </section>
+
+          <section class="registry-view is-hidden" id="opsRegistryView">
+            <div class="registry-head">
+              <div>
+                <div class="registry-title">Реестр заявок заявителей</div>
+                <div class="registry-sub">Список отправленных заявок для работы ОПС.</div>
+              </div>
+            </div>
+            <div class="registry-table-wrap">
+              <table class="registry-table" aria-label="Реестр заявок для ОПС">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Номер заявки</th>
+                    <th>Статус</th>
+                    <th>Заявитель</th>
+                    <th>Обновлено</th>
+                  </tr>
+                </thead>
+                <tbody id="opsRegistryBody"></tbody>
+              </table>
+              <div class="registry-empty is-hidden" id="opsRegistryEmpty">
+                Отправленных заявок пока нет.
+              </div>
+            </div>
+          </section>
+
+          <div id="formView" class="is-hidden">
         <section class="process" aria-label="Процесс Ордер 3">
           <article class="process-step active">
             <div class="n">01 — Заявитель</div>
@@ -632,12 +785,12 @@
                 </div>
                 <div class="field" data-field="applicant_bin">
                   <label>БИН <span class="required">*</span></label>
-                  <input id="applicant_bin" type="text" placeholder="10 цифр" maxlength="10" />
-                  <span class="hint">Формат: 10 цифр</span>
+                  <input id="applicant_bin" type="text" placeholder="12 цифр" maxlength="12" />
+                  <span class="hint">Формат: 12 цифр</span>
                 </div>
                 <div class="field" data-field="phone">
                   <label>Мобильный телефон <span class="required">*</span></label>
-                  <input id="phone" type="tel" placeholder="+7(7##) ### ## ##" />
+                  <input id="phone" type="tel" placeholder="+7(___) ___ __ __" />
                 </div>
                 <div class="field" data-field="email">
                   <label>Email <span class="required">*</span></label>
@@ -824,15 +977,17 @@
         </div>
 
         <div class="action-bar">
+          <button class="btn-secondary" id="backToRegistryBtn">К списку заявок</button>
           <button class="btn-secondary" id="prevStepBtn">Назад</button>
           <button class="btn-secondary" id="nextStepBtn">Сохранить и продолжить</button>
           <button class="btn-secondary" id="saveDraftBtn">Сохранить черновик</button>
           <button class="btn-primary" id="submitBtn">Подписать и отправить</button>
           <button class="btn-danger" id="deleteDraftBtn">Удалить черновик</button>
         </div>
+          </div>
         </div>
 
-        <section class="session">
+        <section class="session" id="sessionPanel">
           <div class="row" style="margin-bottom: 6px">
             <button class="btn-primary" id="loginBtn">Войти</button>
             <button class="btn-secondary" id="refreshBtn">Обновить токен</button>
@@ -880,18 +1035,35 @@
       ];
 
       const output = document.getElementById("output");
+      const appHeader = document.getElementById("appHeader");
+      const shellContainer = document.getElementById("shellContainer");
       const authState = document.getElementById("authState");
+      const pageEyebrow = document.getElementById("pageEyebrow");
+      const pageTitle = document.getElementById("pageTitle");
       const username = document.getElementById("username");
       const roles = document.getElementById("roles");
       const appNumber = document.getElementById("appNumber");
       const currentStepLabel = document.getElementById("currentStepLabel");
       const statusChip = document.getElementById("statusChip");
       const apiBaseLabel = document.getElementById("apiBaseLabel");
+      const mainPanel = document.getElementById("mainPanel");
       const sidebarPanel = document.getElementById("sidebarPanel");
+      const sessionPanel = document.getElementById("sessionPanel");
       const protectedContent = document.getElementById("protectedContent");
+      const registryView = document.getElementById("registryView");
+      const opsRegistryView = document.getElementById("opsRegistryView");
+      const formView = document.getElementById("formView");
+      const applicationsRegistryBody = document.getElementById("applicationsRegistryBody");
+      const applicationsRegistryEmpty = document.getElementById("applicationsRegistryEmpty");
+      const opsRegistryBody = document.getElementById("opsRegistryBody");
+      const opsRegistryEmpty = document.getElementById("opsRegistryEmpty");
       const authGate = document.getElementById("authGate");
       const authGateTitle = document.getElementById("authGateTitle");
       const authGateText = document.getElementById("authGateText");
+      const authGateMeta = document.getElementById("authGateMeta");
+      const authGateLoginBtn = document.getElementById("authGateLoginBtn");
+      const phoneInput = document.getElementById("phone");
+      const applicantBinInput = document.getElementById("applicant_bin");
       apiBaseLabel.textContent = config.apiBase;
 
       const sections = Array.from(document.querySelectorAll(".section"));
@@ -903,6 +1075,8 @@
         save: document.getElementById("saveDraftBtn"),
         submit: document.getElementById("submitBtn"),
         deleteDraft: document.getElementById("deleteDraftBtn"),
+        createApplication: document.getElementById("createApplicationBtn"),
+        backToRegistry: document.getElementById("backToRegistryBtn"),
         login: document.getElementById("loginBtn"),
         logout: document.getElementById("logoutBtn"),
         refresh: document.getElementById("refreshBtn"),
@@ -918,6 +1092,8 @@
       };
       let currentStep = 0;
       let currentApplicationId = null;
+      let currentView = "registry";
+      let formDirty = false;
       let authReady = false;
       const pkceStorage = {
         verifier: "ektrm_oidc_pkce_verifier",
@@ -981,6 +1157,175 @@
         renderStepsNav();
       }
 
+      function setFormButtonsEnabled(enabled) {
+        buttons.prev.disabled = !enabled || currentStep === 0;
+        buttons.next.disabled = !enabled || currentStep >= STEP_TITLES.length - 1;
+        buttons.save.disabled = !enabled;
+        buttons.submit.disabled = !enabled;
+        buttons.deleteDraft.disabled = !enabled;
+        buttons.backToRegistry.disabled = !enabled;
+      }
+
+      function setFormDirty(nextValue) {
+        formDirty = Boolean(nextValue);
+      }
+
+      function formatDateTime(value) {
+        if (!value) {
+          return "-";
+        }
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+          return value;
+        }
+        return parsed.toLocaleString("ru-RU");
+      }
+
+      function renderApplicationsRegistry(items) {
+        applicationsRegistryBody.innerHTML = "";
+        if (!Array.isArray(items) || items.length === 0) {
+          applicationsRegistryEmpty.classList.remove("is-hidden");
+          return;
+        }
+
+        applicationsRegistryEmpty.classList.add("is-hidden");
+        items.forEach((application) => {
+          const row = document.createElement("tr");
+          const idCell = document.createElement("td");
+          idCell.textContent = String(application.id ?? "-");
+          const numberCell = document.createElement("td");
+          numberCell.textContent = application.application_number || "-";
+          const statusCell = document.createElement("td");
+          statusCell.textContent = application.status || "-";
+          const updatedCell = document.createElement("td");
+          updatedCell.textContent = formatDateTime(application.updated_at);
+          row.append(idCell, numberCell, statusCell, updatedCell);
+          applicationsRegistryBody.appendChild(row);
+        });
+      }
+
+      function renderOpsRegistry(items) {
+        opsRegistryBody.innerHTML = "";
+        if (!Array.isArray(items) || items.length === 0) {
+          opsRegistryEmpty.classList.remove("is-hidden");
+          return;
+        }
+        opsRegistryEmpty.classList.add("is-hidden");
+        items.forEach((application) => {
+          const row = document.createElement("tr");
+          const idCell = document.createElement("td");
+          idCell.textContent = String(application.id ?? "-");
+          const numberCell = document.createElement("td");
+          numberCell.textContent = application.application_number || "-";
+          const statusCell = document.createElement("td");
+          statusCell.textContent = application.status || "-";
+          const applicantCell = document.createElement("td");
+          applicantCell.textContent = application.applicant_username || application.applicant_subject || "-";
+          const updatedCell = document.createElement("td");
+          updatedCell.textContent = formatDateTime(application.updated_at);
+          row.append(idCell, numberCell, statusCell, applicantCell, updatedCell);
+          opsRegistryBody.appendChild(row);
+        });
+      }
+
+      async function loadApplicationsRegistry() {
+        ensureApplicantAccess();
+        const response = await callApi("GET", "/applications/mine?limit=200");
+        const items = Array.isArray(response.items) ? response.items : [];
+        renderApplicationsRegistry(items);
+        return items;
+      }
+
+      async function loadOpsRegistry() {
+        ensureOpsAccess();
+        const statuses = [
+          "SUBMITTED",
+          "REGISTERED",
+          "IN_REVIEW",
+          "REVISION_REQUESTED",
+          "PROTOCOL_ATTACHED",
+          "APPROVED",
+          "REJECTED",
+          "ARCHIVED",
+          "COMPLETED",
+        ].join(",");
+        const response = await callApi("GET", `/applications/ops/queue?limit=200&statuses=${encodeURIComponent(statuses)}`);
+        const items = Array.isArray(response.items) ? response.items : [];
+        renderOpsRegistry(items);
+        return items;
+      }
+
+      function resetWizardForm() {
+        const fields = Array.from(document.querySelectorAll("#sectionsWrap input, #sectionsWrap select, #sectionsWrap textarea"));
+        fields.forEach((element) => {
+          if (element instanceof HTMLInputElement) {
+            if (element.type === "checkbox") {
+              element.checked = false;
+              return;
+            }
+            if (element.type === "file") {
+              element.value = "";
+              return;
+            }
+            element.value = "";
+            return;
+          }
+          if (element instanceof HTMLSelectElement) {
+            element.selectedIndex = 0;
+            return;
+          }
+          if (element instanceof HTMLTextAreaElement) {
+            element.value = "";
+          }
+        });
+        clearFieldErrors();
+        currentStep = 0;
+        setFormDirty(false);
+        renderStep();
+      }
+
+      function showRegistryView() {
+        currentView = "registry";
+        pageEyebrow.textContent = "Раздел заявок";
+        pageTitle.textContent = "Заявки";
+        shellContainer.classList.add("single-column");
+        sidebarPanel.classList.add("is-hidden");
+        registryView.classList.remove("is-hidden");
+        opsRegistryView.classList.add("is-hidden");
+        formView.classList.add("is-hidden");
+        setFormButtonsEnabled(false);
+        buttons.createApplication.disabled = false;
+        updateHeaderMeta();
+      }
+
+      function showOpsRegistryView() {
+        currentView = "ops-registry";
+        pageEyebrow.textContent = "Раздел заявок ОПС";
+        pageTitle.textContent = "Реестр заявок заявителей";
+        shellContainer.classList.add("single-column");
+        sidebarPanel.classList.add("is-hidden");
+        registryView.classList.add("is-hidden");
+        opsRegistryView.classList.remove("is-hidden");
+        formView.classList.add("is-hidden");
+        setFormButtonsEnabled(false);
+        buttons.createApplication.disabled = true;
+        updateHeaderMeta();
+      }
+
+      function showFormView() {
+        currentView = "form";
+        pageEyebrow.textContent = "Сертификация соответствия продукции РК";
+        pageTitle.textContent = "Заявка на проведение сертификации";
+        shellContainer.classList.remove("single-column");
+        sidebarPanel.classList.remove("is-hidden");
+        registryView.classList.add("is-hidden");
+        opsRegistryView.classList.add("is-hidden");
+        formView.classList.remove("is-hidden");
+        setFormButtonsEnabled(true);
+        buttons.createApplication.disabled = true;
+        renderStep();
+      }
+
       function markFieldError(fieldId, message) {
         const wrapper = document.querySelector(`.field[data-field="${fieldId}"]`);
         if (!wrapper) {
@@ -1012,6 +1357,48 @@
           return element.checked;
         }
         return typeof element.value === "string" ? element.value.trim() : "";
+      }
+
+      function normalizePhoneDigits(rawValue) {
+        let digits = String(rawValue || "").replace(/\D/g, "");
+        if (!digits) {
+          return "";
+        }
+        if (digits.startsWith("8")) {
+          digits = `7${digits.slice(1)}`;
+        }
+        if (!digits.startsWith("7")) {
+          digits = `7${digits}`;
+        }
+        return digits.slice(0, 11);
+      }
+
+      function formatPhoneMask(rawValue) {
+        const digits = normalizePhoneDigits(rawValue);
+        if (!digits) {
+          return "";
+        }
+        let formatted = "+7";
+        const operator = digits.slice(1, 4);
+        if (operator) {
+          formatted += `(${operator}`;
+          if (operator.length === 3) {
+            formatted += ")";
+          }
+        }
+        const chunk1 = digits.slice(4, 7);
+        if (chunk1) {
+          formatted += ` ${chunk1}`;
+        }
+        const chunk2 = digits.slice(7, 9);
+        if (chunk2) {
+          formatted += ` ${chunk2}`;
+        }
+        const chunk3 = digits.slice(9, 11);
+        if (chunk3) {
+          formatted += ` ${chunk3}`;
+        }
+        return formatted;
       }
 
       function buildPayload() {
@@ -1088,6 +1475,10 @@
         keys.forEach((key) => {
           const element = document.getElementById(key);
           if (element && typeof data[key] !== "undefined") {
+            if (key === "phone") {
+              element.value = formatPhoneMask(data[key] ?? "");
+              return;
+            }
             element.value = data[key] ?? "";
           }
         });
@@ -1125,14 +1516,14 @@
           }
         });
 
-        if (payload.applicant_bin && !/^\d{10}$/.test(payload.applicant_bin)) {
-          errors.push("БИН должен содержать 10 цифр");
-          markFieldError("applicant_bin", "БИН должен содержать 10 цифр");
+        if (payload.applicant_bin && !/^\d{12}$/.test(payload.applicant_bin)) {
+          errors.push("БИН должен содержать 12 цифр");
+          markFieldError("applicant_bin", "БИН должен содержать 12 цифр");
         }
 
-        if (payload.phone && !/^\+7\(7\d{2}\)\s\d{3}\s\d{2}\s\d{2}$/.test(payload.phone)) {
+        if (payload.phone && !/^\+7\(\d{3}\)\s\d{3}\s\d{2}\s\d{2}$/.test(payload.phone)) {
           errors.push("Неверный формат телефона");
-          markFieldError("phone", "Формат телефона: +7(7##) ### ## ##");
+          markFieldError("phone", "Формат телефона: +7(___) ___ __ __");
         }
 
         if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
@@ -1395,8 +1786,21 @@
         return getCurrentRealmRoles().includes("Applicant");
       }
 
+      function isOpsUser() {
+        return getCurrentRealmRoles().includes("OPS");
+      }
+
       function setProtectedVisibility(visible) {
-        sidebarPanel.classList.toggle("is-hidden", !visible);
+        mainPanel.classList.toggle("auth-only", !visible);
+        appHeader.classList.toggle("is-hidden", !visible);
+        sessionPanel.classList.toggle("is-hidden", !visible);
+        if (!visible) {
+          shellContainer.classList.add("single-column");
+          sidebarPanel.classList.add("is-hidden");
+          registryView.classList.add("is-hidden");
+          opsRegistryView.classList.add("is-hidden");
+          formView.classList.add("is-hidden");
+        }
         protectedContent.classList.toggle("is-hidden", !visible);
         authGate.classList.toggle("is-hidden", visible);
       }
@@ -1409,17 +1813,28 @@
 
         setProtectedVisibility(false);
         if (mode === "loading") {
-          authGateTitle.textContent = "Проверка сессии...";
-          authGateText.textContent = "Подождите, идет инициализация авторизации.";
+          authGateTitle.textContent = "";
+          authGateText.textContent = "";
+          authGateMeta.textContent = "";
+          authGateLoginBtn.disabled = true;
+          authGateLoginBtn.textContent = "Проверка OIDC...";
+          authGateLoginBtn.classList.remove("is-hidden");
           return;
         }
         if (mode === "forbidden") {
           authGateTitle.textContent = "Недостаточно прав";
-          authGateText.textContent = `Форма заявки доступна только роли Applicant. Текущие роли: ${realmRoles.join(", ") || "-"}.`;
+          authGateText.textContent = `Текущие роли: ${realmRoles.join(", ") || "-"}. Для этого экрана недостаточно прав.`;
+          authGateMeta.textContent = `OIDC init: roles ${realmRoles.join(", ") || "-"}`;
+          authGateLoginBtn.disabled = true;
+          authGateLoginBtn.classList.add("is-hidden");
           return;
         }
-        authGateTitle.textContent = "Требуется вход в систему";
-        authGateText.textContent = "Чтобы работать с заявкой, нажмите «Войти» и авторизуйтесь под ролью Applicant.";
+        authGateTitle.textContent = "";
+        authGateText.textContent = "";
+        authGateMeta.textContent = "";
+        authGateLoginBtn.disabled = false;
+        authGateLoginBtn.textContent = "Войти через Keycloak";
+        authGateLoginBtn.classList.remove("is-hidden");
       }
 
       function ensureApplicantAccess() {
@@ -1428,6 +1843,15 @@
         }
         if (!isApplicantUser()) {
           throw new Error("Доступ к форме есть только у роли Applicant");
+        }
+      }
+
+      function ensureOpsAccess() {
+        if (!oidcSession.authenticated || !oidcSession.token) {
+          throw new Error("Сначала выполните вход через Keycloak");
+        }
+        if (!isOpsUser()) {
+          throw new Error("Доступ к реестру ОПС есть только у роли OPS");
         }
       }
 
@@ -1463,6 +1887,7 @@
         if (currentApplicationId) {
           const updated = await callApi("PUT", `/applications/${currentApplicationId}/draft`, payload);
           setStatusChip(updated.status || "DRAFT");
+          setFormDirty(false);
           return updated;
         }
 
@@ -1471,6 +1896,7 @@
         localStorage.setItem(config.draftStorageKey, String(currentApplicationId));
         setStatusChip(created.status || "DRAFT");
         updateHeaderMeta();
+        setFormDirty(false);
         return created;
       }
 
@@ -1478,7 +1904,18 @@
         ensureApplicantAccess();
         const payload = buildPayload();
         const response = await ensureDraftExists(payload);
+        setFormDirty(false);
         writeOutput("Черновик сохранен", response);
+      }
+
+      async function startNewApplication() {
+        ensureApplicantAccess();
+        currentApplicationId = null;
+        localStorage.removeItem(config.draftStorageKey);
+        setStatusChip("DRAFT");
+        resetWizardForm();
+        showFormView();
+        writeOutput("Новая заявка", "Открыта форма подачи новой заявки.");
       }
 
       async function submitApplication() {
@@ -1491,7 +1928,12 @@
         await ensureDraftExists(payload);
         const submitted = await callApi("POST", `/applications/${currentApplicationId}/submit`);
         setStatusChip(submitted.status || "SUBMITTED");
+        setFormDirty(false);
         writeOutput("Заявка отправлена", submitted);
+        currentApplicationId = null;
+        localStorage.removeItem(config.draftStorageKey);
+        await loadApplicationsRegistry();
+        showRegistryView();
       }
 
       async function deleteDraft() {
@@ -1506,8 +1948,12 @@
         }
         const deleted = await callApi("DELETE", `/applications/${currentApplicationId}/draft`);
         setStatusChip(deleted.status || "ARCHIVED");
+        setFormDirty(false);
+        currentApplicationId = null;
         localStorage.removeItem(config.draftStorageKey);
         writeOutput("Черновик удален", deleted);
+        await loadApplicationsRegistry();
+        showRegistryView();
       }
 
       async function loadExistingDraftFromStorage() {
@@ -1530,6 +1976,7 @@
           const draft = await callApi("GET", `/applications/${currentApplicationId}`);
           applyPayload(draft.payload || {});
           setStatusChip(draft.status || "DRAFT");
+          setFormDirty(false);
           writeOutput("Загружен сохраненный черновик", draft);
         } catch (error) {
           currentApplicationId = null;
@@ -1548,11 +1995,8 @@
           buttons.login.disabled = true;
           buttons.logout.disabled = true;
           buttons.refresh.disabled = true;
-          buttons.prev.disabled = true;
-          buttons.next.disabled = true;
-          buttons.save.disabled = true;
-          buttons.submit.disabled = true;
-          buttons.deleteDraft.disabled = true;
+          buttons.createApplication.disabled = true;
+          setFormButtonsEnabled(false);
           renderAccessGate("loading");
           return;
         }
@@ -1564,11 +2008,8 @@
           buttons.login.disabled = false;
           buttons.logout.disabled = true;
           buttons.refresh.disabled = true;
-          buttons.prev.disabled = true;
-          buttons.next.disabled = true;
-          buttons.save.disabled = true;
-          buttons.submit.disabled = true;
-          buttons.deleteDraft.disabled = true;
+          buttons.createApplication.disabled = true;
+          setFormButtonsEnabled(false);
           renderAccessGate("unauthenticated");
           return;
         }
@@ -1582,21 +2023,27 @@
         buttons.logout.disabled = false;
         buttons.refresh.disabled = false;
 
+        if (isOpsUser()) {
+          buttons.createApplication.disabled = true;
+          setFormButtonsEnabled(false);
+          renderAccessGate("authorized");
+          showOpsRegistryView();
+          return;
+        }
+
         if (!isApplicantUser()) {
-          buttons.prev.disabled = true;
-          buttons.next.disabled = true;
-          buttons.save.disabled = true;
-          buttons.submit.disabled = true;
-          buttons.deleteDraft.disabled = true;
+          buttons.createApplication.disabled = true;
+          setFormButtonsEnabled(false);
           renderAccessGate("forbidden", realmRoles);
           return;
         }
 
-        buttons.save.disabled = false;
-        buttons.submit.disabled = false;
-        buttons.deleteDraft.disabled = false;
         renderAccessGate("authorized");
-        renderStep();
+        if (currentView === "form") {
+          showFormView();
+          return;
+        }
+        showRegistryView();
       }
 
       async function initAuth() {
@@ -1635,7 +2082,25 @@
         });
 
         if (oidcSession.authenticated && isApplicantUser()) {
-          await loadExistingDraftFromStorage();
+          try {
+            await loadApplicationsRegistry();
+            showRegistryView();
+          } catch (error) {
+            writeOutput("Ошибка загрузки реестра заявок", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+
+        if (oidcSession.authenticated && isOpsUser()) {
+          try {
+            await loadOpsRegistry();
+            showOpsRegistryView();
+          } catch (error) {
+            writeOutput("Ошибка загрузки OPS реестра", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
         }
       }
 
@@ -1658,6 +2123,40 @@
           await saveDraft();
         } catch (error) {
           writeOutput("Ошибка сохранения черновика", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      });
+
+      buttons.createApplication.addEventListener("click", async () => {
+        try {
+          await startNewApplication();
+        } catch (error) {
+          writeOutput("Ошибка создания новой заявки", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      });
+
+      buttons.backToRegistry.addEventListener("click", async () => {
+        try {
+          if (!currentApplicationId && formDirty) {
+            const confirmed = window.confirm(
+              "Заявка еще не сохранена. При возврате в реестр введенные данные будут потеряны. Продолжить?",
+            );
+            if (!confirmed) {
+              return;
+            }
+            resetWizardForm();
+            setStatusChip("DRAFT");
+            currentApplicationId = null;
+            localStorage.removeItem(config.draftStorageKey);
+          }
+          await loadApplicationsRegistry();
+          showRegistryView();
+          writeOutput("Реестр заявок", "Открыт список заявок текущего пользователя.");
+        } catch (error) {
+          writeOutput("Ошибка загрузки реестра", {
             message: error instanceof Error ? error.message : String(error),
           });
         }
@@ -1687,6 +2186,10 @@
         await loginWithOidc();
       });
 
+      authGateLoginBtn.addEventListener("click", async () => {
+        await loginWithOidc();
+      });
+
       buttons.refresh.addEventListener("click", async () => {
         if (!oidcSession.authenticated) {
           return;
@@ -1694,6 +2197,16 @@
         try {
           const refreshed = await refreshAccessToken(30);
           renderAuthState();
+          if (oidcSession.authenticated && isApplicantUser()) {
+            await loadApplicationsRegistry();
+            if (currentView !== "form") {
+              showRegistryView();
+            }
+          }
+          if (oidcSession.authenticated && isOpsUser()) {
+            await loadOpsRegistry();
+            showOpsRegistryView();
+          }
           writeOutput("Обновление токена", { refreshed });
         } catch (error) {
           writeOutput("Ошибка обновления токена", {
@@ -1706,8 +2219,37 @@
         if (!oidcSession.authenticated) {
           return;
         }
+        currentView = "registry";
         await logoutFromOidc();
       });
+
+      const formInputs = Array.from(document.querySelectorAll("#sectionsWrap input, #sectionsWrap select, #sectionsWrap textarea"));
+      formInputs.forEach((element) => {
+        element.addEventListener("input", () => {
+          if (currentView === "form") {
+            setFormDirty(true);
+          }
+        });
+        element.addEventListener("change", () => {
+          if (currentView === "form") {
+            setFormDirty(true);
+          }
+        });
+      });
+
+      if (applicantBinInput) {
+        applicantBinInput.addEventListener("input", () => {
+          const digits = applicantBinInput.value.replace(/\D/g, "").slice(0, 12);
+          applicantBinInput.value = digits;
+        });
+      }
+
+      if (phoneInput) {
+        phoneInput.addEventListener("input", () => {
+          const masked = formatPhoneMask(phoneInput.value);
+          phoneInput.value = masked;
+        });
+      }
 
       renderStep();
       setStatusChip("DRAFT");

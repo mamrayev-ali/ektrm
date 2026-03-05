@@ -126,6 +126,16 @@ def get_ops_queue(
     )
 
 
+@router.get("/mine")
+def get_my_applications(
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    current_user: CurrentUser = Depends(get_current_user),
+    service: ApplicationStateService = Depends(_get_service),
+) -> dict[str, Any]:
+    return service.list_my_applications(current_user=current_user, limit=limit, offset=offset)
+
+
 @router.get("/{application_id}")
 def get_application(
     application_id: int,

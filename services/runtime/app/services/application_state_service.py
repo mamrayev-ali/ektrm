@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import UTC, datetime
 from secrets import randbelow
 from typing import Any
@@ -65,6 +66,7 @@ OPS_REVIEW_STATUSES = frozenset(
 )
 DEFAULT_OPS_QUEUE_STATUSES = ("SUBMITTED", "REGISTERED", "IN_REVIEW", "PROTOCOL_ATTACHED")
 PROTOCOL_FILE_SLOT = "protocol_test_report"
+BIN_PATTERN = re.compile(r"^\d{12}$")
 
 
 class ApplicationStateService:
@@ -151,6 +153,16 @@ class ApplicationStateService:
             "limit": limit,
             "offset": offset,
             "statuses": list(normalized_statuses),
+            "items": items,
+        }
+
+    def list_my_applications(self, current_user: CurrentUser, limit: int = 100, offset: int = 0) -> dict[str, Any]:
+        applications = self._repository.list_by_subject(current_user.subject, limit=limit, offset=offset)
+        items = [self._serialize_application(application) for application in applications]
+        return {
+            "total": len(items),
+            "limit": limit,
+            "offset": offset,
             "items": items,
         }
 
@@ -318,6 +330,16 @@ class ApplicationStateService:
                 detail={
                     "message": "Submit payload is incomplete",
                     "missing_fields": missing,
+                },
+            )
+        applicant_bin = str(payload.get("applicant_bin", "")).strip()
+        if not BIN_PATTERN.fullmatch(applicant_bin):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "message": "Invalid applicant BIN format",
+                    "field": "applicant_bin",
+                    "expected": "12 digits",
                 },
             )
 

@@ -63,7 +63,7 @@ class ApplicationStateEngineTests(unittest.TestCase):
     def test_full_order3_transition_chain_is_supported(self) -> None:
         payload = {
             "applicant_name": "ТОО Тест",
-            "applicant_bin": "1234567890",
+            "applicant_bin": "123456789012",
             "applicant_address": "г. Алматы",
             "ops_code": "OPS-KZ-001",
             "cert_scheme_code": "SCHEME-1",
@@ -111,7 +111,7 @@ class ApplicationStateEngineTests(unittest.TestCase):
     def test_applicant_cannot_do_ops_review_transitions(self) -> None:
         payload = {
             "applicant_name": "ТОО Тест",
-            "applicant_bin": "1234567890",
+            "applicant_bin": "123456789012",
             "applicant_address": "г. Алматы",
             "ops_code": "OPS-KZ-001",
             "cert_scheme_code": "SCHEME-1",
@@ -130,7 +130,7 @@ class ApplicationStateEngineTests(unittest.TestCase):
     def test_attach_protocol_updates_payload_and_status(self) -> None:
         payload = {
             "applicant_name": "ТОО Тест",
-            "applicant_bin": "1234567890",
+            "applicant_bin": "123456789012",
             "applicant_address": "г. Алматы",
             "ops_code": "OPS-KZ-001",
             "cert_scheme_code": "SCHEME-1",
@@ -162,7 +162,7 @@ class ApplicationStateEngineTests(unittest.TestCase):
     def test_rejected_application_is_auto_archived_with_notification_history(self) -> None:
         payload = {
             "applicant_name": "ТОО Тест",
-            "applicant_bin": "1234567890",
+            "applicant_bin": "123456789012",
             "applicant_address": "г. Алматы",
             "ops_code": "OPS-KZ-001",
             "cert_scheme_code": "SCHEME-1",

@@ -35,6 +35,16 @@ class ApplicationRepository:
     def get_application(self, application_id: int) -> CertApplication | None:
         return self._session.get(CertApplication, application_id)
 
+    def list_by_subject(self, applicant_subject: str, limit: int, offset: int) -> list[CertApplication]:
+        stmt = (
+            select(CertApplication)
+            .where(CertApplication.applicant_subject == applicant_subject)
+            .order_by(CertApplication.updated_at.desc(), CertApplication.created_at.desc(), CertApplication.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return list(self._session.scalars(stmt).all())
+
     def list_by_statuses(self, statuses: tuple[str, ...], limit: int, offset: int) -> list[CertApplication]:
         if not statuses:
             return []

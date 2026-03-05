@@ -13,7 +13,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.auth import CurrentUser, get_current_user
 from app.db import get_session
-from app.models.reference_data import AccreditationAttestat, Base, OpsRegistry, ReferenceDictionary, ReferenceDictionaryItem
+from app.models.base import Base
+from app.models.reference_data import AccreditationAttestat, OpsRegistry, ReferenceDictionary, ReferenceDictionaryItem
 from app.routers.reference_data import router as reference_data_router
 from app.seed.reference_data_seed import (
     ACCREDITATION_ATTESTATS_SEED,

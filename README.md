@@ -132,13 +132,22 @@ Demo users:
 ## T6 OPS Review and Protocol Attachment: как проверить
 
 1. Войти как `ops.demo / Ops123456!` (или использовать Bearer с ролью `OPS`).
-2. Получить очередь ОПС:
+2. Через UI открыть `http://localhost:4200`:
+   - для роли `OPS` отображается реестр заявок заявителей;
+   - кнопка `Открыть` в строке заявки переводит в OPS-режим формы (read-only данные заявки + блок действий `Проверка и решение`);
+   - доступные действия в UI:
+     - `Принять` (перевод в `IN_REVIEW`, а для `SUBMITTED` последовательно делает `REGISTERED -> IN_REVIEW`);
+     - `На доработку` (`IN_REVIEW -> REVISION_REQUESTED`);
+     - `Прикрепить протокол` (upload в `files-service` + attach, результат `PROTOCOL_ATTACHED`);
+     - `Принять решение` (`APPROVED` или `REJECTED`);
+     - `Завершить` (`APPROVED -> COMPLETED`).
+3. Получить очередь ОПС (API-проверка):
    - `GET http://localhost:8080/applications/ops/queue`
    - опционально фильтр: `?statuses=IN_REVIEW,PROTOCOL_ATTACHED`.
-3. Выполнить review-переходы заявки:
+4. Выполнить review-переходы заявки:
    - `POST http://localhost:8080/applications/{id}/transitions` с `{"to_status":"REGISTERED"}`;
    - `POST ...` с `{"to_status":"IN_REVIEW"}`.
-4. Загрузить протокол в `files-service` (через gateway):
+5. Загрузить протокол в `files-service` (через gateway):
    - `POST http://localhost:8080/files/slots/upload`
    - body:
      - `application_id`,
@@ -146,14 +155,14 @@ Demo users:
      - `file_name` (pdf/doc/docx/xls/xlsx/jpg/jpeg/png),
      - `content_base64`,
      - `content_type`.
-5. Привязать протокол к заявке:
+6. Привязать протокол к заявке:
    - `POST http://localhost:8080/applications/{id}/protocol/attach`
    - body содержит metadata из шага upload (`slot`, `object_key`, `file_name`, `content_type`, `size_bytes`, `etag`).
    - ожидаемый результат: статус `PROTOCOL_ATTACHED`.
-6. Проверить отказную ветку:
+7. Проверить отказную ветку:
    - `POST http://localhost:8080/applications/{id}/transitions` с `{"to_status":"REJECTED","comment":"..."}`.
    - ожидаемый результат: заявка автоматически переходит в `ARCHIVED`, в истории есть записи `REJECTED` и `ARCHIVED`.
-7. Проверить role-based visibility:
+8. Проверить role-based visibility:
    - Applicant не может вызывать `GET /applications/ops/queue` и OPS review transitions (ожидается `403`).
 
 ## T7 Certificate Generation and Snapshot: как проверить

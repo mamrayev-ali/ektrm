@@ -328,18 +328,20 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `FileSlotService`, auth dependency layer.
   - tests:
     - `services/runtime/tests/test_files_api.py`.
-- `frontend/index.html` — T5 wizard UI для заявителя (Ордер 3).
+- `frontend/index.html` — T5/T6 UI для заявителя и OPS (Ордер 3).
   - public surface / key exports:
     - default-экран раздела `Заявки`: полноширинный реестр заявок текущего пользователя (табличный список без детального перехода/действий) + кнопка `Подать новую заявку`.
-    - отдельный OPS-экран: полноширинный реестр отправленных заявок заявителей для роли `OPS` (на базе `GET /applications/ops/queue`).
+    - отдельный OPS-экран: полноширинный реестр отправленных заявок заявителей для роли `OPS` (на базе `GET /applications/ops/queue`) с action `Открыть`.
     - отдельный режим wizard (8 шагов): `Заявитель`, `Адрес заявителя`, `ОПС`, `Схема сертификации`, `Данные по продукции`, `Приложение`, `Документы`, `Примечание`.
     - действия формы: `К списку заявок`, `Сохранить черновик`, `Подписать и отправить`, `Удалить черновик`; при возврате в реестр выполняется confirm при несохраненной новой форме.
+    - OPS-режим формы (визуально тот же layout): read-only данные заявки + блок действий `ОПС: Проверка и решение` (`Принять`, `На доработку`, `Прикрепить протокол`, `Принять решение`, `Завершить`) с вызовами существующих T6/T7 endpoint-ов.
+    - визуал процесса `Подача -> Регистрация -> Проверка -> Решение -> Сертификат` подсвечивается по текущему статусу заявки.
     - OIDC-сессия (Authorization Code + PKCE, нативный JS-клиент без `keycloak.js`) + вызовы applications API через gateway.
     - auth/role gate: при неавторизованной сессии рабочие экраны и header скрыты, показывается центрированное окно входа (логотип + кнопка Keycloak). Для `OPS` отображается OPS-реестр, а не экран `Нет доступа`.
   - invariants / assumptions:
     - submit валидирует обязательные поля и форматы (BIN=12 digits/phone mask/email);
     - draft допускает неполные данные.
-    - форма подачи доступна только роли `Applicant`; роль `OPS` работает с собственным реестровым экраном.
+    - форма подачи доступна только роли `Applicant`; роль `OPS` работает через реестр и OPS-режим формы для review/decision.
   - dependencies:
     - `services/runtime/app/routers/applications.py`, Keycloak OIDC endpoints (`/auth`, `/token`, `/logout`).
   - tests:
@@ -463,6 +465,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-05 [ops-review-decision-ui] В `frontend/index.html` реализован OPS workflow UI в дизайне текущей формы: в OPS-реестре добавлено действие `Открыть`, заявка открывается в read-only режиме с тем же process layout (`Подача -> Регистрация -> Проверка -> Решение -> Сертификат`) и подсветкой шага по статусу; добавлены OPS-действия `Принять`, `На доработку`, `Прикрепить протокол`, `Принять решение`, `Завершить` с интеграцией в существующие API (`/applications/{id}/transitions`, `/files/slots/upload`, `/applications/{id}/protocol/attach`, `/certificates/by-application/{application_id}`), плюс блок history переходов.
 - 2026-03-05 [ui-registry-ops-auth-bin12-phone-mask] Обновлен UX раздела `Заявки`: applicant-реестр сделан полноширинным, добавлен confirm при возврате из несохраненной новой формы, auth-screen переведен в центрированный режим (логотип + кнопка Keycloak без header), для роли `OPS` добавлен отдельный полноширинный реестр отправленных заявок, BIN-валидация изменена на 12 цифр (frontend+backend), добавлена автоподстановочная маска телефона; расширены backend-тесты и обновлены test payloads.
 - 2026-03-05 [applications-registry-and-auth-gate] Обновлен Applicant UI и applications API: добавлен endpoint `GET /applications/mine`, раздел `Заявки` переведен на default-реестр заявок текущего пользователя с кнопкой `Подать новую заявку`, wizard вынесен в отдельный режим формы, auth/forbidden gate снова центрирован и показывает OIDC init-метаданные; расширены API тесты (`test_mine_returns_only_current_user_applications`).
 - 2026-03-05 [auth-ui-gate-applicant-only] Для `frontend/index.html` добавлен UI auth-gate: до авторизации wizard/steps/action-bar скрыты, после входа отображение формы разрешено только роли `Applicant`; для остальных ролей показывается экран «Недостаточно прав».

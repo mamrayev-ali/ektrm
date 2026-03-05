@@ -49,6 +49,8 @@ REQUIRED_SUBMIT_FIELDS = (
     "products",
 )
 
+DELETABLE_DRAFT_STATUSES = frozenset({"DRAFT", "REVISION_REQUESTED"})
+
 
 class ApplicationStateService:
     def __init__(self, repository: ApplicationRepository) -> None:
@@ -112,6 +114,26 @@ class ApplicationStateService:
             for row in history
         ]
         return {"application_id": application_id, "total": len(items), "items": items}
+
+    def delete_draft(self, application_id: int, current_user: CurrentUser) -> dict[str, Any]:
+        application = self._require_application(application_id)
+        self._assert_owner_or_ops(application, current_user)
+        if application.status not in DELETABLE_DRAFT_STATUSES:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Only draft applications can be deleted",
+            )
+        previous = application.status
+        self._repository.update_status(application, "ARCHIVED")
+        self._repository.add_history(
+            application_id=application.id,
+            from_status=previous,
+            to_status="ARCHIVED",
+            changed_by_subject=current_user.subject,
+            comment="Draft deleted",
+        )
+        self._repository.commit()
+        return self._serialize_application(application)
 
     def transition(
         self,

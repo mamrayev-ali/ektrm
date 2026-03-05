@@ -15,7 +15,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Applicant создает/отправляет заявку, OPS проверяет/возвращает/принимает решение, система формирует сертификат, OPS mock-подписывает, сертификат публикуется в реестр, далее доступны post-issuance действия.
 - Tech stack:
   - Целевой: Angular SPA, Python/FastAPI микросервисы, PostgreSQL + SQLAlchemy/Alembic, Redis + Celery, MinIO, Keycloak, WebSocket, Docker Compose.
-  - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`: `cert_application`, status history, transition API).
+  - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`).
 - Where to start reading the code:
   - `docker-compose.yml`,
   - `services/runtime/app/main.py`,
@@ -61,7 +61,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Публичный API реестра — read-only.
   - Для T2 добавлены auth baseline endpoint-ы: `/auth/config`, `/auth/me`, `/auth/applicant-area`, `/auth/ops-area`.
   - Для T3 добавлены reference-data endpoint-ы: `/reference-data/dictionaries`, `/reference-data/dictionaries/{code}/items`, `/reference-data/ops-registry`, `/reference-data/accreditation-attestats`.
-  - Для T4 добавлены applications endpoint-ы: `/applications/drafts`, `/applications/{id}/draft`, `/applications/{id}/submit`, `/applications/{id}/transitions`, `/applications/{id}/history`.
+  - Для T4/T5 добавлены applications endpoint-ы: `/applications/drafts`, `/applications/{id}/draft` (`PUT` и `DELETE`), `/applications/{id}/submit`, `/applications/{id}/transitions`, `/applications/{id}/history`.
 - Error handling strategy:
   - Frontend: пользовательские сообщения + field-level validation state.
   - Backend: структурированные ошибки с доменными кодами и без утечки чувствительных данных.
@@ -203,7 +203,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - public surface / key exports:
     - `GET /`, `GET /health`, `GET /readiness`, `GET /auth/config`, `GET /auth/me`, `GET /auth/applicant-area`, `GET /auth/ops-area`.
     - для `reference-data-service` и `gateway-service`: `GET /reference-data/dictionaries`, `GET /reference-data/dictionaries/{code}/items`, `GET /reference-data/ops-registry`, `GET /reference-data/accreditation-attestats`.
-    - для `applications-service` и `gateway-service`: `POST /applications/drafts`, `PUT /applications/{id}/draft`, `POST /applications/{id}/submit`, `POST /applications/{id}/transitions`, `GET /applications/{id}`, `GET /applications/{id}/history`.
+    - для `applications-service` и `gateway-service`: `POST /applications/drafts`, `PUT /applications/{id}/draft`, `DELETE /applications/{id}/draft`, `POST /applications/{id}/submit`, `POST /applications/{id}/transitions`, `GET /applications/{id}`, `GET /applications/{id}/history`.
   - invariants / assumptions:
     - readiness зависит от доступности postgres/redis/minio/keycloak.
   - dependencies:
@@ -241,23 +241,36 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/tests/test_application_state_engine.py`, `services/runtime/tests/test_applications_api.py`.
 - `services/runtime/app/services/application_state_service.py` — доменный state engine Ордер 3.
   - public surface / key exports:
-    - transition map `DRAFT -> ... -> COMPLETED`, submit-валидация обязательных полей, запись status history.
+    - transition map `DRAFT -> ... -> COMPLETED`, submit-валидация обязательных полей, удаление черновика в `ARCHIVED`, запись status history.
   - invariants / assumptions:
     - недопустимые переходы запрещены (`409`);
-    - submit невозможен при неполном payload (`422`).
+    - submit невозможен при неполном payload (`422`);
+    - удаление допускается только для статусов `DRAFT`/`REVISION_REQUESTED`.
   - dependencies:
     - `services/runtime/app/repositories/application_repository.py`, `app/auth.py`.
   - tests:
     - `services/runtime/tests/test_application_state_engine.py`.
 - `services/runtime/app/routers/applications.py` — API слой Ордер 3.
   - public surface / key exports:
-    - endpoint-ы create/update draft, submit, transition, read, history.
+    - endpoint-ы create/update/delete draft, submit, transition, read, history.
   - invariants / assumptions:
     - backend проверяет ownership (`Applicant`) и full-access для `OPS`.
   - dependencies:
     - `ApplicationStateService`, DB session dependency.
   - tests:
     - `services/runtime/tests/test_applications_api.py`.
+- `frontend/index.html` — T5 wizard UI для заявителя (Ордер 3).
+  - public surface / key exports:
+    - 8 шагов wizard: `Заявитель`, `Адрес заявителя`, `ОПС`, `Схема сертификации`, `Данные по продукции`, `Приложение`, `Документы`, `Примечание`.
+    - действия: `Сохранить черновик`, `Подписать и отправить`, `Удалить черновик`.
+    - OIDC-сессия + вызовы applications API через gateway.
+  - invariants / assumptions:
+    - submit валидирует обязательные поля и форматы (BIN/phone/email);
+    - draft допускает неполные данные.
+  - dependencies:
+    - `services/runtime/app/routers/applications.py`, Keycloak JS adapter.
+  - tests:
+    - ручной smoke + backend API tests (`test_applications_api.py`).
 - `services/runtime/app/seed/reference_data_seed.py` — source-of-truth для seeded справочников и lookup-реестров T3.
   - public surface / key exports:
     - обязательные dictionary codes (TECH_SPEC section 15.2), причины Ордер 5, seed для `ops_registry` и `accreditation_attestats`.
@@ -377,6 +390,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-05 [t5-order-3-applicant-ui-wizard] Реализован T5: обновлен `frontend/index.html` в wizard Ордер 3 (8 шагов, submit-валидации, действия `Сохранить черновик`/`Подписать и отправить`/`Удалить черновик`), в backend добавлен `DELETE /applications/{id}/draft` с переводом в `ARCHIVED`, дополнены тесты `test_application_state_engine.py` и `test_applications_api.py`.
 - 2026-03-05 [t4-order-3-domain-model-and-state-engine] Реализован T4: добавлены модели `cert_application`/`cert_application_status_history`, Alembic migration `20260305_0002`, state engine переходов Ордер 3, applications API (`draft/submit/transitions/history`) и тесты `test_application_state_engine.py`, `test_applications_api.py`.
 - 2026-03-05 [ci-github-actions-verify-ci] Добавлен workflow `.github/workflows/verify-ci.yml` для автоматического запуска `make verify-ci` на PR/push, чтобы статусы CI отображались в GitHub PR checks.
 - 2026-03-05 [t3-reference-data-and-lookup-registries] Реализован T3 baseline: SQLAlchemy/Alembic DB-слой, migration `20260305_0001` с seed обязательных справочников и lookup-таблиц, read-only API `reference-data`, тесты `test_reference_data.py` и обновленный runbook.

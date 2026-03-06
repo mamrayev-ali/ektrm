@@ -1,8 +1,8 @@
-# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2) + Reference Data (T3) + Order 3 Domain Model (T4) + Applicant Wizard (T5) + OPS Review and Protocol Attachment (T6) + Certificate Generation and Snapshot (T7) + Mock Signing and Registry (T8)
+# e-КТРМ — MVP Platform Bootstrap (T1) + Auth Baseline (T2) + Reference Data (T3) + Order 3 Domain Model (T4) + Applicant Wizard (T5) + OPS Review and Protocol Attachment (T6) + Certificate Generation and Snapshot (T7) + Mock Signing and Registry (T8) + Post-Issuance Suspend / Terminate (T9)
 
 Репозиторий содержит AgentKit-процесс и стартовую контейнерную топологию MVP Phase 1 для e-КТРМ.
 
-Реализовано в тикетах `T1`, `T2`, `T3`, `T4`, `T5`, `T6`, `T7` и `T8`:
+Реализовано в тикетах `T1`, `T2`, `T3`, `T4`, `T5`, `T6`, `T7`, `T8` и `T9`:
 - docker-compose с обязательными контейнерами платформы;
 - bootstrap-скрипты запуска;
 - минимальные runtime-сервисы с `/health` и `/readiness`;
@@ -22,6 +22,17 @@
   - `GET /registry/internal` (Applicant: только свои, OPS: все),
   - `GET /registry/public` (без авторизации, read-only только опубликованные).
 - UI внутреннего реестра сертификатов (`frontend/index.html`) + отдельная публичная страница (`/public-registry.html`).
+- baseline Ордер 5: post-issuance процесс `Приостановление` / `Прекращение` для опубликованных сертификатов.
+- API post-issuance:
+  - `POST /post-issuance/drafts`,
+  - `PUT /post-issuance/{id}/draft`,
+  - `POST /post-issuance/{id}/submit`,
+  - `POST /post-issuance/{id}/transitions`,
+  - `POST /post-issuance/{id}/basis/attach`,
+  - `GET /post-issuance/mine`,
+  - `GET /post-issuance/ops/queue`.
+- file-slot API расширен поддержкой `post_issuance_basis` с таргетом `entity_kind=post_issuance`.
+- UI T9 встроен в раздел `Реестр сертификатов`: создание процесса, загрузка файла-основания и OPS-очередь suspend/terminate.
 
 ## Быстрый старт
 
@@ -212,6 +223,37 @@ Demo users:
 6. Проверить ограничения:
    - подпись сертификата не-ролью `OPS` возвращает `403`;
    - повторная подпись уже активного сертификата возвращает `409`.
+
+## T9 Post-Issuance: Suspension and Termination
+
+1. Войти как `applicant.demo / Applicant123!` и открыть раздел `Реестр сертификатов`.
+2. Для сертификата в статусе `ACTIVE`:
+   - нажать `Приостановить` или `Прекратить`;
+   - заполнить причину, описание, примечание, `Срок устранения`;
+   - прикрепить файл-основание;
+   - нажать `Подать заявку`.
+3. Проверить API-эквивалент applicant-flow:
+   - `POST http://localhost:8080/post-issuance/drafts`
+   - `PUT http://localhost:8080/post-issuance/{id}/draft`
+   - `POST http://localhost:8080/post-issuance/{id}/basis/attach`
+   - `POST http://localhost:8080/post-issuance/{id}/submit`
+4. Войти как `ops.demo / Ops123456!` и открыть раздел `Реестр сертификатов`:
+   - в таблице `Очередь post-issuance` доступны `В работу`, `На доработку`, `Одобрить`, `Отказать`.
+5. Проверить happy-path suspend:
+   - `REGISTERED -> IN_REVIEW -> APPROVED`;
+   - сертификат получает статус `SUSPENDED`;
+   - `GET http://localhost:8080/registry/internal` и `GET http://localhost:8080/registry/public` показывают новый статус.
+6. Проверить happy-path terminate:
+   - `REGISTERED -> APPROVED`;
+   - сертификат получает статус `TERMINATED`;
+   - в ответе и internal registry выставляется `is_dangerous_product=true`.
+7. Проверить reject path:
+   - `POST http://localhost:8080/post-issuance/{id}/transitions` с `{"to_status":"REJECTED","comment":"..."}`.
+   - ожидаемый результат: post-issuance заявка переводится в `ARCHIVED`, а статус сертификата не меняется.
+8. Проверить ограничения:
+   - applicant не может `APPROVE/REJECT` (`403`);
+   - нельзя создать второй активный post-issuance процесс на тот же сертификат (`409`);
+   - без файла-основания submit возвращает `422`.
 
 ## Ключевые документы
 

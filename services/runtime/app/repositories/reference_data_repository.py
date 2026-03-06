@@ -67,6 +67,32 @@ class ReferenceDataRepository:
             for row in rows
         ]
 
+    def get_dictionary_item(self, dictionary_code: str, item_code: str) -> dict[str, object] | None:
+        stmt = (
+            select(
+                ReferenceDictionaryItem.code,
+                ReferenceDictionaryItem.name,
+                ReferenceDictionaryItem.sort_order,
+                ReferenceDictionaryItem.is_active,
+                ReferenceDictionaryItem.legal_basis,
+            )
+            .join(ReferenceDictionary, ReferenceDictionaryItem.dictionary_id == ReferenceDictionary.id)
+            .where(
+                ReferenceDictionary.code == dictionary_code,
+                ReferenceDictionaryItem.code == item_code,
+            )
+        )
+        row = self._session.execute(stmt).one_or_none()
+        if row is None:
+            return None
+        return {
+            "code": row.code,
+            "name": row.name,
+            "sort_order": row.sort_order,
+            "is_active": row.is_active,
+            "legal_basis": row.legal_basis,
+        }
+
     def list_ops_registry(self, limit: int, search: str | None) -> list[dict[str, object]]:
         stmt = select(
             OpsRegistry.ops_code,

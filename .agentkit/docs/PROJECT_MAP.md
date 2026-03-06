@@ -15,7 +15,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Applicant создает/отправляет заявку, OPS проверяет/возвращает/принимает решение, система формирует сертификат, OPS mock-подписывает, сертификат публикуется в реестр, далее доступны post-issuance действия.
 - Tech stack:
   - Целевой: Angular SPA, Python/FastAPI микросервисы, PostgreSQL + SQLAlchemy/Alembic, Redis + Celery, MinIO, Keycloak, WebSocket, Docker Compose.
-  - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`) + OPS review/protocol attachment API (`T6`) + baseline генерации сертификата/snapshot (`T7`) + mock-sign/publish и внутренний/публичный реестры (`T8`).
+  - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`) + OPS review/protocol attachment API (`T6`) + baseline генерации сертификата/snapshot (`T7`) + mock-sign/publish и внутренний/публичный реестры (`T8`) + post-issuance suspend/terminate workflow и UI-очередь (`T9`).
 - Where to start reading the code:
   - `docker-compose.yml`,
   - `services/runtime/app/main.py`,
@@ -66,6 +66,8 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Для T6 добавлены OPS/file endpoint-ы: `/applications/ops/queue`, `/applications/{id}/protocol/attach`, `/files/slots/upload`.
   - Для T7 добавлены certificate endpoint-ы: `/certificates/{id}`, `/certificates/by-application/{application_id}` и генерация сертификата при переходе `PROTOCOL_ATTACHED -> APPROVED`.
   - Для T8 добавлены certificate/registry endpoint-ы: `POST /certificates/{id}/sign` (OPS mock-sign + auto publish), `GET /registry/internal` (role-aware visibility), `GET /registry/public` (read-only без авторизации).
+  - Для T9 добавлены post-issuance endpoint-ы: `POST /post-issuance/drafts`, `PUT /post-issuance/{id}/draft`, `POST /post-issuance/{id}/submit`, `POST /post-issuance/{id}/transitions`, `POST /post-issuance/{id}/basis/attach`, `GET /post-issuance/mine`, `GET /post-issuance/ops/queue`.
+  - Для T9 расширен files endpoint `/files/slots/upload`: поддерживается slot `post_issuance_basis` с таргетом `entity_kind=post_issuance`, при сохранении обратной совместимости для `application_id`.
 - Error handling strategy:
   - Frontend: пользовательские сообщения + field-level validation state.
   - Backend: структурированные ошибки с доменными кодами и без утечки чувствительных данных.
@@ -103,7 +105,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - `POST /applications/drafts`, `POST /applications/{id}/submit`, `POST /applications/{id}/review-actions`
   - `POST /applications/{id}/protocol`, `POST /applications/{id}/decision`
   - `GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`, `POST /certificates/{id}/sign`
-  - `POST /post-issuance/drafts`, `POST /post-issuance/{id}/submit`, `POST /post-issuance/{id}/decision`
+  - `POST /post-issuance/drafts`, `PUT /post-issuance/{id}/draft`, `POST /post-issuance/{id}/submit`, `POST /post-issuance/{id}/transitions`, `POST /post-issuance/{id}/basis/attach`
   - `GET /registry/public`
   - `GET /notifications`, `POST /notifications/{id}/read`
 
@@ -118,6 +120,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Реализован migration `20260305_0002` для таблиц Ордер 3: `cert_application`, `cert_application_status_history`.
   - Реализован migration `20260305_0003` для baseline Ордер 4: `certificate`, `certificate_status_history`.
   - Реализован migration `20260305_0004` для T8: поля подписи/публикации сертификата + `certificate_registry_publication`.
+  - Реализован migration `20260306_0005` для T9: таблицы `post_issuance_application`, `post_issuance_status_history` и системный флаг `certificate.is_dangerous_product`.
   - Любые изменения схемы через отдельные migration tickets.
 - Rollback approach:
   - Для каждого migration тикета обязателен rollback-план (down migration/compensation).
@@ -248,6 +251,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - revision `20260305_0002` (T4) создает таблицы `cert_application` и `cert_application_status_history` с уникальностью `application_number`.
     - revision `20260305_0003` (T7) создает таблицы `certificate` и `certificate_status_history` с инвариантом «одна `APPROVED` заявка -> один baseline сертификат».
     - revision `20260305_0004` (T8) добавляет `signed_by_subject`/`signed_at`/`published_at` в `certificate` и таблицу `certificate_registry_publication`.
+    - revision `20260306_0005` (T9) добавляет `post_issuance_application`, `post_issuance_status_history` и флаг `certificate.is_dangerous_product`.
   - invariants / assumptions:
     - seed выполняется idempotent-вставками (`ON CONFLICT DO NOTHING`) для стабильного bootstrap.
   - dependencies:
@@ -264,18 +268,30 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/alembic/versions/20260305_0002_t4_order3_domain_model.py`, `services/runtime/alembic/versions/20260305_0003_t7_certificate_generation_snapshot.py`, state-service слой.
   - tests:
     - `services/runtime/tests/test_application_state_engine.py`, `services/runtime/tests/test_applications_api.py`, `services/runtime/tests/test_certificate_service.py`.
-- `services/runtime/app/models/certificate.py` — SQLAlchemy-модель baseline сертификата, истории статусов и событий публикации (T7/T8).
+- `services/runtime/app/models/certificate.py` — SQLAlchemy-модель baseline сертификата, истории статусов, событий публикации и T9 system flag.
   - public surface / key exports:
-    - `Certificate`, `CertificateStatusHistory`, `CertificateRegistryPublication`.
+    - `Certificate`, `CertificateStatusHistory`, `CertificateRegistryPublication`, связь `post_issuance_applications`.
   - invariants / assumptions:
     - сертификат создается только из `APPROVED` заявки;
     - `source_application_id` уникален (one-to-one baseline);
     - snapshot хранится в `snapshot_json` и не зависит от последующих изменений заявки;
-    - T8 фиксирует `signed_at`/`published_at` и отдельные publication events.
+    - T8 фиксирует `signed_at`/`published_at` и отдельные publication events;
+    - T9 при `TERMINATED` выставляет `is_dangerous_product=true`.
   - dependencies:
-    - `services/runtime/alembic/versions/20260305_0003_t7_certificate_generation_snapshot.py`, `services/runtime/alembic/versions/20260305_0004_t8_mock_signing_publication_registry.py`, `services/runtime/app/services/certificate_service.py`.
+    - `services/runtime/alembic/versions/20260305_0003_t7_certificate_generation_snapshot.py`, `services/runtime/alembic/versions/20260305_0004_t8_mock_signing_publication_registry.py`, `services/runtime/alembic/versions/20260306_0005_t9_post_issuance_suspend_terminate.py`, `services/runtime/app/services/certificate_service.py`.
   - tests:
     - `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py`.
+- `services/runtime/app/models/post_issuance.py` — SQLAlchemy-модель post-issuance заявок и истории статусов Ордер 5.
+  - public surface / key exports:
+    - `PostIssuanceApplication`, `PostIssuanceStatusHistory`.
+  - invariants / assumptions:
+    - заявка всегда связана с уже существующим сертификатом и его source application;
+    - `application_number` уникален;
+    - история статусов хранится отдельно от Ордер 3.
+  - dependencies:
+    - `services/runtime/alembic/versions/20260306_0005_t9_post_issuance_suspend_terminate.py`, `services/runtime/app/services/post_issuance_service.py`.
+  - tests:
+    - `services/runtime/tests/test_post_issuance_service.py`, `services/runtime/tests/test_post_issuance_api.py`.
 - `services/runtime/app/services/application_state_service.py` — доменный state engine Ордер 3.
   - public surface / key exports:
     - transition map `DRAFT -> ... -> COMPLETED`, submit-валидация обязательных полей (включая `applicant_bin` = 12 цифр), удаление черновика в `ARCHIVED`, OPS queue, реестр заявок текущего пользователя (`list_my_applications`), attach protocol, автоархивирование после отказа, запись status history, генерация сертификата при `APPROVED`.
@@ -320,6 +336,36 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/app/repositories/certificate_repository.py`, `app/auth.py`.
   - tests:
     - `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py`.
+- `services/runtime/app/repositories/post_issuance_repository.py` — persistence слой T9 post-issuance процессов.
+  - public surface / key exports:
+    - create/read/list/update methods для `post_issuance_application` и `post_issuance_status_history`.
+  - invariants / assumptions:
+    - conflict-detection по активным статусам выполняется сервисом, а не SQL unique constraint.
+  - dependencies:
+    - `services/runtime/app/models/post_issuance.py`.
+  - tests:
+    - `services/runtime/tests/test_post_issuance_service.py`, `services/runtime/tests/test_post_issuance_api.py`.
+- `services/runtime/app/services/post_issuance_service.py` — доменный сервис Ордер 5 для `SUSPEND` и `TERMINATE`.
+  - public surface / key exports:
+    - `create_draft`, `update_draft`, `submit`, `transition`, `attach_basis`, `list_my_applications`, `get_ops_queue`.
+  - invariants / assumptions:
+    - допускаются только действия `SUSPEND` и `TERMINATE`;
+    - submit требует reason code, detail, note, deadline и файл-основание;
+    - approve обновляет статус сертификата и завершает процесс в одной транзакции;
+    - reject автоархивирует post-issuance заявку и не меняет сертификат.
+  - dependencies:
+    - `PostIssuanceRepository`, `CertificateRepository`, `ReferenceDataRepository`, `app/auth.py`.
+  - tests:
+    - `services/runtime/tests/test_post_issuance_service.py`, `services/runtime/tests/test_post_issuance_api.py`.
+- `services/runtime/app/routers/post_issuance.py` — API слой Ордер 5.
+  - public surface / key exports:
+    - create/update draft, submit, transitions, attach basis, queue/read/history endpoint-ы.
+  - invariants / assumptions:
+    - Applicant видит только свои post-issuance процессы; OPS работает через queue.
+  - dependencies:
+    - `PostIssuanceService`, DB session dependency.
+  - tests:
+    - `services/runtime/tests/test_post_issuance_api.py`.
 - `services/runtime/app/routers/certificates.py` — API сертификатов (T7/T8).
   - public surface / key exports:
     - `GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`, `POST /certificates/{id}/sign`.
@@ -359,7 +405,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `FileSlotService`, auth dependency layer.
   - tests:
     - `services/runtime/tests/test_files_api.py`.
-- `frontend/index.html` — T5/T6/T8 UI для заявителя и OPS (Ордер 3 + внутренний реестр сертификатов).
+- `frontend/index.html` — T5/T6/T8/T9 UI для заявителя и OPS (Ордер 3 + внутренний реестр сертификатов + post-issuance).
   - public surface / key exports:
     - default-экран раздела `Заявки`: полноширинный реестр заявок текущего пользователя с action `Открыть`/`Продолжить` и кнопкой `Подать новую заявку`.
     - applicant-режим формы: открытие заявки из реестра с тем же wizard layout, показом блока `Ход выполнения` (текущий статус + history transitions) и automatic switch `editable` (`DRAFT`, `REVISION_REQUESTED`) vs `read-only` (остальные статусы).
@@ -369,6 +415,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - OPS-режим формы (визуально тот же layout): read-only данные заявки + блок действий `ОПС: Проверка и решение` (`Принять`, `На доработку`, `Прикрепить протокол`, `Принять решение`, `Завершить`) с вызовами существующих T6/T7 endpoint-ов.
     - визуал процесса `Подача -> Регистрация -> Проверка -> Решение -> Сертификат` подсвечивается по текущему статусу заявки.
     - внутренний реестр сертификатов с действием `Подписать` для `OPS` (вызов `POST /certificates/{id}/sign`) и ссылкой на публичный read-only реестр.
+    - T9 panel в разделе `Реестр сертификатов`: действия `Приостановить` / `Прекратить`, форма post-issuance, upload файла-основания и очередь post-issuance для Applicant/OPS.
     - OIDC-сессия (Authorization Code + PKCE, нативный JS-клиент без `keycloak.js`) + вызовы applications/certificates/registry API через gateway.
     - auth/role gate: при неавторизованной сессии рабочие экраны и header скрыты, показывается центрированное окно входа (логотип + кнопка Keycloak). Для `OPS` отображается OPS-реестр, а не экран `Нет доступа`.
   - invariants / assumptions:
@@ -507,6 +554,8 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-06 [t9-post-issuance-suspension-termination] Реализован T9 baseline Ордер 5: добавлены migration `20260306_0005`, модели `post_issuance_application`/`post_issuance_status_history`, сервис и API `post-issuance` (draft/update/submit/transitions/basis attach/queues), расширен `files/slots/upload` для `post_issuance_basis`, добавлен system flag `certificate.is_dangerous_product`, обновлен `frontend/index.html` (форма suspend/terminate + очередь post-issuance в разделе `Реестр сертификатов`), добавлены тесты `test_post_issuance_service.py` и `test_post_issuance_api.py`.
+- 2026-03-06 [t9-post-issuance-planning] Для тикета T9 создан planning-артефакт `logs/agent/T9.md`: зафиксирован исполнимый план по post-issuance сценариям `Приостановление` и `Прекращение`, список likely touched files, verification gates и корректировка фактического риска до `high`/`PR required` из-за ожидаемых миграций и изменения registry/API semantics.
 - 2026-03-06 [runtime-test-container-profile] Добавлен `services/runtime/Dockerfile.test` и compose profile `test` с service-ами `runtime-tests`, `gateway-test`, `applications-test`, `certificates-test`, `reference-data-test`, `files-test`, чтобы runtime unit/API tests запускались в отдельных контейнерах без расширения production image-ов; в `README.md` добавлены команды запуска полного suite и доменных test services.
 - 2026-03-06 [applicant-open-own-application] В `frontend/index.html` applicant-реестр расширен действиями `Открыть`/`Продолжить`, заявка теперь открывается из списка в wizard-режиме с блоком `Ход выполнения` и history переходов; для статусов `DRAFT`/`REVISION_REQUESTED` доступно продолжение заполнения, для остальных статусов форма read-only. В `services/runtime/tests/test_applications_api.py` добавлены ownership-тесты для `GET /applications/{id}` и `GET /applications/{id}/history`.
 - 2026-03-05 [t8-mock-signing-publication-registry] Реализован T8 baseline Ордер 4: добавлены migration `20260305_0004` и модель `certificate_registry_publication`, расширены `certificate` полями подписи/публикации (`signed_by_subject`, `signed_at`, `published_at`), реализован endpoint `POST /certificates/{id}/sign` (mock-sign + auto publish `SIGNED -> PUBLISHED -> ACTIVE`), добавлены реестровые endpoint-ы `GET /registry/internal` и `GET /registry/public`, расширены тесты `test_certificate_service.py`/`test_certificates_api.py`, обновлен UI внутреннего реестра в `frontend/index.html` и добавлена публичная страница `frontend/public-registry.html`.

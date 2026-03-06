@@ -203,6 +203,7 @@ class CertificateService:
             "source_application_id": certificate.source_application_id,
             "source_application_number": certificate.source_application_number,
             "status": certificate.status,
+            "is_dangerous_product": certificate.is_dangerous_product,
             "applicant_subject": certificate.applicant_subject,
             "applicant_username": certificate.applicant_username,
             "snapshot": self._decode_snapshot(certificate.snapshot_json),
@@ -238,6 +239,7 @@ class CertificateService:
             "product_name": product_name,
             "signed_at": certificate.signed_at.isoformat() if certificate.signed_at else None,
             "published_at": certificate.published_at.isoformat() if certificate.published_at else None,
+            "is_dangerous_product": certificate.is_dangerous_product,
             "generated_at": certificate.generated_at.isoformat(),
             "updated_at": certificate.updated_at.isoformat(),
         }

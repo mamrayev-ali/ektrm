@@ -1,0 +1,11 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+COPY services/runtime/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+COPY services/runtime/app /app/app
+COPY services/runtime/tests /app/tests
+
+CMD ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"]

@@ -43,6 +43,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - `/.agents/skills/` — локальные навыки Codex (`project-intake`, `ticket-planning`).
 - `/logs/agent/` — локальные аудиторские логи тикетов (gitignored).
 - `/docker-compose.yml` — контейнерная топология T1 (core services + infrastructure).
+- `/services/runtime/Dockerfile.test` — отдельный test-only image для runtime unit/API tests без расширения production image.
 - `/services/runtime/` — единый Python/FastAPI runtime-шаблон для gateway и доменных сервисов.
 - `/frontend/` — контейнер статического frontend baseline (nginx + OIDC/RBAC demo shell + health probes).
 - `/infra/keycloak/` — realm import для локального Keycloak baseline (`Applicant`, `OPS`).
@@ -198,14 +199,28 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - `docker-compose.yml` — контейнерная карта MVP foundation.
   - public surface / key exports:
     - сервисы `gateway`, `applications`, `certificates`, `reference-data`, `files`, `notifications`, `frontend`;
+    - отдельный profile `test` с service-ами `runtime-tests`, `gateway-test`, `applications-test`, `certificates-test`, `reference-data-test`, `files-test` для контейнерного запуска runtime tests;
     - инфраструктура `postgres`, `redis`, `minio`, `keycloak`.
   - invariants / assumptions:
     - каждый runtime-сервис обязан иметь доступный `/health`;
+    - test service не публикует порты и не участвует в default runtime startup;
     - bootstrap выполняется без модификации внешних Docker-проектов.
   - dependencies:
-    - `.env(.example)`, `services/runtime`, `frontend`, `infra/keycloak`.
+    - `.env(.example)`, `services/runtime`, `services/runtime/Dockerfile.test`, `frontend`, `infra/keycloak`.
   - tests:
     - `docker compose up -d --build`, проверка health URL.
+- `services/runtime/Dockerfile.test` — test-only Docker image для runtime app/tests.
+  - public surface / key exports:
+    - запускает `python -m unittest discover -s tests -p "test_*.py"` по умолчанию;
+    - копирует в image both `app/` и `tests/`.
+  - invariants / assumptions:
+    - не используется как production runtime image;
+    - должен оставаться синхронным по зависимостям с `services/runtime/Dockerfile`.
+  - dependencies:
+    - `services/runtime/requirements.txt`, `services/runtime/app`, `services/runtime/tests`.
+  - tests:
+    - `docker compose --profile test run --rm runtime-tests`;
+    - `docker compose --profile test run --rm applications-test`.
 - `services/runtime/app/main.py` — общий каркас FastAPI runtime для сервисов.
   - public surface / key exports:
     - `GET /`, `GET /health`, `GET /readiness`, `GET /auth/config`, `GET /auth/me`, `GET /auth/applicant-area`, `GET /auth/ops-area`.
@@ -283,7 +298,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - dependencies:
     - `ApplicationStateService`, `CertificateService`, DB session dependency.
   - tests:
-    - `services/runtime/tests/test_applications_api.py`.
+    - `services/runtime/tests/test_applications_api.py` (включая ownership checks для `GET /applications/{id}` и `GET /applications/{id}/history`).
 - `services/runtime/app/repositories/certificate_repository.py` — persistence слой сертификатов и реестров (T7/T8).
   - public surface / key exports:
     - `get_certificate`, `get_by_source_application`, `create_certificate`, `add_history`, `add_publication`, `list_internal_registry`, `list_public_registry`.
@@ -346,7 +361,8 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/tests/test_files_api.py`.
 - `frontend/index.html` — T5/T6/T8 UI для заявителя и OPS (Ордер 3 + внутренний реестр сертификатов).
   - public surface / key exports:
-    - default-экран раздела `Заявки`: полноширинный реестр заявок текущего пользователя (табличный список без детального перехода/действий) + кнопка `Подать новую заявку`.
+    - default-экран раздела `Заявки`: полноширинный реестр заявок текущего пользователя с action `Открыть`/`Продолжить` и кнопкой `Подать новую заявку`.
+    - applicant-режим формы: открытие заявки из реестра с тем же wizard layout, показом блока `Ход выполнения` (текущий статус + history transitions) и automatic switch `editable` (`DRAFT`, `REVISION_REQUESTED`) vs `read-only` (остальные статусы).
     - отдельный OPS-экран: полноширинный реестр отправленных заявок заявителей для роли `OPS` (на базе `GET /applications/ops/queue`) с action `Открыть`.
     - отдельный режим wizard (8 шагов): `Заявитель`, `Адрес заявителя`, `ОПС`, `Схема сертификации`, `Данные по продукции`, `Приложение`, `Документы`, `Примечание`.
     - действия формы: `К списку заявок`, `Сохранить черновик`, `Подписать и отправить`, `Удалить черновик`; при возврате в реестр выполняется confirm при несохраненной новой форме.
@@ -491,6 +507,8 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-06 [runtime-test-container-profile] Добавлен `services/runtime/Dockerfile.test` и compose profile `test` с service-ами `runtime-tests`, `gateway-test`, `applications-test`, `certificates-test`, `reference-data-test`, `files-test`, чтобы runtime unit/API tests запускались в отдельных контейнерах без расширения production image-ов; в `README.md` добавлены команды запуска полного suite и доменных test services.
+- 2026-03-06 [applicant-open-own-application] В `frontend/index.html` applicant-реестр расширен действиями `Открыть`/`Продолжить`, заявка теперь открывается из списка в wizard-режиме с блоком `Ход выполнения` и history переходов; для статусов `DRAFT`/`REVISION_REQUESTED` доступно продолжение заполнения, для остальных статусов форма read-only. В `services/runtime/tests/test_applications_api.py` добавлены ownership-тесты для `GET /applications/{id}` и `GET /applications/{id}/history`.
 - 2026-03-05 [t8-mock-signing-publication-registry] Реализован T8 baseline Ордер 4: добавлены migration `20260305_0004` и модель `certificate_registry_publication`, расширены `certificate` полями подписи/публикации (`signed_by_subject`, `signed_at`, `published_at`), реализован endpoint `POST /certificates/{id}/sign` (mock-sign + auto publish `SIGNED -> PUBLISHED -> ACTIVE`), добавлены реестровые endpoint-ы `GET /registry/internal` и `GET /registry/public`, расширены тесты `test_certificate_service.py`/`test_certificates_api.py`, обновлен UI внутреннего реестра в `frontend/index.html` и добавлена публичная страница `frontend/public-registry.html`.
 - 2026-03-05 [ops-review-decision-ui] В `frontend/index.html` реализован OPS workflow UI в дизайне текущей формы: в OPS-реестре добавлено действие `Открыть`, заявка открывается в read-only режиме с тем же process layout (`Подача -> Регистрация -> Проверка -> Решение -> Сертификат`) и подсветкой шага по статусу; добавлены OPS-действия `Принять`, `На доработку`, `Прикрепить протокол`, `Принять решение`, `Завершить` с интеграцией в существующие API (`/applications/{id}/transitions`, `/files/slots/upload`, `/applications/{id}/protocol/attach`, `/certificates/by-application/{application_id}`), плюс блок history переходов.
 - 2026-03-05 [ui-registry-ops-auth-bin12-phone-mask] Обновлен UX раздела `Заявки`: applicant-реестр сделан полноширинным, добавлен confirm при возврате из несохраненной новой формы, auth-screen переведен в центрированный режим (логотип + кнопка Keycloak без header), для роли `OPS` добавлен отдельный полноширинный реестр отправленных заявок, BIN-валидация изменена на 12 цифр (frontend+backend), добавлена автоподстановочная маска телефона; расширены backend-тесты и обновлены test payloads.

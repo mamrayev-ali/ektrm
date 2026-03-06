@@ -1,3 +1,37 @@
+x-runtime-test-env: &runtime-test-env
+  APP_ENV: ${APP_ENV:-local}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: 5432
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  MINIO_ENDPOINT: minio:9000
+  KEYCLOAK_URL: http://keycloak:8080
+  KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:-http://localhost:8088/realms/ektrm}
+  KEYCLOAK_ALLOWED_ISSUERS: ${KEYCLOAK_ALLOWED_ISSUERS:-http://localhost:8088/realms/ektrm,http://keycloak:8080/realms/ektrm}
+  KEYCLOAK_JWKS_URL: ${KEYCLOAK_INTERNAL_JWKS_URL:-http://keycloak:8080/realms/ektrm/protocol/openid-connect/certs}
+  KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-ektrm-api}
+  KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
+  AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+
+x-runtime-test-base: &runtime-test-base
+  build:
+    context: .
+    dockerfile: services/runtime/Dockerfile.test
+  profiles: ["test"]
+  environment: *runtime-test-env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    minio:
+      condition: service_started
+    keycloak:
+      condition: service_started
+    minio-init:
+      condition: service_completed_successfully
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -156,6 +190,47 @@ services:
       interval: 10s
       timeout: 5s
       retries: 8
+
+  applications-test:
+    <<: *runtime-test-base
+    environment:
+      <<: *runtime-test-env
+      SERVICE_NAME: applications-service
+    command: ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_application*.py"]
+
+  gateway-test:
+    <<: *runtime-test-base
+    environment:
+      <<: *runtime-test-env
+      SERVICE_NAME: gateway-service
+    command: ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_auth.py"]
+
+  certificates-test:
+    <<: *runtime-test-base
+    environment:
+      <<: *runtime-test-env
+      SERVICE_NAME: certificates-service
+    command: ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_certificate*.py"]
+
+  reference-data-test:
+    <<: *runtime-test-base
+    environment:
+      <<: *runtime-test-env
+      SERVICE_NAME: reference-data-service
+    command: ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_reference_data.py"]
+
+  files-test:
+    <<: *runtime-test-base
+    environment:
+      <<: *runtime-test-env
+      SERVICE_NAME: files-service
+    command: ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_files_api.py"]
+
+  runtime-tests:
+    <<: *runtime-test-base
+    environment:
+      <<: *runtime-test-env
+      SERVICE_NAME: gateway-service
 
   certificates-service:
     build:

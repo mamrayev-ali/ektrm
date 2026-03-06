@@ -718,7 +718,7 @@
             <div class="registry-head">
               <div>
                 <div class="registry-title">Реестр моих заявок</div>
-                <div class="registry-sub">Список заявок текущего пользователя без действий и переходов в детали.</div>
+                <div class="registry-sub">Список заявок текущего пользователя с переходом в просмотр или продолжение заполнения.</div>
               </div>
               <button class="btn-primary" id="createApplicationBtn">Подать новую заявку</button>
             </div>
@@ -730,6 +730,7 @@
                     <th>Номер заявки</th>
                     <th>Статус</th>
                     <th>Обновлено</th>
+                    <th>Действия</th>
                   </tr>
                 </thead>
                 <tbody id="applicationsRegistryBody"></tbody>
@@ -1070,6 +1071,19 @@
           <button class="btn-danger" id="deleteDraftBtn">Удалить черновик</button>
         </div>
 
+        <section class="section is-hidden" id="applicationProgressSection">
+          <div class="section-head">
+            <div class="section-title">Ход выполнения</div>
+            <div class="section-sub">Статус заявки и история переходов по текущей записи</div>
+          </div>
+          <div class="section-body">
+            <div class="ops-status-row">
+              Текущий статус: <strong id="applicationProgressStatusValue">-</strong>
+            </div>
+            <div class="ops-history" id="applicationHistoryList"></div>
+          </div>
+        </section>
+
         <section class="section ops-actions is-hidden" id="opsActionsSection">
           <div class="section-head">
             <div class="section-title">ОПС: Проверка и решение</div>
@@ -1155,6 +1169,7 @@
         "phone",
         "email",
       ];
+      const EDITABLE_APPLICANT_STATUSES = new Set(["DRAFT", "REVISION_REQUESTED"]);
 
       const output = document.getElementById("output");
       const appHeader = document.getElementById("appHeader");
@@ -1178,6 +1193,9 @@
       const formView = document.getElementById("formView");
       const applicationsRegistryBody = document.getElementById("applicationsRegistryBody");
       const applicationsRegistryEmpty = document.getElementById("applicationsRegistryEmpty");
+      const applicationProgressSection = document.getElementById("applicationProgressSection");
+      const applicationProgressStatusValue = document.getElementById("applicationProgressStatusValue");
+      const applicationHistoryList = document.getElementById("applicationHistoryList");
       const opsRegistryBody = document.getElementById("opsRegistryBody");
       const opsRegistryEmpty = document.getElementById("opsRegistryEmpty");
       const certificatesRegistryBody = document.getElementById("certificatesRegistryBody");
@@ -1248,6 +1266,7 @@
       let currentView = "registry";
       let currentFormMode = "applicant";
       let currentOpsApplication = null;
+      let currentApplicantCanEdit = true;
       let formDirty = false;
       let authReady = false;
       const pkceStorage = {
@@ -1306,8 +1325,18 @@
         });
       }
 
+      function setApplicantActionButtonsEnabled(enabled) {
+        [buttons.save, buttons.submit, buttons.deleteDraft].forEach((button) => {
+          button.disabled = !enabled;
+        });
+      }
+
       function setOpsActionsVisible(visible) {
         opsActionsSection.classList.toggle("is-hidden", !visible);
+      }
+
+      function setApplicationProgressVisible(visible) {
+        applicationProgressSection.classList.toggle("is-hidden", !visible);
       }
 
       function updateHeaderMeta() {
@@ -1412,7 +1441,22 @@
           statusCell.textContent = application.status || "-";
           const updatedCell = document.createElement("td");
           updatedCell.textContent = formatDateTime(application.updated_at);
-          row.append(idCell, numberCell, statusCell, updatedCell);
+          const actionCell = document.createElement("td");
+          const openButton = document.createElement("button");
+          openButton.type = "button";
+          openButton.className = "btn-secondary registry-action";
+          openButton.textContent = isApplicantEditableStatus(application.status) ? "Продолжить" : "Открыть";
+          openButton.addEventListener("click", async () => {
+            try {
+              await openApplicantApplication(Number(application.id));
+            } catch (error) {
+              writeOutput("Ошибка открытия заявки", {
+                message: error instanceof Error ? error.message : String(error),
+              });
+            }
+          });
+          actionCell.appendChild(openButton);
+          row.append(idCell, numberCell, statusCell, updatedCell, actionCell);
           applicationsRegistryBody.appendChild(row);
         });
       }
@@ -1550,10 +1594,21 @@
         return String(value || "").trim().toUpperCase();
       }
 
-      function renderOpsHistory(items) {
-        opsHistoryList.innerHTML = "";
+      function isApplicantEditableStatus(status) {
+        return EDITABLE_APPLICANT_STATUSES.has(normalizeStatus(status));
+      }
+
+      function ensureApplicantEditable() {
+        ensureApplicantAccess();
+        if (!currentApplicantCanEdit) {
+          throw new Error("Редактирование доступно только для черновика или заявки на доработке.");
+        }
+      }
+
+      function renderHistoryList(target, items, emptyText) {
+        target.innerHTML = "";
         if (!Array.isArray(items) || items.length === 0) {
-          opsHistoryList.textContent = "История переходов пока отсутствует.";
+          target.textContent = emptyText;
           return;
         }
         items
@@ -1567,8 +1622,12 @@
             const changedAt = formatDateTime(item.changed_at);
             const commentText = item.comment ? ` | ${item.comment}` : "";
             row.textContent = `${changedAt}: ${fromStatus} -> ${toStatus}${commentText}`;
-            opsHistoryList.appendChild(row);
+            target.appendChild(row);
           });
+      }
+
+      function renderOpsHistory(items) {
+        renderHistoryList(opsHistoryList, items, "История переходов пока отсутствует.");
       }
 
       function applyOpsActionAvailability(status) {
@@ -1586,9 +1645,25 @@
         buttons.opsComplete.disabled = !canComplete;
       }
 
-      async function fetchOpsHistory(applicationId) {
+      async function fetchApplicationHistory(applicationId) {
         const response = await callApi("GET", `/applications/${applicationId}/history`);
         return Array.isArray(response.items) ? response.items : [];
+      }
+
+      function applyApplicantFormAccess(status) {
+        currentApplicantCanEdit = isApplicantEditableStatus(status);
+        const readOnly = currentFormMode === "ops" || !currentApplicantCanEdit;
+        setApplicantFormReadOnly(readOnly);
+        setApplicantActionsVisible(currentFormMode === "applicant" && currentApplicantCanEdit);
+        setApplicantActionButtonsEnabled(currentFormMode === "applicant" && currentApplicantCanEdit);
+        setApplicationProgressVisible(currentFormMode === "applicant" && Boolean(currentApplicationId));
+        if (currentFormMode === "applicant") {
+          buttons.next.textContent = currentApplicantCanEdit ? "Сохранить и продолжить" : "Следующий шаг";
+          pageTitle.textContent = currentApplicantCanEdit
+            ? "Заявка на проведение сертификации"
+            : "Просмотр заявки";
+          applicationProgressStatusValue.textContent = status || "-";
+        }
       }
 
       function applyApplicationToForm(application) {
@@ -1600,12 +1675,35 @@
         updateHeaderMeta();
       }
 
+      async function openApplicantApplication(applicationId) {
+        ensureApplicantAccess();
+        const application = await callApi("GET", `/applications/${applicationId}`);
+        const historyItems = await fetchApplicationHistory(applicationId);
+        currentOpsApplication = null;
+        currentStep = 0;
+        applyApplicationToForm(application);
+        renderHistoryList(applicationHistoryList, historyItems, "История переходов пока отсутствует.");
+        applyApplicantFormAccess(application.status || "DRAFT");
+        if (currentApplicantCanEdit) {
+          localStorage.setItem(config.draftStorageKey, String(application.id));
+        } else {
+          localStorage.removeItem(config.draftStorageKey);
+        }
+        setFormDirty(false);
+        showFormView("applicant");
+        writeOutput("Заявка заявителя открыта", {
+          id: application.id,
+          status: application.status,
+          editable: currentApplicantCanEdit,
+        });
+      }
+
       async function openOpsApplication(applicationId) {
         ensureOpsAccess();
         const application = await callApi("GET", `/applications/${applicationId}`);
         currentOpsApplication = application;
         applyApplicationToForm(application);
-        const historyItems = await fetchOpsHistory(applicationId);
+        const historyItems = await fetchApplicationHistory(applicationId);
         renderOpsHistory(historyItems);
         applyOpsActionAvailability(application.status);
         setFormDirty(false);
@@ -1620,7 +1718,7 @@
         });
         currentOpsApplication = response;
         applyApplicationToForm(response);
-        const historyItems = await fetchOpsHistory(currentApplicationId);
+        const historyItems = await fetchApplicationHistory(currentApplicationId);
         renderOpsHistory(historyItems);
         applyOpsActionAvailability(response.status);
         await loadOpsRegistry();
@@ -1663,7 +1761,7 @@
         });
         currentOpsApplication = attached;
         applyApplicationToForm(attached);
-        const historyItems = await fetchOpsHistory(currentApplicationId);
+        const historyItems = await fetchApplicationHistory(currentApplicationId);
         renderOpsHistory(historyItems);
         applyOpsActionAvailability(attached.status);
         await loadOpsRegistry();
@@ -1699,7 +1797,10 @@
         renderProcessByStatus("DRAFT");
         opsStatusValue.textContent = "-";
         opsHistoryList.textContent = "";
+        applicationProgressStatusValue.textContent = "-";
+        applicationHistoryList.textContent = "";
         currentOpsApplication = null;
+        currentApplicantCanEdit = true;
         renderStep();
       }
 
@@ -1719,7 +1820,9 @@
         formView.classList.add("is-hidden");
         setApplicantFormReadOnly(false);
         setApplicantActionsVisible(true);
+        setApplicantActionButtonsEnabled(false);
         setOpsActionsVisible(false);
+        setApplicationProgressVisible(false);
         setOpsButtonsEnabled(false);
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = false;
@@ -1741,7 +1844,9 @@
         certificatesRegistryView.classList.add("is-hidden");
         formView.classList.add("is-hidden");
         setApplicantActionsVisible(false);
+        setApplicantActionButtonsEnabled(false);
         setOpsActionsVisible(false);
+        setApplicationProgressVisible(false);
         setOpsButtonsEnabled(false);
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = true;
@@ -1763,7 +1868,9 @@
         certificatesRegistryView.classList.remove("is-hidden");
         formView.classList.add("is-hidden");
         setApplicantActionsVisible(false);
+        setApplicantActionButtonsEnabled(false);
         setOpsActionsVisible(false);
+        setApplicationProgressVisible(false);
         setOpsButtonsEnabled(false);
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = true;
@@ -1789,11 +1896,10 @@
         opsRegistryView.classList.add("is-hidden");
         certificatesRegistryView.classList.add("is-hidden");
         formView.classList.remove("is-hidden");
-        setApplicantFormReadOnly(currentFormMode === "ops");
-        setApplicantActionsVisible(currentFormMode === "applicant");
         setOpsActionsVisible(currentFormMode === "ops");
         setFormButtonsEnabled(true);
         setOpsButtonsEnabled(currentFormMode === "ops");
+        applyApplicantFormAccess(statusChip.textContent || "DRAFT");
         if (currentFormMode === "ops" && currentOpsApplication) {
           applyOpsActionAvailability(currentOpsApplication.status);
           opsStatusValue.textContent = currentOpsApplication.status || "-";
@@ -2362,11 +2468,12 @@
       }
 
       async function ensureDraftExists(payload) {
-        ensureApplicantAccess();
+        ensureApplicantEditable();
         if (currentApplicationId) {
           const updated = await callApi("PUT", `/applications/${currentApplicationId}/draft`, payload);
           setStatusChip(updated.status || "DRAFT");
           renderProcessByStatus(updated.status || "DRAFT");
+          applyApplicantFormAccess(updated.status || "DRAFT");
           setFormDirty(false);
           return updated;
         }
@@ -2376,13 +2483,14 @@
         localStorage.setItem(config.draftStorageKey, String(currentApplicationId));
         setStatusChip(created.status || "DRAFT");
         renderProcessByStatus(created.status || "DRAFT");
+        applyApplicantFormAccess(created.status || "DRAFT");
         updateHeaderMeta();
         setFormDirty(false);
         return created;
       }
 
       async function saveDraft() {
-        ensureApplicantAccess();
+        ensureApplicantEditable();
         const payload = buildPayload();
         const response = await ensureDraftExists(payload);
         setFormDirty(false);
@@ -2401,7 +2509,7 @@
       }
 
       async function submitApplication() {
-        ensureApplicantAccess();
+        ensureApplicantEditable();
         const payload = buildPayload();
         if (!validateForSubmit(payload)) {
           return;
@@ -2420,7 +2528,7 @@
       }
 
       async function deleteDraft() {
-        ensureApplicantAccess();
+        ensureApplicantEditable();
         if (!currentApplicationId) {
           writeOutput("Удаление черновика", "Черновик еще не создан.");
           return;
@@ -2514,14 +2622,9 @@
           return;
         }
 
-        currentApplicationId = parsed;
         try {
-          const draft = await callApi("GET", `/applications/${currentApplicationId}`);
-          applyPayload(draft.payload || {});
-          setStatusChip(draft.status || "DRAFT");
-          renderProcessByStatus(draft.status || "DRAFT");
-          setFormDirty(false);
-          writeOutput("Загружен сохраненный черновик", draft);
+          await openApplicantApplication(parsed);
+          writeOutput("Загружена сохраненная заявка", { id: parsed });
         } catch (error) {
           currentApplicationId = null;
           localStorage.removeItem(config.draftStorageKey);

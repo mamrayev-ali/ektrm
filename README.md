@@ -54,6 +54,14 @@ Application services:
 - `notifications-service`
 - `frontend`
 
+Test profile services:
+- `runtime-tests` — полный runtime test suite
+- `gateway-test` — auth/runtime smoke unit tests
+- `applications-test` — application state/API tests
+- `certificates-test` — certificate service/API tests
+- `reference-data-test` — reference-data API tests
+- `files-test` — file-slot API tests
+
 Infrastructure services:
 - `postgres` (PostgreSQL)
 - `redis` (broker/cache)
@@ -223,6 +231,15 @@ Windows (PowerShell):
 - `pwsh -File .agentkit/scripts/verify.ps1 detect`
 - `pwsh -File .agentkit/scripts/verify.ps1 smoke`
 - `pwsh -File .agentkit/scripts/verify.ps1 local`
+
+Контейнерный запуск runtime-тестов:
+- полный suite: `docker compose --profile test run --rm runtime-tests`
+- auth/runtime: `docker compose --profile test run --rm gateway-test`
+- applications: `docker compose --profile test run --rm applications-test`
+- certificates: `docker compose --profile test run --rm certificates-test`
+- reference-data: `docker compose --profile test run --rm reference-data-test`
+- files: `docker compose --profile test run --rm files-test`
+- точечный файл: `docker compose --profile test run --rm applications-test python -m unittest discover -s tests -p "test_applications_api.py"`
 
 ## Ограничения текущего этапа
 

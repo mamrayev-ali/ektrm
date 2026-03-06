@@ -176,6 +176,55 @@ class ApplicationsApiTests(unittest.TestCase):
         self.assertIn(second.json()["id"], ids)
         self.assertNotIn(foreign.json()["id"], ids)
 
+    def test_get_application_returns_own_application_for_applicant(self) -> None:
+        created = self._client.post("/applications/drafts", json=self._applicant_payload())
+        self.assertEqual(created.status_code, 200)
+        app_id = created.json()["id"]
+
+        response = self._client.get(f"/applications/{app_id}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["id"], app_id)
+        self.assertEqual(response.json()["applicant_subject"], "applicant-1")
+
+    def test_get_application_returns_403_for_foreign_applicant(self) -> None:
+        created = self._client.post("/applications/drafts", json=self._applicant_payload())
+        self.assertEqual(created.status_code, 200)
+        app_id = created.json()["id"]
+
+        self._set_auth_user(
+            CurrentUser(
+                subject="another-applicant",
+                username="another.demo",
+                email="another@example.local",
+                roles=frozenset({"Applicant"}),
+                claims={},
+            )
+        )
+        response = self._client.get(f"/applications/{app_id}")
+        self.assertEqual(response.status_code, 403)
+
+    def test_get_history_returns_403_for_foreign_applicant(self) -> None:
+        app_id = self._create_and_submit()
+
+        self._set_auth_user(self._ops_user())
+        registered = self._client.post(
+            f"/applications/{app_id}/transitions",
+            json={"to_status": "REGISTERED"},
+        )
+        self.assertEqual(registered.status_code, 200)
+
+        self._set_auth_user(
+            CurrentUser(
+                subject="another-applicant",
+                username="another.demo",
+                email="another@example.local",
+                roles=frozenset({"Applicant"}),
+                claims={},
+            )
+        )
+        response = self._client.get(f"/applications/{app_id}/history")
+        self.assertEqual(response.status_code, 403)
+
     def test_ops_queue_returns_items_for_review_statuses(self) -> None:
         app_id = self._create_and_submit()
 

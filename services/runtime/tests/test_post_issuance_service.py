@@ -88,14 +88,23 @@ class PostIssuanceServiceTests(unittest.TestCase):
                         )
                     )
                 if code == "termination_reason":
-                    self._session.add(
-                        ReferenceDictionaryItem(
-                            dictionary_id=dictionary.id,
-                            code="applicant_request",
-                            name="Решение заявителя о прекращении",
-                            sort_order=10,
-                            is_active=True,
-                        )
+                    self._session.add_all(
+                        [
+                            ReferenceDictionaryItem(
+                                dictionary_id=dictionary.id,
+                                code="term_applicant_decision",
+                                name="Прекращение производства данной продукции, услуги, процесса или по обоснованным иным причинам.",
+                                sort_order=10,
+                                is_active=True,
+                            ),
+                            ReferenceDictionaryItem(
+                                dictionary_id=dictionary.id,
+                                code="term_product_nonconformity",
+                                name="Несоответствие продукции, услуги, процесса требованиям, установленным техническими регламентами, документами по стандартизации.",
+                                sort_order=40,
+                                is_active=True,
+                            ),
+                        ]
                     )
         self._session.commit()
 
@@ -158,7 +167,22 @@ class PostIssuanceServiceTests(unittest.TestCase):
             self._post_issuance_service.submit(created["id"], self._applicant)
         self.assertEqual(context.exception.status_code, 422)
 
-    def test_duplicate_active_process_is_blocked(self) -> None:
+    def test_same_action_reuses_existing_editable_draft(self) -> None:
+        certificate = self._create_active_certificate()
+        first = self._post_issuance_service.create_draft(
+            source_certificate_id=certificate["id"],
+            action_type="SUSPEND",
+            current_user=self._applicant,
+        )
+        second = self._post_issuance_service.create_draft(
+            source_certificate_id=certificate["id"],
+            action_type="SUSPEND",
+            current_user=self._applicant,
+        )
+        self.assertEqual(second["id"], first["id"])
+        self.assertEqual(second["status"], "DRAFT")
+
+    def test_duplicate_active_process_is_blocked_for_different_action(self) -> None:
         certificate = self._create_active_certificate()
         self._post_issuance_service.create_draft(
             source_certificate_id=certificate["id"],
@@ -205,6 +229,34 @@ class PostIssuanceServiceTests(unittest.TestCase):
         )
         self.assertEqual(approved["status"], "COMPLETED")
         self.assertEqual(approved["certificate"]["status"], "SUSPENDED")
+
+    def test_applicant_cannot_submit_ops_only_termination_reason(self) -> None:
+        certificate = self._create_active_certificate()
+        created = self._post_issuance_service.create_draft(
+            source_certificate_id=certificate["id"],
+            action_type="TERMINATE",
+            current_user=self._applicant,
+        )
+        payload = {
+            **created["payload"],
+            "request_source": "OPS",
+            "termination_reason_code": "term_product_nonconformity",
+            "reason_detail": "Попытка выбрать OPS-only основание",
+            "note": "Тест запрета",
+            "remediation_deadline": "2026-03-10T09:30",
+            "file_slots": {
+                "post_issuance_basis": {
+                    "object_key": f"post-issuance/{created['id']}/post_issuance_basis/basis.pdf",
+                    "file_name": "basis.pdf",
+                }
+            },
+        }
+        self._post_issuance_service.update_draft(created["id"], payload, self._applicant)
+
+        with self.assertRaises(HTTPException) as context:
+            self._post_issuance_service.submit(created["id"], self._applicant)
+        self.assertEqual(context.exception.status_code, 422)
+        self.assertIn("not available", str(context.exception.detail))
 
 
 if __name__ == "__main__":

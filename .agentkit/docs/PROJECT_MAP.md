@@ -48,6 +48,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - `/frontend/` — контейнер статического frontend baseline (nginx + OIDC/RBAC demo shell + health probes).
 - `/infra/keycloak/` — realm import для локального Keycloak baseline (`Applicant`, `OPS`).
 - `/scripts/bootstrap.sh`, `/scripts/bootstrap.ps1` — единый bootstrap для локального старта платформы.
+  - Boundary: кроме `docker compose up -d --build`, bootstrap обязан доводить schema state до актуального Alembic head перед ручной работой с API/UI.
 - `/.github/workflows/` — CI automation workflows (GitHub Actions) для PR/push верификации.
 
 ## 2) Key contracts & boundaries
@@ -121,6 +122,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Реализован migration `20260305_0003` для baseline Ордер 4: `certificate`, `certificate_status_history`.
   - Реализован migration `20260305_0004` для T8: поля подписи/публикации сертификата + `certificate_registry_publication`.
   - Реализован migration `20260306_0005` для T9: таблицы `post_issuance_application`, `post_issuance_status_history` и системный флаг `certificate.is_dangerous_product`.
+  - После миграций bootstrap дополнительно запускает idempotent sync `python -m app.seed.reference_data_sync`, чтобы обновленные seed-справочники применялись к уже существующей локальной БД без отдельной migration.
   - Любые изменения схемы через отдельные migration tickets.
 - Rollback approach:
   - Для каждого migration тикета обязателен rollback-план (down migration/compensation).
@@ -253,9 +255,9 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - revision `20260305_0004` (T8) добавляет `signed_by_subject`/`signed_at`/`published_at` в `certificate` и таблицу `certificate_registry_publication`.
     - revision `20260306_0005` (T9) добавляет `post_issuance_application`, `post_issuance_status_history` и флаг `certificate.is_dangerous_product`.
   - invariants / assumptions:
-    - seed выполняется idempotent-вставками (`ON CONFLICT DO NOTHING`) для стабильного bootstrap.
+    - первичный baseline seed остается в Alembic migration, а последующая синхронизация seed-данных для локальных окружений выполняется через `app.seed.reference_data_sync`.
   - dependencies:
-    - `services/runtime/app/models/reference_data.py`, `services/runtime/app/models/certificate.py`, `services/runtime/app/seed/reference_data_seed.py`.
+    - `services/runtime/app/models/reference_data.py`, `services/runtime/app/models/certificate.py`, `services/runtime/app/seed/reference_data_seed.py`, `services/runtime/app/seed/reference_data_sync.py`.
   - tests:
     - `services/runtime/tests/test_reference_data.py`, `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py` + SQL sanity checks после `alembic upgrade head`.
 - `services/runtime/app/models/application.py` — SQLAlchemy-модель заявок Ордер 3 и истории статусов.
@@ -441,10 +443,19 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - `services/runtime/app/seed/reference_data_seed.py` — source-of-truth для seeded справочников и lookup-реестров T3.
   - public surface / key exports:
     - обязательные dictionary codes (TECH_SPEC section 15.2), причины Ордер 5, seed для `ops_registry` и `accreditation_attestats`.
+    - `termination_reason` хранит расширенный нормативный перечень причин прекращения: заявитель видит только `term_applicant_decision`, а `OPS` получает полный набор кодов 1..9.
   - invariants / assumptions:
     - длинные юридические основания хранятся в максимально близкой к аналитике формулировке.
   - dependencies:
     - Alembic revision `20260305_0001`, reference-data repository/service layer.
+- `services/runtime/app/seed/reference_data_sync.py` — idempotent sync seeded справочников и lookup-реестров в уже существующую БД.
+  - public surface / key exports:
+    - `sync_reference_data(session)` upsert-ит `reference_dictionaries`, `reference_dictionary_items`, `ops_registry`, `accreditation_attestats`.
+    - `python -m app.seed.reference_data_sync` печатает JSON summary изменений и используется bootstrap-скриптами.
+  - invariants / assumptions:
+    - не меняет схему БД; только вставляет/обновляет seeded данные и реактивирует их при необходимости.
+  - dependencies:
+    - `app.db.get_engine`, `app.models.reference_data`, `app.seed.reference_data_seed`.
   - tests:
     - `services/runtime/tests/test_reference_data.py`.
 - `infra/keycloak/realm-export.json` — baseline realm для локального OIDC/RBAC.
@@ -534,6 +545,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - `cp .env.example .env` (или `Copy-Item .env.example .env`)
   - Linux/macOS: `./scripts/bootstrap.sh`
   - Windows: `pwsh -File .\\scripts\\bootstrap.ps1`
+  - bootstrap-скрипты автоматически выполняют `docker compose run --rm --no-deps gateway-service python -m alembic -c /app/alembic.ini upgrade head`
   - Проверить `http://localhost:8080/health` и `http://localhost:4200/health`
   - Проверить auth baseline на `http://localhost:4200` (login/logout + `/auth/*` вызовы)
   - Остановить: `docker compose down`
@@ -557,6 +569,9 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-06 [termination-reason-dictionary-alignment] В `services/runtime/app/seed/reference_data_seed.py` расширен `termination_reason` до нормативного списка для Applicant/OPS, в `post_issuance_service.py` добавлена backend-валидация `request_source` и допустимых причин прекращения, во `frontend/index.html` включены role-aware фильтрация причин и pre-submit валидация обязательных post-issuance полей, а `scripts/bootstrap.sh` / `scripts/bootstrap.ps1` теперь после миграций запускают `python -m app.seed.reference_data_sync`; добавлен новый seed-sync модуль и обновлены тесты/README.
+- 2026-03-06 [post-issuance-draft-reuse] В `services/runtime/app/services/post_issuance_service.py` повторное создание post-issuance процесса для того же сертификата и того же действия теперь переиспользует существующий `DRAFT` / `REVISION_REQUESTED` вместо `409`; добавлены регрессионные тесты в `test_post_issuance_service.py` и `test_post_issuance_api.py`.
+- 2026-03-06 [bootstrap-auto-alembic-upgrade] В `services/runtime/Dockerfile` добавлены `alembic.ini` и каталог `alembic`, а `scripts/bootstrap.sh` / `scripts/bootstrap.ps1` теперь после `docker compose up -d --build` автоматически выполняют `alembic upgrade head` через контейнер `gateway-service`; `README.md` обновлен container-run инструкциями для миграций и прямого запуска без bootstrap.
 - 2026-03-06 [applicant-home-card-height-reset] В `frontend/index.html` у applicant-модульных карточек на `Главная` убран фиксированный `min-height`, чтобы высота определялась содержимым карточки.
 - 2026-03-06 [applicant-home-card-grid-tuning] В `frontend/index.html` увеличены карточки модулей на applicant `Главная`: сетка переведена на 2 карточки в ряд, карточки стали выше, а кнопка действия больше не растягивается на всю ширину карточки.
 - 2026-03-06 [applicant-session-chevron-dock] В `frontend/index.html` технический блок с OIDC-кнопками и debug output вынесен из основного белого контейнера в отдельный dock под shell; добавлен шеврон-toggle, по умолчанию панель скрыта и раскрывается вручную.

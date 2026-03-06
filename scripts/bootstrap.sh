@@ -12,6 +12,12 @@ fi
 echo "Starting e-KTRM platform containers..."
 docker compose up -d --build
 
+echo "Applying Alembic migrations..."
+docker compose run --rm --no-deps gateway-service python -m alembic -c /app/alembic.ini upgrade head
+
+echo "Synchronizing seeded reference data..."
+docker compose run --rm --no-deps gateway-service python -m app.seed.reference_data_sync
+
 echo "\nService health endpoints:"
 endpoints=(
   "gateway-service:${GATEWAY_PORT:-8080}"

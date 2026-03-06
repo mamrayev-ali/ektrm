@@ -68,7 +68,6 @@ class PostIssuanceApiTests(unittest.TestCase):
         try:
             definitions = {
                 "suspension_reason": ("mutual_agreement", "По взаимному согласию"),
-                "termination_reason": ("applicant_request", "Решение заявителя о прекращении"),
             }
             for dictionary_code, (item_code, item_name) in definitions.items():
                 dictionary = session.query(ReferenceDictionary).filter(ReferenceDictionary.code == dictionary_code).one_or_none()
@@ -82,6 +81,45 @@ class PostIssuanceApiTests(unittest.TestCase):
                             code=item_code,
                             name=item_name,
                             sort_order=10,
+                            is_active=True,
+                        )
+                    )
+            termination_dictionary = (
+                session.query(ReferenceDictionary).filter(ReferenceDictionary.code == "termination_reason").one_or_none()
+            )
+            if termination_dictionary is None:
+                termination_dictionary = ReferenceDictionary(
+                    code="termination_reason",
+                    name="termination_reason",
+                    description="termination_reason",
+                )
+                session.add(termination_dictionary)
+                session.flush()
+            existing_codes = {
+                row.code
+                for row in session.query(ReferenceDictionaryItem)
+                .filter(ReferenceDictionaryItem.dictionary_id == termination_dictionary.id)
+                .all()
+            }
+            for item_code, item_name, sort_order in (
+                (
+                    "term_applicant_decision",
+                    "Прекращение производства данной продукции, услуги, процесса или по обоснованным иным причинам.",
+                    10,
+                ),
+                (
+                    "term_product_nonconformity",
+                    "Несоответствие продукции, услуги, процесса требованиям, установленным техническими регламентами, документами по стандартизации.",
+                    40,
+                ),
+            ):
+                if item_code not in existing_codes:
+                    session.add(
+                        ReferenceDictionaryItem(
+                            dictionary_id=termination_dictionary.id,
+                            code=item_code,
+                            name=item_name,
+                            sort_order=sort_order,
                             is_active=True,
                         )
                     )
@@ -168,7 +206,7 @@ class PostIssuanceApiTests(unittest.TestCase):
         if action_type == "SUSPEND":
             payload["suspension_reason_code"] = "mutual_agreement"
         else:
-            payload["termination_reason_code"] = "applicant_request"
+            payload["termination_reason_code"] = "term_applicant_decision"
         return payload
 
     def test_suspend_happy_path_updates_certificate_and_registry(self) -> None:
@@ -297,7 +335,23 @@ class PostIssuanceApiTests(unittest.TestCase):
         self.assertEqual(rejected.json()["status"], "ARCHIVED")
         self.assertEqual(rejected.json()["certificate"]["status"], "ACTIVE")
 
-    def test_duplicate_active_process_returns_409(self) -> None:
+    def test_same_action_returns_existing_editable_draft(self) -> None:
+        certificate_id = self._create_active_certificate()
+        first = self._client.post(
+            "/post-issuance/drafts",
+            json={"source_certificate_id": certificate_id, "action_type": "SUSPEND"},
+        )
+        self.assertEqual(first.status_code, 200)
+
+        second = self._client.post(
+            "/post-issuance/drafts",
+            json={"source_certificate_id": certificate_id, "action_type": "SUSPEND"},
+        )
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(second.json()["id"], first.json()["id"])
+        self.assertEqual(second.json()["status"], "DRAFT")
+
+    def test_duplicate_active_process_returns_409_for_different_action(self) -> None:
         certificate_id = self._create_active_certificate()
         first = self._client.post(
             "/post-issuance/drafts",
@@ -351,6 +405,44 @@ class PostIssuanceApiTests(unittest.TestCase):
         self._set_auth_user(self._other_applicant_user())
         response = self._client.get(f"/post-issuance/{application_id}")
         self.assertEqual(response.status_code, 403)
+
+    def test_applicant_cannot_submit_ops_only_termination_reason(self) -> None:
+        certificate_id = self._create_active_certificate()
+        created = self._client.post(
+            "/post-issuance/drafts",
+            json={"source_certificate_id": certificate_id, "action_type": "TERMINATE"},
+        )
+        self.assertEqual(created.status_code, 200)
+        application_id = created.json()["id"]
+
+        updated = self._client.put(
+            f"/post-issuance/{application_id}/draft",
+            json={
+                **created.json()["payload"],
+                "request_source": "OPS",
+                "termination_reason_code": "term_product_nonconformity",
+                "reason_detail": "Попытка выбрать OPS-only основание",
+                "note": "Негативный сценарий",
+                "remediation_deadline": "2026-03-10T09:30",
+            },
+        )
+        self.assertEqual(updated.status_code, 200)
+
+        attached = self._client.post(
+            f"/post-issuance/{application_id}/basis/attach",
+            json={
+                "slot": "post_issuance_basis",
+                "object_key": f"post-issuance/{application_id}/post_issuance_basis/basis.pdf",
+                "file_name": "basis.pdf",
+                "content_type": "application/pdf",
+                "size_bytes": 1024,
+            },
+        )
+        self.assertEqual(attached.status_code, 200)
+
+        submitted = self._client.post(f"/post-issuance/{application_id}/submit")
+        self.assertEqual(submitted.status_code, 422)
+        self.assertIn("not available", submitted.json()["detail"])
 
 
 if __name__ == "__main__":

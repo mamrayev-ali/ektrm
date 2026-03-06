@@ -36,6 +36,22 @@ class AttestatDefinition(TypedDict):
     scope_summary: str
 
 
+TERMINATION_REASON_APPLICANT_CODES = frozenset({"term_applicant_decision"})
+TERMINATION_REASON_OPS_CODES = frozenset(
+    {
+        "term_applicant_decision",
+        "term_negative_periodic_assessment",
+        "term_change_notice_affecting_certified_indicators",
+        "term_product_nonconformity",
+        "term_unfulfilled_ops_obligations",
+        "term_unfulfilled_clause_152_requirements",
+        "term_confirmed_state_control_nonconformity",
+        "term_standard_change_without_notice",
+        "term_unapproved_changes_causing_nonconformity",
+    }
+)
+
+
 MANDATORY_DICTIONARIES: tuple[DictionaryDefinition, ...] = (
     {"code": "certification_type", "name": "Вид сертификации", "description": "Классификатор вида сертификации."},
     {"code": "applicant_type", "name": "Тип заявителя", "description": "Классификатор типа заявителя."},
@@ -98,16 +114,65 @@ MANDATORY_DICTIONARY_ITEMS: tuple[DictionaryItemDefinition, ...] = (
     {
         "dictionary_code": "termination_reason",
         "code": "term_applicant_decision",
-        "name": "Принятие заявителем обоснованного решения о прекращении действия документа в сфере подтверждения соответствия.",
+        "name": "Прекращение производства данной продукции, услуги, процесса или по обоснованным иным причинам.",
         "sort_order": 10,
-        "legal_basis": "Основание из PDF_ORDERS_DETAILED.md (дословный перенос с минимальной редакцией OCR).",
+        "legal_basis": "Основание для заявителя и ОПС из PDF_ORDERS_DETAILED.md (дословный перенос с минимальной редакцией OCR).",
+    },
+    {
+        "dictionary_code": "termination_reason",
+        "code": "term_negative_periodic_assessment",
+        "name": "Отрицательные результаты периодической оценки сертифицированной продукции, услуги, процесса, если выявленное несоответствие неисправимо или требуется проведение дополнительных испытаний (проверок) соответствия продукции, услуги, процесса требованиям, установленным техническими регламентами, документами по стандартизации.",
+        "sort_order": 20,
+        "legal_basis": "Основание для ОПС из PDF_ORDERS_DETAILED.md (пункты 2 и OCR-продолжение на той же странице).",
+    },
+    {
+        "dictionary_code": "termination_reason",
+        "code": "term_change_notice_affecting_certified_indicators",
+        "name": "Наличие уведомления о внесении изменений в конструкцию (состав) продукции или технологию ее производства, которые влияют на показатели, удостоверяемые сертификацией, до проведения полных или частичных испытаний либо оценки состояния производства продукции, оказания услуг, процесса.",
+        "sort_order": 30,
+        "legal_basis": "Основание для ОПС из PDF_ORDERS_DETAILED.md (дословный перенос с минимальной редакцией OCR).",
+    },
+    {
+        "dictionary_code": "termination_reason",
+        "code": "term_product_nonconformity",
+        "name": "Несоответствие продукции, услуги, процесса требованиям, установленным техническими регламентами, документами по стандартизации.",
+        "sort_order": 40,
+        "legal_basis": "Основание для ОПС из PDF_ORDERS_DETAILED.md (нормализация явных OCR-шумов без изменения смысла).",
+    },
+    {
+        "dictionary_code": "termination_reason",
+        "code": "term_unfulfilled_ops_obligations",
+        "name": "Неисполнение обязательств перед ОПС, установленных схемой сертификации продукции (периодическая оценка), предусмотренных договором, заключенным между ними.",
+        "sort_order": 50,
+        "legal_basis": "Основание для ОПС из PDF_ORDERS_DETAILED.md (дословный перенос с минимальной редакцией OCR).",
+    },
+    {
+        "dictionary_code": "termination_reason",
+        "code": "term_unfulfilled_clause_152_requirements",
+        "name": "Неисполнение требований подпунктов 2), 5) и 6) пункта 152 Правил оценки соответствия (приказ от 29 июня 2021 года № 433-НК) в период приостановления действия документа в сфере подтверждения соответствия.",
+        "sort_order": 60,
+        "legal_basis": "Основание для ОПС из PDF_ORDERS_DETAILED.md (нормализация явных OCR-шумов без изменения смысла).",
+    },
+    {
+        "dictionary_code": "termination_reason",
+        "code": "term_confirmed_state_control_nonconformity",
+        "name": "Наличие подтвержденных сведений от государственных органов, осуществляющих государственный контроль и надзор в области технического регулирования, о несоответствии продукции, услуги, процесса требованиям, установленным техническими регламентами, документами по стандартизации, если выявленное несоответствие неисправимо или требуется проведение дополнительных испытаний (проверок) соответствия продукции, услуги, процесса указанным требованиям.",
+        "sort_order": 70,
+        "legal_basis": "Основание для ОПС из PDF_ORDERS_DETAILED.md (пункт 7 и OCR-продолжение).",
     },
     {
         "dictionary_code": "termination_reason",
         "code": "term_standard_change_without_notice",
         "name": "Изменение документа по стандартизации, метода контроля и испытаний, системы менеджмента, конструкции (состава), комплектности продукции, организации и (или) технологии производства продукции без соответствующего уведомления или согласования ОПС.",
-        "sort_order": 20,
-        "legal_basis": "Основание для ОПС из Ордер 5, хранится как длинная юридическая формулировка.",
+        "sort_order": 80,
+        "legal_basis": "Основание для ОПС из PDF_ORDERS_DETAILED.md (пункт 8, хранится как длинная юридическая формулировка).",
+    },
+    {
+        "dictionary_code": "termination_reason",
+        "code": "term_unapproved_changes_causing_nonconformity",
+        "name": "Изменение документа по стандартизации, метода контроля и испытаний, системы менеджмента, конструкции (состава), комплектности продукции, организации и (или) технологии производства продукции, оказания услуг, процесса, если указанные изменения либо невыполнение требований вызывают несоответствие услуг и условий обслуживания требованиям, проверяемым при сертификации.",
+        "sort_order": 90,
+        "legal_basis": "Основание для ОПС из PDF_ORDERS_DETAILED.md (пункт 9, нормализация явных OCR-шумов без изменения смысла).",
     },
     {
         "dictionary_code": "reissue_reason",

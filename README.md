@@ -42,7 +42,11 @@
 2. Поднять платформу:
    - Linux/macOS: `./scripts/bootstrap.sh`
    - Windows: `pwsh -File .\\scripts\\bootstrap.ps1`
+   - bootstrap-скрипты автоматически пересобирают runtime image, выполняют `alembic upgrade head` и затем idempotent sync seeded reference-data внутри контейнера перед дальнейшей работой с API.
    - Альтернатива: `docker compose up -d --build`
+   - если запуск делается напрямую без bootstrap-скриптов, после старта контейнеров нужно отдельно выполнить:
+     - `docker compose run --rm --no-deps gateway-service python -m alembic -c /app/alembic.ini upgrade head`
+     - `docker compose run --rm --no-deps gateway-service python -m app.seed.reference_data_sync`
 3. Проверить health endpoints:
    - Gateway: `http://localhost:8080/health`
    - Applications: `http://localhost:8081/health`
@@ -112,7 +116,9 @@ Demo users:
 ## T3 Reference Data baseline: как применить и проверить
 
 1. Применить миграции:
-   - `python -m alembic -c services/runtime/alembic.ini upgrade head`
+   - host-run: `python -m alembic -c services/runtime/alembic.ini upgrade head`
+   - container-run: `docker compose run --rm --no-deps gateway-service python -m alembic -c /app/alembic.ini upgrade head`
+   - после изменения seed-справочников синхронизировать данные в уже существующей БД: `docker compose run --rm --no-deps gateway-service python -m app.seed.reference_data_sync`
 2. Проверить, что таблицы созданы:
    - `reference_dictionaries`
    - `reference_dictionary_items`
@@ -127,7 +133,8 @@ Demo users:
 ## T4 Order 3 Domain Model: как применить и проверить
 
 1. Применить миграции:
-   - `python -m alembic -c services/runtime/alembic.ini upgrade head`
+   - host-run: `python -m alembic -c services/runtime/alembic.ini upgrade head`
+   - container-run: `docker compose run --rm --no-deps gateway-service python -m alembic -c /app/alembic.ini upgrade head`
 2. Проверить новые таблицы:
    - `cert_application`
    - `cert_application_status_history`
@@ -232,6 +239,7 @@ Demo users:
    - заполнить причину, описание, примечание, `Срок устранения`;
    - прикрепить файл-основание;
    - нажать `Подать заявку`.
+   - для `Причина прекращения`: заявитель видит только основание `Прекращение производства...`, роль `OPS` видит расширенный нормативный перечень.
 3. Проверить API-эквивалент applicant-flow:
    - `POST http://localhost:8080/post-issuance/drafts`
    - `PUT http://localhost:8080/post-issuance/{id}/draft`

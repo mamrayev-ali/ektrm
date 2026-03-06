@@ -5,6 +5,8 @@ WORKDIR /app
 COPY services/runtime/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
+COPY services/runtime/alembic.ini /app/alembic.ini
+COPY services/runtime/alembic /app/alembic
 COPY services/runtime/app /app/app
 
 EXPOSE 8000

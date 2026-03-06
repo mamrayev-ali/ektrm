@@ -109,6 +109,15 @@ class ReferenceDataApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertIn("not found", response.json()["detail"])
 
+    def test_termination_reason_dictionary_returns_expanded_normative_list(self) -> None:
+        response = self._client.get("/reference-data/dictionaries/termination_reason/items")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertGreaterEqual(payload["total"], 9)
+        codes = {item["code"] for item in payload["items"]}
+        self.assertIn("term_applicant_decision", codes)
+        self.assertIn("term_confirmed_state_control_nonconformity", codes)
+
     def test_list_ops_registry_supports_search(self) -> None:
         response = self._client.get("/reference-data/ops-registry", params={"search": "НацЭксперт"})
         self.assertEqual(response.status_code, 200)

@@ -13,6 +13,12 @@ if (-not (Test-Path ".env")) {
 Write-Host "Starting e-KTRM platform containers..."
 docker compose up -d --build
 
+Write-Host "Applying Alembic migrations..."
+docker compose run --rm --no-deps gateway-service python -m alembic -c /app/alembic.ini upgrade head
+
+Write-Host "Synchronizing seeded reference data..."
+docker compose run --rm --no-deps gateway-service python -m app.seed.reference_data_sync
+
 Write-Host ""
 Write-Host "Service health endpoints:"
 $ports = @{

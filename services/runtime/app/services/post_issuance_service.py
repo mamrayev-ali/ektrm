@@ -14,6 +14,7 @@ from app.models.post_issuance import PostIssuanceApplication
 from app.repositories.certificate_repository import CertificateRepository
 from app.repositories.post_issuance_repository import PostIssuanceRepository
 from app.repositories.reference_data_repository import ReferenceDataRepository
+from app.seed.reference_data_seed import TERMINATION_REASON_APPLICANT_CODES, TERMINATION_REASON_OPS_CODES
 from app.services.file_slot_service import POST_ISSUANCE_BASIS_FILE_SLOT
 
 POST_ISSUANCE_STATUSES = frozenset(
@@ -69,7 +70,11 @@ class PostIssuanceService:
         normalized_action = self._normalize_action_type(action_type)
         certificate = self._require_certificate(source_certificate_id)
         self._assert_owner_or_ops_for_certificate(certificate, current_user)
-        self._assert_no_conflicting_process(certificate.id)
+        conflicting = self._find_conflicting_process(certificate.id)
+        reusable = self._find_reusable_editable_process(conflicting, normalized_action)
+        if reusable is not None:
+            return self._serialize_application(reusable)
+        self._assert_no_conflicting_process(certificate.id, active_processes=conflicting)
         self._assert_certificate_eligible(certificate, normalized_action)
 
         payload = self._build_initial_payload(certificate, normalized_action, current_user)
@@ -410,8 +415,12 @@ class PostIssuanceService:
         self,
         certificate_id: int,
         ignore_application_id: int | None = None,
+        active_processes: list[PostIssuanceApplication] | None = None,
     ) -> None:
-        active_processes = self._repository.find_active_by_certificate(certificate_id, ACTIVE_CONFLICT_STATUSES)
+        active_processes = active_processes or self._repository.find_active_by_certificate(
+            certificate_id,
+            ACTIVE_CONFLICT_STATUSES,
+        )
         if ignore_application_id is not None:
             active_processes = [item for item in active_processes if item.id != ignore_application_id]
         if active_processes:
@@ -419,6 +428,19 @@ class PostIssuanceService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail="There is already an active post-issuance process for this certificate",
             )
+
+    def _find_conflicting_process(self, certificate_id: int) -> list[PostIssuanceApplication]:
+        return self._repository.find_active_by_certificate(certificate_id, ACTIVE_CONFLICT_STATUSES)
+
+    def _find_reusable_editable_process(
+        self,
+        active_processes: list[PostIssuanceApplication],
+        action_type: str,
+    ) -> PostIssuanceApplication | None:
+        for application in active_processes:
+            if application.action_type == action_type and application.status in EDITABLE_STATUSES:
+                return application
+        return None
 
     def _assert_certificate_eligible(self, certificate: Certificate, action_type: str) -> None:
         allowed_statuses = ALLOWED_CERTIFICATE_STATUSES_BY_ACTION[action_type]
@@ -432,6 +454,7 @@ class PostIssuanceService:
         current_payload = self._decode_payload(application.payload_json)
         merged = {**current_payload, **(payload or {})}
         merged["action_type"] = application.action_type
+        merged["request_source"] = application.initiator_role
         merged["source_certificate_id"] = application.source_certificate_id
         merged["source_certificate_number"] = application.source_certificate_number
         merged["source_application_id"] = application.source_application_id
@@ -471,6 +494,11 @@ class PostIssuanceService:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="request_source must be 'Applicant' or 'OPS'",
             )
+        if request_source != application.initiator_role:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="request_source does not match the initiator role of this post-issuance application",
+            )
         self._validate_reason(application.action_type, str(payload.get(reason_field, "")).strip(), payload)
         self._validate_deadline(str(payload.get("remediation_deadline", "")).strip())
         file_slots = payload.get("file_slots")
@@ -488,6 +516,16 @@ class PostIssuanceService:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Reason '{reason_code}' was not found in dictionary '{dictionary_code}'",
             )
+        if action_type == "TERMINATE":
+            request_source = str(payload.get("request_source", "")).strip()
+            allowed_reason_codes = (
+                TERMINATION_REASON_APPLICANT_CODES if request_source == "Applicant" else TERMINATION_REASON_OPS_CODES
+            )
+            if reason_code not in allowed_reason_codes:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Termination reason '{reason_code}' is not available for request_source '{request_source}'",
+                )
         label_field = "suspension_reason_label" if action_type == "SUSPEND" else "termination_reason_label"
         payload[label_field] = item["name"]
 

@@ -1016,13 +1016,13 @@
                 </div>
 
                 <div class="grid-2" style="margin-top: 10px">
-                  <div class="field">
+                  <div class="field" data-field="pi_suspension_reason_code">
                     <label>Причина приостановления <span class="required">*</span></label>
                     <select id="pi_suspension_reason_code">
                       <option value="">Выберите причину</option>
                     </select>
                   </div>
-                  <div class="field">
+                  <div class="field" data-field="pi_termination_reason_code">
                     <label>Причина прекращения <span class="required">*</span></label>
                     <select id="pi_termination_reason_code">
                       <option value="">Выберите причину</option>
@@ -1051,25 +1051,25 @@
                     <label>Продукция</label>
                     <input id="pi_product_name" type="text" readonly />
                   </div>
-                  <div class="field">
+                  <div class="field" data-field="pi_remediation_deadline">
                     <label>Срок устранения <span class="required">*</span></label>
                     <input id="pi_remediation_deadline" type="datetime-local" />
                   </div>
                 </div>
 
                 <div class="grid-2" style="margin-top: 10px">
-                  <div class="field">
+                  <div class="field" data-field="pi_reason_detail">
                     <label>Подробное описание причины <span class="required">*</span></label>
                     <textarea id="pi_reason_detail"></textarea>
                   </div>
-                  <div class="field">
+                  <div class="field" data-field="pi_note">
                     <label>Примечание <span class="required">*</span></label>
                     <textarea id="pi_note"></textarea>
                   </div>
                 </div>
 
                 <div class="grid-2" style="margin-top: 10px">
-                  <div class="field">
+                  <div class="field" data-field="pi_basis_file">
                     <label>Файл-основание <span class="required">*</span></label>
                     <input id="pi_basis_file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" />
                     <span class="hint" id="pi_basis_file_status">Файл еще не прикреплен.</span>
@@ -1701,6 +1701,20 @@
         suspension: [],
         termination: [],
       };
+      const terminationReasonCodesByRequestSource = {
+        Applicant: new Set(["term_applicant_decision"]),
+        OPS: new Set([
+          "term_applicant_decision",
+          "term_negative_periodic_assessment",
+          "term_change_notice_affecting_certified_indicators",
+          "term_product_nonconformity",
+          "term_unfulfilled_ops_obligations",
+          "term_unfulfilled_clause_152_requirements",
+          "term_confirmed_state_control_nonconformity",
+          "term_standard_change_without_notice",
+          "term_unapproved_changes_causing_nonconformity",
+        ]),
+      };
       const pkceStorage = {
         verifier: "ektrm_oidc_pkce_verifier",
         state: "ektrm_oidc_state",
@@ -2275,15 +2289,15 @@
           termination: Array.isArray(termination.items) ? termination.items : [],
         };
         populatePostIssuanceReasonSelect(piSuspensionReasonCode, postIssuanceDictionaries.suspension, "Выберите причину приостановления");
-        populatePostIssuanceReasonSelect(piTerminationReasonCode, postIssuanceDictionaries.termination, "Выберите причину прекращения");
+        refreshTerminationReasonSelect();
         postIssuanceDictionariesLoaded = true;
       }
 
-      function populatePostIssuanceReasonSelect(selectNode, items, placeholder) {
+      function populatePostIssuanceReasonSelect(selectNode, items, placeholder, preferredValue = "") {
         if (!selectNode) {
           return;
         }
-        const currentValue = selectNode.value;
+        const currentValue = preferredValue || selectNode.value;
         selectNode.innerHTML = "";
         const placeholderOption = document.createElement("option");
         placeholderOption.value = "";
@@ -2295,12 +2309,34 @@
           option.textContent = item.name || item.code || "-";
           selectNode.appendChild(option);
         });
-        selectNode.value = currentValue || "";
+        const hasCurrentValue = items.some((item) => (item.code || "") === currentValue);
+        selectNode.value = hasCurrentValue ? currentValue : "";
+      }
+
+      function getTerminationReasonRequestSource() {
+        const source = (piRequestSource?.value || currentPostIssuanceApplication?.initiator_role || "").trim();
+        return source === "OPS" ? "OPS" : "Applicant";
+      }
+
+      function getVisibleTerminationReasons() {
+        const requestSource = getTerminationReasonRequestSource();
+        const allowedCodes = terminationReasonCodesByRequestSource[requestSource] || terminationReasonCodesByRequestSource.Applicant;
+        return postIssuanceDictionaries.termination.filter((item) => allowedCodes.has(item.code || ""));
+      }
+
+      function refreshTerminationReasonSelect(preferredValue = "") {
+        populatePostIssuanceReasonSelect(
+          piTerminationReasonCode,
+          getVisibleTerminationReasons(),
+          "Выберите причину прекращения",
+          preferredValue,
+        );
       }
 
       function syncPostIssuanceReasonAvailability() {
         const actionType = normalizeStatus(currentPostIssuanceApplication ? currentPostIssuanceApplication.action_type : "");
         const editable = canEditCurrentPostIssuance(currentPostIssuanceApplication);
+        refreshTerminationReasonSelect(currentPostIssuanceApplication?.payload?.termination_reason_code || piTerminationReasonCode?.value || "");
         if (piSuspensionReasonCode) {
           piSuspensionReasonCode.disabled = actionType !== "SUSPEND" || !editable;
         }
@@ -2328,6 +2364,49 @@
         };
       }
 
+      function validatePostIssuanceForSubmit() {
+        clearFieldErrors();
+        const payload = buildPostIssuancePayload();
+        const actionType = normalizeStatus(currentPostIssuanceApplication ? currentPostIssuanceApplication.action_type : "");
+        const errors = [];
+        const basisAttached = Boolean(currentPostIssuanceApplication?.payload?.file_slots?.post_issuance_basis);
+
+        if (actionType === "SUSPEND") {
+          if (!payload.suspension_reason_code) {
+            errors.push("Выберите причину приостановления");
+            markFieldError("pi_suspension_reason_code", "Выберите причину приостановления");
+          }
+        } else if (actionType === "TERMINATE") {
+          if (!payload.termination_reason_code) {
+            errors.push("Выберите причину прекращения");
+            markFieldError("pi_termination_reason_code", "Выберите причину прекращения");
+          }
+        }
+
+        if (!payload.remediation_deadline) {
+          errors.push("Укажите срок устранения");
+          markFieldError("pi_remediation_deadline", "Укажите срок устранения");
+        }
+        if (!payload.reason_detail) {
+          errors.push("Заполните подробное описание причины");
+          markFieldError("pi_reason_detail", "Заполните подробное описание причины");
+        }
+        if (!payload.note) {
+          errors.push("Заполните примечание");
+          markFieldError("pi_note", "Заполните примечание");
+        }
+        if (!basisAttached) {
+          errors.push("Прикрепите файл-основание");
+          markFieldError("pi_basis_file", "Прикрепите файл-основание");
+        }
+
+        if (errors.length) {
+          writeOutput("Ошибка валидации post-issuance", { issues: errors });
+          return null;
+        }
+        return payload;
+      }
+
       function applyPostIssuanceApplication(application) {
         currentPostIssuanceApplication = application;
         currentPostIssuanceId = application ? application.id : null;
@@ -2349,7 +2428,7 @@
         piReasonDetail.value = payload.reason_detail || "";
         piNote.value = payload.note || "";
         piSuspensionReasonCode.value = payload.suspension_reason_code || "";
-        piTerminationReasonCode.value = payload.termination_reason_code || "";
+        refreshTerminationReasonSelect(payload.termination_reason_code || "");
         piApplicationStatus.value = application.status || "";
         const fileSlot = payload.file_slots && payload.file_slots.post_issuance_basis ? payload.file_slots.post_issuance_basis : null;
         piBasisFileStatus.textContent = fileSlot && fileSlot.file_name ? `Прикреплен: ${fileSlot.file_name}` : "Файл еще не прикреплен.";
@@ -2510,11 +2589,11 @@
         writeOutput("Открыт процесс post-issuance", application);
       }
 
-      async function saveCurrentPostIssuanceDraft() {
+      async function saveCurrentPostIssuanceDraft(payloadOverride = null) {
         if (!currentPostIssuanceId || !currentPostIssuanceApplication) {
           throw new Error("Сначала создайте процесс post-issuance");
         }
-        const payload = buildPostIssuancePayload();
+        const payload = payloadOverride && typeof payloadOverride === "object" ? payloadOverride : buildPostIssuancePayload();
         const saved = await callApi("PUT", `/post-issuance/${currentPostIssuanceId}/draft`, payload);
         applyPostIssuanceApplication(saved);
         await loadPostIssuanceRegistry();
@@ -2555,7 +2634,11 @@
         if (!currentPostIssuanceId || !currentPostIssuanceApplication) {
           throw new Error("Сначала создайте процесс post-issuance");
         }
-        await saveCurrentPostIssuanceDraft();
+        const payload = validatePostIssuanceForSubmit();
+        if (!payload) {
+          return;
+        }
+        await saveCurrentPostIssuanceDraft(payload);
         const submitted = await callApi("POST", `/post-issuance/${currentPostIssuanceId}/submit`);
         applyPostIssuanceApplication(submitted);
         await refreshCertificatesWorkspace();

@@ -407,7 +407,9 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/tests/test_files_api.py`.
 - `frontend/index.html` — T5/T6/T8/T9 UI для заявителя и OPS (Ордер 3 + внутренний реестр сертификатов + post-issuance).
   - public surface / key exports:
-    - default-экран раздела `Заявки`: полноширинный реестр заявок текущего пользователя с action `Открыть`/`Продолжить` и кнопкой `Подать новую заявку`.
+    - applicant default-экран: `Главная` с карточками модулей `Аккредитация`, `Государственный контроль`, `Метрология`, `Оценка соответствия`, `Стандартизация`; активен только модуль `Стандартизация`, остальные модули и их переходы disabled.
+    - applicant shell для `Стандартизация`: root-экран с карточками сервисов и breadcrumb-навигацией `СТАНДАРТИЗАЦИЯ / <сервис>`; из сервисов активен только `Сертификат соответствия продукции РК`.
+    - сервис `Сертификат соответствия продукции РК`: полноширинный реестр заявок текущего пользователя с action `Открыть`/`Продолжить` и кнопкой `Подать новую заявку`.
     - applicant-режим формы: открытие заявки из реестра с тем же wizard layout, показом блока `Ход выполнения` (текущий статус + history transitions) и automatic switch `editable` (`DRAFT`, `REVISION_REQUESTED`) vs `read-only` (остальные статусы).
     - отдельный OPS-экран: полноширинный реестр отправленных заявок заявителей для роли `OPS` (на базе `GET /applications/ops/queue`) с action `Открыть`.
     - отдельный режим wizard (8 шагов): `Заявитель`, `Адрес заявителя`, `ОПС`, `Схема сертификации`, `Данные по продукции`, `Приложение`, `Документы`, `Примечание`.
@@ -417,6 +419,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - внутренний реестр сертификатов с действием `Подписать` для `OPS` (вызов `POST /certificates/{id}/sign`) и ссылкой на публичный read-only реестр.
     - T9 panel в разделе `Реестр сертификатов`: действия `Приостановить` / `Прекратить`, форма post-issuance, upload файла-основания и очередь post-issuance для Applicant/OPS.
     - OIDC-сессия (Authorization Code + PKCE, нативный JS-клиент без `keycloak.js`) + вызовы applications/certificates/registry API через gateway.
+    - Техническая OIDC/API панель (`Войти`, `Обновить токен`, `Выйти`, debug output) вынесена под основной shell и открывается отдельным шевроном; по умолчанию скрыта.
     - auth/role gate: при неавторизованной сессии рабочие экраны и header скрыты, показывается центрированное окно входа (логотип + кнопка Keycloak). Для `OPS` отображается OPS-реестр, а не экран `Нет доступа`.
   - invariants / assumptions:
     - submit валидирует обязательные поля и форматы (BIN=12 digits/phone mask/email);
@@ -554,6 +557,10 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-06 [applicant-home-card-height-reset] В `frontend/index.html` у applicant-модульных карточек на `Главная` убран фиксированный `min-height`, чтобы высота определялась содержимым карточки.
+- 2026-03-06 [applicant-home-card-grid-tuning] В `frontend/index.html` увеличены карточки модулей на applicant `Главная`: сетка переведена на 2 карточки в ряд, карточки стали выше, а кнопка действия больше не растягивается на всю ширину карточки.
+- 2026-03-06 [applicant-session-chevron-dock] В `frontend/index.html` технический блок с OIDC-кнопками и debug output вынесен из основного белого контейнера в отдельный dock под shell; добавлен шеврон-toggle, по умолчанию панель скрыта и раскрывается вручную.
+- 2026-03-06 [applicant-home-standardization-ui] В `frontend/index.html` applicant navigation переведена на модульный shell: после авторизации заявитель попадает на `Главная` с 5 карточками модулей, в header для `Applicant` показаны `Главная`, `Аккредитация`, `Государственный контроль`, `Метрология`, `Оценка соответствия`, `Стандартизация` с disabled state для неготовых модулей; добавлен модуль `СТАНДАРТИЗАЦИЯ` с grid сервисов и breadcrumb, а текущий applicant-реестр заявок перенесен в сервис `Сертификат соответствия продукции РК` без изменения OPS UX.
 - 2026-03-06 [t9-post-issuance-suspension-termination] Реализован T9 baseline Ордер 5: добавлены migration `20260306_0005`, модели `post_issuance_application`/`post_issuance_status_history`, сервис и API `post-issuance` (draft/update/submit/transitions/basis attach/queues), расширен `files/slots/upload` для `post_issuance_basis`, добавлен system flag `certificate.is_dangerous_product`, обновлен `frontend/index.html` (форма suspend/terminate + очередь post-issuance в разделе `Реестр сертификатов`), добавлены тесты `test_post_issuance_service.py` и `test_post_issuance_api.py`.
 - 2026-03-06 [t9-post-issuance-planning] Для тикета T9 создан planning-артефакт `logs/agent/T9.md`: зафиксирован исполнимый план по post-issuance сценариям `Приостановление` и `Прекращение`, список likely touched files, verification gates и корректировка фактического риска до `high`/`PR required` из-за ожидаемых миграций и изменения registry/API semantics.
 - 2026-03-06 [runtime-test-container-profile] Добавлен `services/runtime/Dockerfile.test` и compose profile `test` с service-ами `runtime-tests`, `gateway-test`, `applications-test`, `certificates-test`, `reference-data-test`, `files-test`, чтобы runtime unit/API tests запускались в отдельных контейнерах без расширения production image-ов; в `README.md` добавлены команды запуска полного suite и доменных test services.

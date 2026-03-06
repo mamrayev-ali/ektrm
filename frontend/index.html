@@ -84,6 +84,28 @@
         font-weight: 700;
       }
 
+      .header.applicant-mode .menu-item {
+        cursor: pointer;
+      }
+
+      .header.applicant-mode .menu-item.available {
+        border-color: var(--brand);
+        color: var(--brand);
+        font-weight: 700;
+      }
+
+      .header.applicant-mode .menu-item.active {
+        background: var(--brand);
+        color: #fff;
+      }
+
+      .header.applicant-mode .menu-item.disabled {
+        border-color: #d5ddd6;
+        background: #eef2ee;
+        color: #97a59a;
+        cursor: not-allowed;
+      }
+
       .header-right {
         display: flex;
         align-items: center;
@@ -231,6 +253,12 @@
         font-size: 0.84rem;
       }
 
+      .page-breadcrumb {
+        margin-top: 8px;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+
       h1 {
         margin: 4px 0 0;
         font-size: 1.6rem;
@@ -337,6 +365,85 @@
 
       .registry-view {
         margin-bottom: 12px;
+      }
+
+      .module-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .module-card {
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background:
+          linear-gradient(180deg, rgba(239, 248, 242, 0.88), rgba(255, 255, 255, 0.96)),
+          #fff;
+        box-shadow: 0 12px 28px rgba(24, 40, 31, 0.06);
+      }
+
+      .module-card.is-disabled {
+        background:
+          linear-gradient(180deg, rgba(244, 246, 244, 0.96), rgba(255, 255, 255, 0.96)),
+          #fff;
+      }
+
+      .module-card-title {
+        font-size: 0.92rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #183727;
+      }
+
+      .module-card-description {
+        margin-top: 14px;
+        color: var(--text-muted);
+        font-size: 0.88rem;
+        line-height: 1.45;
+      }
+
+      .module-card button {
+        margin-top: 22px;
+        width: auto;
+        align-self: flex-start;
+        min-width: 148px;
+      }
+
+      .service-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .service-card {
+        min-height: 108px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        text-align: left;
+        border: 1px solid #d8e4da;
+        border-radius: 16px;
+        background: #fff;
+      }
+
+      .service-card.is-enabled {
+        background: linear-gradient(180deg, rgba(241, 249, 244, 0.92), rgba(255, 255, 255, 0.98));
+      }
+
+      .service-card-label {
+        color: var(--brand);
+        font-weight: 800;
+        line-height: 1.35;
+      }
+
+      .service-card:disabled .service-card-label {
+        color: #8b9a8f;
       }
 
       .registry-head {
@@ -602,11 +709,50 @@
       }
 
       .session {
-        margin-top: 12px;
         border: 1px solid var(--line);
         border-radius: 12px;
         padding: 10px;
         background: #fbfdfb;
+      }
+
+      .session-dock {
+        max-width: 1320px;
+        margin: 0 auto 22px;
+        padding: 0 16px;
+      }
+
+      .session-toggle-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+      }
+
+      .session-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--text-muted);
+        font-size: 0.84rem;
+      }
+
+      .session-toggle:hover {
+        background: #f4f8f4;
+      }
+
+      .session-toggle-icon {
+        display: inline-flex;
+        width: 18px;
+        justify-content: center;
+        color: var(--brand);
+        font-weight: 700;
+      }
+
+      .session-panel-wrap {
+        margin-top: 10px;
       }
 
       .session .row {
@@ -644,6 +790,14 @@
           position: static;
         }
 
+        .module-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .service-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
         .process {
           grid-template-columns: repeat(2, minmax(120px, 1fr));
         }
@@ -669,6 +823,11 @@
           flex-direction: column;
           align-items: flex-start;
         }
+
+        .module-grid,
+        .service-grid {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
@@ -678,9 +837,11 @@
         <div class="brand"><em>e</em>-КТРМ</div>
         <nav class="menu" aria-label="Главное меню">
           <span class="menu-item" id="menuHome">Главная</span>
-          <span class="menu-item active" id="menuApplications">Заявки</span>
+          <span class="menu-item" id="menuApplications">Заявки</span>
           <span class="menu-item" id="menuCertificates">Реестр сертификатов</span>
           <span class="menu-item" id="menuDictionaries">Справочники</span>
+          <span class="menu-item is-hidden" id="menuConformity">Оценка соответствия</span>
+          <span class="menu-item is-hidden" id="menuStandardization">Стандартизация</span>
         </nav>
         <div class="header-right">
           <span>Ордер 3</span>
@@ -703,6 +864,7 @@
         <div class="page-head">
           <div class="page-eyebrow" id="pageEyebrow">Раздел заявок</div>
           <h1 id="pageTitle">Заявки</h1>
+          <div class="page-breadcrumb is-hidden" id="pageBreadcrumb"></div>
         </div>
 
         <section class="auth-gate" id="authGate">
@@ -714,11 +876,37 @@
         </section>
 
         <div id="protectedContent" class="is-hidden">
+          <section class="registry-view is-hidden" id="applicantHomeView">
+            <div class="registry-head">
+              <div>
+                <div class="registry-title">Модули заявителя</div>
+                <div class="registry-sub">
+                  Выберите доступный модуль. Недоступные разделы отображаются в статусе "В работе".
+                </div>
+              </div>
+            </div>
+            <div class="module-grid" id="applicantModuleCards"></div>
+          </section>
+
+          <section class="registry-view is-hidden" id="standardizationView">
+            <div class="registry-head">
+              <div>
+                <div class="registry-title">Сервисы модуля</div>
+                <div class="registry-sub">
+                  Выберите сервис стандартизации. Доступен только сервис с текущим реализованным функционалом заявителя.
+                </div>
+              </div>
+            </div>
+            <div class="service-grid" id="standardizationServiceCards"></div>
+          </section>
+
           <section class="registry-view is-hidden" id="registryView">
             <div class="registry-head">
               <div>
-                <div class="registry-title">Реестр моих заявок</div>
-                <div class="registry-sub">Список заявок текущего пользователя с переходом в просмотр или продолжение заполнения.</div>
+                <div class="registry-title" id="applicationsRegistryTitle">Реестр моих заявок</div>
+                <div class="registry-sub" id="applicationsRegistrySub">
+                  Список заявок текущего пользователя с переходом в просмотр или продолжение заполнения.
+                </div>
               </div>
               <button class="btn-primary" id="createApplicationBtn">Подать новую заявку</button>
             </div>
@@ -1257,6 +1445,23 @@
           </div>
         </div>
 
+      </main>
+    </div>
+
+    <div class="session-dock is-hidden" id="sessionDock">
+      <div class="session-toggle-row">
+        <button
+          class="session-toggle"
+          id="sessionToggleBtn"
+          type="button"
+          aria-expanded="false"
+          aria-controls="sessionPanel"
+        >
+          <span>Техническая панель</span>
+          <span class="session-toggle-icon" id="sessionToggleIcon">&#9662;</span>
+        </button>
+      </div>
+      <div class="session-panel-wrap is-hidden" id="sessionPanelWrap">
         <section class="session" id="sessionPanel">
           <div class="row" style="margin-bottom: 6px">
             <button class="btn-primary" id="loginBtn">Войти</button>
@@ -1271,7 +1476,7 @@
           </div>
           <pre class="api-output" id="output">Ожидание действий пользователя...</pre>
         </section>
-      </main>
+      </div>
     </div>
 
     <script>
@@ -1304,6 +1509,50 @@
         "email",
       ];
       const EDITABLE_APPLICANT_STATUSES = new Set(["DRAFT", "REVISION_REQUESTED"]);
+      const APPLICANT_MODULES = [
+        {
+          key: "accreditation",
+          title: "Аккредитация",
+          description: "Управление аккредитационными услугами, статусами и сопроводительными действиями по заявкам заявителя.",
+          available: false,
+        },
+        {
+          key: "state-control",
+          title: "Государственный контроль",
+          description: "Просмотр проверок, контрольных мероприятий и связанных уведомлений по направлению государственного контроля.",
+          available: false,
+        },
+        {
+          key: "metrology",
+          title: "Метрология",
+          description: "Рабочая зона для метрологических сервисов, сопровождения измерений и связанной отчетности.",
+          available: false,
+        },
+        {
+          key: "conformity",
+          title: "Оценка соответствия",
+          description: "Модуль для будущих сценариев оценки соответствия, проверки комплектности и маршрута оказания услуги.",
+          available: false,
+        },
+        {
+          key: "standardization",
+          title: "Стандартизация",
+          description: "Переход к сервисам стандартизации и текущему реестру заявок по сертификации продукции в рамках реализованного контура.",
+          available: true,
+        },
+      ];
+      const STANDARDIZATION_SERVICES = [
+        { key: "declaration-620", title: "Декларация о соответствии продукции 620", available: false },
+        { key: "declaration-eaeu", title: "Декларация о соответствии продукции ЕАЭС", available: false },
+        { key: "declaration-rk", title: "Декларация о соответствии продукции РК", available: false },
+        { key: "registry-sm", title: "Реестр сертификатов СМ", available: false },
+        { key: "registry-voluntary", title: "Реестр добровольной сертификации", available: false },
+        { key: "certificate-eaeu", title: "Сертификат соответствия продукции ЕАЭС", available: false },
+        { key: "certificate-rk", title: "Сертификат соответствия продукции РК", available: true },
+        { key: "certificate-sm", title: "Сертификат соответствия системы менеджмента", available: false },
+      ];
+      const APPLICANT_ACTIVE_SERVICE_KEY = "certificate-rk";
+      const APPLICANT_STANDARDIZATION_TITLE = "СТАНДАРТИЗАЦИЯ";
 
       const output = document.getElementById("output");
       const appHeader = document.getElementById("appHeader");
@@ -1311,6 +1560,7 @@
       const authState = document.getElementById("authState");
       const pageEyebrow = document.getElementById("pageEyebrow");
       const pageTitle = document.getElementById("pageTitle");
+      const pageBreadcrumb = document.getElementById("pageBreadcrumb");
       const username = document.getElementById("username");
       const roles = document.getElementById("roles");
       const appNumber = document.getElementById("appNumber");
@@ -1319,12 +1569,22 @@
       const apiBaseLabel = document.getElementById("apiBaseLabel");
       const mainPanel = document.getElementById("mainPanel");
       const sidebarPanel = document.getElementById("sidebarPanel");
+      const sessionDock = document.getElementById("sessionDock");
+      const sessionPanelWrap = document.getElementById("sessionPanelWrap");
       const sessionPanel = document.getElementById("sessionPanel");
+      const sessionToggleBtn = document.getElementById("sessionToggleBtn");
+      const sessionToggleIcon = document.getElementById("sessionToggleIcon");
       const protectedContent = document.getElementById("protectedContent");
+      const applicantHomeView = document.getElementById("applicantHomeView");
+      const applicantModuleCards = document.getElementById("applicantModuleCards");
+      const standardizationView = document.getElementById("standardizationView");
+      const standardizationServiceCards = document.getElementById("standardizationServiceCards");
       const registryView = document.getElementById("registryView");
       const opsRegistryView = document.getElementById("opsRegistryView");
       const certificatesRegistryView = document.getElementById("certificatesRegistryView");
       const formView = document.getElementById("formView");
+      const applicationsRegistryTitle = document.getElementById("applicationsRegistryTitle");
+      const applicationsRegistrySub = document.getElementById("applicationsRegistrySub");
       const applicationsRegistryBody = document.getElementById("applicationsRegistryBody");
       const applicationsRegistryEmpty = document.getElementById("applicationsRegistryEmpty");
       const applicationProgressSection = document.getElementById("applicationProgressSection");
@@ -1364,6 +1624,8 @@
       const menuApplications = document.getElementById("menuApplications");
       const menuCertificates = document.getElementById("menuCertificates");
       const menuDictionaries = document.getElementById("menuDictionaries");
+      const menuConformity = document.getElementById("menuConformity");
+      const menuStandardization = document.getElementById("menuStandardization");
       const authGate = document.getElementById("authGate");
       const authGateTitle = document.getElementById("authGateTitle");
       const authGateText = document.getElementById("authGateText");
@@ -1425,10 +1687,13 @@
       let currentApplicationId = null;
       let currentPostIssuanceId = null;
       let currentPostIssuanceApplication = null;
-      let currentView = "registry";
+      let currentView = "applicant-home";
       let currentFormMode = "applicant";
       let currentOpsApplication = null;
       let currentApplicantCanEdit = true;
+      let currentApplicantModule = "home";
+      let currentApplicantService = null;
+      let sessionExpanded = false;
       let formDirty = false;
       let authReady = false;
       let postIssuanceDictionariesLoaded = false;
@@ -1506,6 +1771,23 @@
         applicationProgressSection.classList.toggle("is-hidden", !visible);
       }
 
+      function setBreadcrumb(items) {
+        if (!Array.isArray(items) || items.length === 0) {
+          pageBreadcrumb.textContent = "";
+          pageBreadcrumb.classList.add("is-hidden");
+          return;
+        }
+        pageBreadcrumb.textContent = items.join(" / ");
+        pageBreadcrumb.classList.remove("is-hidden");
+      }
+
+      function setSessionExpanded(expanded) {
+        sessionExpanded = Boolean(expanded);
+        sessionPanelWrap.classList.toggle("is-hidden", !sessionExpanded);
+        sessionToggleBtn.setAttribute("aria-expanded", sessionExpanded ? "true" : "false");
+        sessionToggleIcon.innerHTML = sessionExpanded ? "&#9652;" : "&#9662;";
+      }
+
       function updateHeaderMeta() {
         const idText = currentApplicationId ? `Заявка ID: ${currentApplicationId}` : "Заявка: не создана";
         appNumber.textContent = idText;
@@ -1543,19 +1825,155 @@
         renderStepsNav();
       }
 
+      function getMenuMode() {
+        if (isApplicantUser()) {
+          return "applicant";
+        }
+        return "ops";
+      }
+
+      function getMenuEntries() {
+        if (getMenuMode() === "applicant") {
+          return [
+            { key: "home", label: "Главная", element: menuHome, enabled: true },
+            { key: "accreditation", label: "Аккредитация", element: menuApplications, enabled: false },
+            { key: "state-control", label: "Государственный контроль", element: menuCertificates, enabled: false },
+            { key: "metrology", label: "Метрология", element: menuDictionaries, enabled: false },
+            { key: "conformity", label: "Оценка соответствия", element: menuConformity, enabled: false },
+            { key: "standardization", label: "Стандартизация", element: menuStandardization, enabled: true },
+          ];
+        }
+        return [
+          { key: "home", label: "Главная", element: menuHome, enabled: true },
+          { key: "applications", label: "Заявки", element: menuApplications, enabled: true },
+          { key: "certificates", label: "Реестр сертификатов", element: menuCertificates, enabled: true },
+          { key: "dictionaries", label: "Справочники", element: menuDictionaries, enabled: true },
+        ];
+      }
+
       function setActiveMenu(target) {
-        const entries = {
-          home: menuHome,
-          applications: menuApplications,
-          certificates: menuCertificates,
-          dictionaries: menuDictionaries,
-        };
-        Object.entries(entries).forEach(([key, element]) => {
+        appHeader.classList.toggle("applicant-mode", getMenuMode() === "applicant");
+        const entries = getMenuEntries();
+        [menuHome, menuApplications, menuCertificates, menuDictionaries, menuConformity, menuStandardization].forEach(
+          (element) => {
+            if (!element) {
+              return;
+            }
+            element.className = "menu-item is-hidden";
+            element.removeAttribute("aria-disabled");
+            element.dataset.menuKey = "";
+          },
+        );
+
+        entries.forEach(({ key, label, element, enabled }) => {
           if (!element) {
             return;
           }
-          element.classList.toggle("active", key === target);
+          element.className = "menu-item";
+          element.textContent = label;
+          element.dataset.menuKey = key;
+          if (key === target) {
+            element.classList.add("active");
+            return;
+          }
+          if (getMenuMode() === "applicant") {
+            element.classList.add(enabled ? "available" : "disabled");
+            if (!enabled) {
+              element.setAttribute("aria-disabled", "true");
+            }
+          }
         });
+      }
+
+      function getStandardizationService(serviceKey) {
+        return STANDARDIZATION_SERVICES.find((service) => service.key === serviceKey) || null;
+      }
+
+      function ensureApplicantServiceContext() {
+        currentApplicantModule = "standardization";
+        if (!currentApplicantService) {
+          currentApplicantService = APPLICANT_ACTIVE_SERVICE_KEY;
+        }
+      }
+
+      function renderApplicantModuleCards() {
+        applicantModuleCards.innerHTML = "";
+        APPLICANT_MODULES.forEach((module) => {
+          const card = document.createElement("article");
+          card.className = "module-card";
+          if (!module.available) {
+            card.classList.add("is-disabled");
+          }
+
+          const title = document.createElement("div");
+          title.className = "module-card-title";
+          title.textContent = module.title;
+
+          const description = document.createElement("div");
+          description.className = "module-card-description";
+          description.textContent = module.description;
+
+          const actionButton = document.createElement("button");
+          actionButton.type = "button";
+          actionButton.className = module.available ? "btn-primary" : "btn-secondary";
+          actionButton.textContent = module.available ? "Перейти" : "В работе";
+          actionButton.disabled = !module.available;
+          actionButton.addEventListener("click", async () => {
+            await navigateApplicantModule(module.key);
+          });
+
+          card.append(title, description, actionButton);
+          applicantModuleCards.appendChild(card);
+        });
+      }
+
+      function renderStandardizationServices() {
+        standardizationServiceCards.innerHTML = "";
+        STANDARDIZATION_SERVICES.forEach((service) => {
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className = "service-card";
+          if (service.available) {
+            card.classList.add("is-enabled");
+          } else {
+            card.disabled = true;
+          }
+          const label = document.createElement("span");
+          label.className = "service-card-label";
+          label.textContent = service.title;
+          card.appendChild(label);
+          if (service.available) {
+            card.addEventListener("click", async () => {
+              await openApplicantStandardizationService(service.key);
+            });
+          }
+          standardizationServiceCards.appendChild(card);
+        });
+      }
+
+      function resetApplicantModuleViews() {
+        applicantHomeView.classList.add("is-hidden");
+        standardizationView.classList.add("is-hidden");
+      }
+
+      function discardUnsavedApplicantDraftIfNeeded() {
+        if (!isApplicantUser()) {
+          return true;
+        }
+        if (currentView !== "form" || currentApplicationId || !formDirty) {
+          return true;
+        }
+        const confirmed = window.confirm(
+          "Заявка еще не сохранена. При возврате в другой раздел введенные данные будут потеряны. Продолжить?",
+        );
+        if (!confirmed) {
+          return false;
+        }
+        resetWizardForm();
+        setStatusChip("DRAFT");
+        currentApplicationId = null;
+        localStorage.removeItem(config.draftStorageKey);
+        return true;
       }
 
       function setFormButtonsEnabled(enabled) {
@@ -2263,9 +2681,6 @@
         setApplicationProgressVisible(currentFormMode === "applicant" && Boolean(currentApplicationId));
         if (currentFormMode === "applicant") {
           buttons.next.textContent = currentApplicantCanEdit ? "Сохранить и продолжить" : "Следующий шаг";
-          pageTitle.textContent = currentApplicantCanEdit
-            ? "Заявка на проведение сертификации"
-            : "Просмотр заявки";
           applicationProgressStatusValue.textContent = status || "-";
         }
       }
@@ -2408,17 +2823,126 @@
         renderStep();
       }
 
+      function showApplicantHomeView() {
+        currentView = "applicant-home";
+        currentFormMode = "applicant";
+        currentApplicantModule = "home";
+        currentApplicantService = null;
+        currentApplicationId = null;
+        currentOpsApplication = null;
+        resetPostIssuanceForm();
+        setActiveMenu("home");
+        pageEyebrow.textContent = "Рабочее место заявителя";
+        pageTitle.textContent = "Главная";
+        setBreadcrumb([]);
+        shellContainer.classList.add("single-column");
+        sidebarPanel.classList.add("is-hidden");
+        resetApplicantModuleViews();
+        applicantHomeView.classList.remove("is-hidden");
+        registryView.classList.add("is-hidden");
+        opsRegistryView.classList.add("is-hidden");
+        certificatesRegistryView.classList.add("is-hidden");
+        formView.classList.add("is-hidden");
+        setApplicantActionsVisible(false);
+        setApplicantActionButtonsEnabled(false);
+        setOpsActionsVisible(false);
+        setApplicationProgressVisible(false);
+        setOpsButtonsEnabled(false);
+        setFormButtonsEnabled(false);
+        buttons.createApplication.disabled = true;
+        updateHeaderMeta();
+      }
+
+      function showStandardizationModuleView() {
+        currentView = "standardization";
+        currentFormMode = "applicant";
+        currentApplicantModule = "standardization";
+        currentApplicantService = null;
+        currentApplicationId = null;
+        currentOpsApplication = null;
+        resetPostIssuanceForm();
+        setActiveMenu("standardization");
+        pageEyebrow.textContent = "Модуль заявителя";
+        pageTitle.textContent = APPLICANT_STANDARDIZATION_TITLE;
+        setBreadcrumb([]);
+        shellContainer.classList.add("single-column");
+        sidebarPanel.classList.add("is-hidden");
+        resetApplicantModuleViews();
+        standardizationView.classList.remove("is-hidden");
+        registryView.classList.add("is-hidden");
+        opsRegistryView.classList.add("is-hidden");
+        certificatesRegistryView.classList.add("is-hidden");
+        formView.classList.add("is-hidden");
+        setApplicantActionsVisible(false);
+        setApplicantActionButtonsEnabled(false);
+        setOpsActionsVisible(false);
+        setApplicationProgressVisible(false);
+        setOpsButtonsEnabled(false);
+        setFormButtonsEnabled(false);
+        buttons.createApplication.disabled = true;
+        updateHeaderMeta();
+      }
+
+      async function navigateApplicantModule(moduleKey) {
+        if (!discardUnsavedApplicantDraftIfNeeded()) {
+          return;
+        }
+        if (moduleKey === "home") {
+          showApplicantHomeView();
+          writeOutput("Главная", "Открыта главная страница заявителя с модульными карточками.");
+          return;
+        }
+        if (moduleKey !== "standardization") {
+          writeOutput("Модуль в работе", "Переход в этот модуль пока недоступен.");
+          return;
+        }
+        showStandardizationModuleView();
+        writeOutput("Стандартизация", "Открыт модуль стандартизации.");
+      }
+
+      async function openApplicantStandardizationService(serviceKey) {
+        if (!discardUnsavedApplicantDraftIfNeeded()) {
+          return;
+        }
+        const service = getStandardizationService(serviceKey);
+        if (!service || !service.available) {
+          writeOutput("Сервис в работе", "Переход в этот сервис пока недоступен.");
+          return;
+        }
+        currentApplicantModule = "standardization";
+        currentApplicantService = serviceKey;
+        await loadApplicationsRegistry();
+        showRegistryView();
+      }
+
       function showRegistryView() {
         currentView = "registry";
         currentFormMode = "applicant";
         currentOpsApplication = null;
         currentApplicationId = null;
         resetPostIssuanceForm();
-        setActiveMenu("applications");
-        pageEyebrow.textContent = "Раздел заявок";
-        pageTitle.textContent = "Заявки";
+        if (isApplicantUser()) {
+          ensureApplicantServiceContext();
+          const service = getStandardizationService(currentApplicantService);
+          setActiveMenu("standardization");
+          pageEyebrow.textContent = "Модуль заявителя";
+          pageTitle.textContent = APPLICANT_STANDARDIZATION_TITLE;
+          setBreadcrumb([APPLICANT_STANDARDIZATION_TITLE, service ? service.title : "Сервис"]);
+          applicationsRegistryTitle.textContent = service ? service.title : "Реестр моих заявок";
+          applicationsRegistrySub.textContent =
+            "Текущий реализованный список ваших заявок по выбранному сервису стандартизации.";
+        } else {
+          setActiveMenu("applications");
+          pageEyebrow.textContent = "Раздел заявок";
+          pageTitle.textContent = "Заявки";
+          setBreadcrumb([]);
+          applicationsRegistryTitle.textContent = "Реестр моих заявок";
+          applicationsRegistrySub.textContent =
+            "Список заявок текущего пользователя с переходом в просмотр или продолжение заполнения.";
+        }
         shellContainer.classList.add("single-column");
         sidebarPanel.classList.add("is-hidden");
+        resetApplicantModuleViews();
         registryView.classList.remove("is-hidden");
         opsRegistryView.classList.add("is-hidden");
         certificatesRegistryView.classList.add("is-hidden");
@@ -2443,8 +2967,10 @@
         setActiveMenu("applications");
         pageEyebrow.textContent = "Раздел заявок ОПС";
         pageTitle.textContent = "Реестр заявок заявителей";
+        setBreadcrumb([]);
         shellContainer.classList.add("single-column");
         sidebarPanel.classList.add("is-hidden");
+        resetApplicantModuleViews();
         registryView.classList.add("is-hidden");
         opsRegistryView.classList.remove("is-hidden");
         certificatesRegistryView.classList.add("is-hidden");
@@ -2467,8 +2993,10 @@
         setActiveMenu("certificates");
         pageEyebrow.textContent = "Раздел сертификатов";
         pageTitle.textContent = "Реестр сертификатов";
+        setBreadcrumb([]);
         shellContainer.classList.add("single-column");
         sidebarPanel.classList.add("is-hidden");
+        resetApplicantModuleViews();
         registryView.classList.add("is-hidden");
         opsRegistryView.classList.add("is-hidden");
         certificatesRegistryView.classList.remove("is-hidden");
@@ -2490,18 +3018,24 @@
         currentFormMode = mode === "ops" ? "ops" : "applicant";
         currentView = currentFormMode === "ops" ? "ops-form" : "form";
         resetPostIssuanceForm();
-        setActiveMenu("applications");
         if (currentFormMode === "ops") {
+          setActiveMenu("applications");
           pageEyebrow.textContent = "Раздел заявок ОПС";
           pageTitle.textContent = "Проверка и решение по заявке";
+          setBreadcrumb([]);
           buttons.next.textContent = "Следующий шаг";
         } else {
-          pageEyebrow.textContent = "Сертификация соответствия продукции РК";
-          pageTitle.textContent = "Заявка на проведение сертификации";
+          ensureApplicantServiceContext();
+          const service = getStandardizationService(currentApplicantService);
+          setActiveMenu("standardization");
+          pageEyebrow.textContent = "Модуль заявителя";
+          pageTitle.textContent = APPLICANT_STANDARDIZATION_TITLE;
+          setBreadcrumb([APPLICANT_STANDARDIZATION_TITLE, service ? service.title : "Сервис"]);
           buttons.next.textContent = "Сохранить и продолжить";
         }
         shellContainer.classList.remove("single-column");
         sidebarPanel.classList.remove("is-hidden");
+        resetApplicantModuleViews();
         registryView.classList.add("is-hidden");
         opsRegistryView.classList.add("is-hidden");
         certificatesRegistryView.classList.add("is-hidden");
@@ -2985,16 +3519,19 @@
       function setProtectedVisibility(visible) {
         mainPanel.classList.toggle("auth-only", !visible);
         appHeader.classList.toggle("is-hidden", !visible);
-        sessionPanel.classList.toggle("is-hidden", !visible);
+        sessionDock.classList.toggle("is-hidden", !visible);
         if (!visible) {
           shellContainer.classList.add("single-column");
           sidebarPanel.classList.add("is-hidden");
+          applicantHomeView.classList.add("is-hidden");
+          standardizationView.classList.add("is-hidden");
           registryView.classList.add("is-hidden");
           opsRegistryView.classList.add("is-hidden");
           certificatesRegistryView.classList.add("is-hidden");
           formView.classList.add("is-hidden");
           setOpsActionsVisible(false);
           setApplicantActionsVisible(true);
+          setSessionExpanded(false);
         }
         protectedContent.classList.toggle("is-hidden", !visible);
         authGate.classList.toggle("is-hidden", visible);
@@ -3300,7 +3837,15 @@
           showFormView();
           return;
         }
-        showRegistryView();
+        if (currentView === "registry") {
+          showRegistryView();
+          return;
+        }
+        if (currentView === "standardization") {
+          showStandardizationModuleView();
+          return;
+        }
+        showApplicantHomeView();
       }
 
       async function initAuth() {
@@ -3340,10 +3885,18 @@
 
         if (oidcSession.authenticated && isApplicantUser()) {
           try {
-            await loadApplicationsRegistry();
-            showRegistryView();
+            if (currentView === "registry") {
+              await loadApplicationsRegistry();
+              showRegistryView();
+            } else if (currentView === "form") {
+              showFormView();
+            } else if (currentView === "standardization") {
+              showStandardizationModuleView();
+            } else {
+              showApplicantHomeView();
+            }
           } catch (error) {
-            writeOutput("Ошибка загрузки реестра заявок", {
+            writeOutput("Ошибка инициализации applicant workspace", {
               message: error instanceof Error ? error.message : String(error),
             });
           }
@@ -3361,53 +3914,55 @@
         }
       }
 
-      menuApplications.addEventListener("click", async () => {
-        try {
-          if (!oidcSession.authenticated) {
-            throw new Error("Для доступа к внутренним разделам выполните вход через Keycloak");
-          }
-          if (isOpsUser()) {
-            await loadOpsRegistry();
-            showOpsRegistryView();
-            return;
-          }
-          if (isApplicantUser()) {
-            await loadApplicationsRegistry();
-            showRegistryView();
-            return;
-          }
-          throw new Error("Недостаточно прав для раздела заявок");
-        } catch (error) {
-          writeOutput("Ошибка открытия раздела заявок", {
-            message: error instanceof Error ? error.message : String(error),
-          });
+      async function handleMenuNavigation(target) {
+        if (!target) {
+          return;
         }
-      });
+        if (!oidcSession.authenticated) {
+          throw new Error("Для доступа к внутренним разделам выполните вход через Keycloak");
+        }
 
-      menuCertificates.addEventListener("click", async () => {
-        try {
-          if (!oidcSession.authenticated) {
-            throw new Error("Для доступа к внутреннему реестру выполните вход через Keycloak");
-          }
-          if (!isOpsUser() && !isApplicantUser()) {
-            throw new Error("Недостаточно прав для раздела сертификатов");
-          }
+        if (isApplicantUser()) {
+          await navigateApplicantModule(target);
+          return;
+        }
+
+        if (target === "home") {
+          writeOutput("Главная", "Раздел 'Главная' будет расширен в следующих тикетах.");
+          return;
+        }
+        if (target === "applications") {
+          await loadOpsRegistry();
+          showOpsRegistryView();
+          return;
+        }
+        if (target === "certificates") {
           await refreshCertificatesWorkspace();
           showCertificatesRegistryView();
-        } catch (error) {
-          writeOutput("Ошибка открытия реестра сертификатов", {
-            message: error instanceof Error ? error.message : String(error),
-          });
+          return;
         }
-      });
+        if (target === "dictionaries") {
+          writeOutput("Справочники", "CRUD-экран справочников не входит в MVP текущего этапа.");
+          return;
+        }
+        throw new Error("Недостаточно прав для выбранного раздела");
+      }
 
-      menuHome.addEventListener("click", () => {
-        writeOutput("Главная", "Раздел 'Главная' будет расширен в следующих тикетах.");
-      });
-
-      menuDictionaries.addEventListener("click", () => {
-        writeOutput("Справочники", "CRUD-экран справочников не входит в MVP текущего этапа.");
-      });
+      [menuHome, menuApplications, menuCertificates, menuDictionaries, menuConformity, menuStandardization].forEach(
+        (menuElement) => {
+          menuElement.addEventListener("click", async () => {
+            const target = menuElement.dataset.menuKey || "";
+            try {
+              await handleMenuNavigation(target);
+            } catch (error) {
+              writeOutput("Ошибка открытия раздела", {
+                target,
+                message: error instanceof Error ? error.message : String(error),
+              });
+            }
+          });
+        },
+      );
 
       buttons.prev.addEventListener("click", () => {
         if (currentStep > 0) {
@@ -3551,6 +4106,10 @@
         await loginWithOidc();
       });
 
+      sessionToggleBtn.addEventListener("click", () => {
+        setSessionExpanded(!sessionExpanded);
+      });
+
       buttons.refresh.addEventListener("click", async () => {
         if (!oidcSession.authenticated) {
           return;
@@ -3563,11 +4122,15 @@
           if (oidcSession.authenticated && (activeView === "cert-registry" || hadPostIssuanceOpen)) {
             await refreshCertificatesWorkspace();
             showCertificatesRegistryView();
-          } else if (oidcSession.authenticated && isApplicantUser()) {
+          } else if (oidcSession.authenticated && isApplicantUser() && activeView === "form") {
+            showFormView();
+          } else if (oidcSession.authenticated && isApplicantUser() && activeView === "registry") {
             await loadApplicationsRegistry();
-            if (currentView !== "form") {
-              showRegistryView();
-            }
+            showRegistryView();
+          } else if (oidcSession.authenticated && isApplicantUser() && activeView === "standardization") {
+            showStandardizationModuleView();
+          } else if (oidcSession.authenticated && isApplicantUser()) {
+            showApplicantHomeView();
           } else if (oidcSession.authenticated && isOpsUser()) {
             await loadOpsRegistry();
             showOpsRegistryView();
@@ -3584,7 +4147,7 @@
         if (!oidcSession.authenticated) {
           return;
         }
-        currentView = "registry";
+        currentView = "applicant-home";
         resetPostIssuanceForm();
         await logoutFromOidc();
       });
@@ -3664,9 +4227,12 @@
       }
 
       renderStep();
+      renderApplicantModuleCards();
+      renderStandardizationServices();
+      setSessionExpanded(false);
       setStatusChip("DRAFT");
       renderProcessByStatus("DRAFT");
-      setActiveMenu("applications");
+      setActiveMenu("home");
       setApplicantActionsVisible(true);
       setOpsActionsVisible(false);
       setOpsButtonsEnabled(false);

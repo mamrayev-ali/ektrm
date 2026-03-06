@@ -141,10 +141,10 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Feature-level state by domain modules (applications, certificates, registry, notifications).
   - Realtime updates via WebSocket + fallback refresh.
 - Where styles/tokens live:
-  - Базовый визуальный источник: `prototype.html`.
+  - Базовые визуальные источники: `prototype.html` и актуальный референс `.agentkit/_temp/prototype_v2.html`.
   - Локальные UI-правила: `.agentkit/rules/local/ui-design.md`.
 - How UI is verified vs design:
-  - Сверка на этапе разработки по `prototype.html`, `TECH_SPEC.md`, `PDF_ORDERS_DETAILED.md` и BPMN jpg.
+  - Сверка на этапе разработки по `prototype.html`, `.agentkit/_temp/prototype_v2.html`, `TECH_SPEC.md`, `PDF_ORDERS_DETAILED.md` и BPMN jpg.
   - Для e2e smoke планируется Playwright-пакет (тикет T13).
 
 ## 7) Testing & verification map
@@ -409,9 +409,13 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/tests/test_files_api.py`.
 - `frontend/index.html` — T5/T6/T8/T9 UI для заявителя и OPS (Ордер 3 + внутренний реестр сертификатов + post-issuance).
   - public surface / key exports:
-    - applicant default-экран: `Главная` с карточками модулей `Аккредитация`, `Государственный контроль`, `Метрология`, `Оценка соответствия`, `Стандартизация`; активен только модуль `Стандартизация`, остальные модули и их переходы disabled.
-    - applicant shell для `Стандартизация`: root-экран с карточками сервисов и breadcrumb-навигацией `СТАНДАРТИЗАЦИЯ / <сервис>`; из сервисов активен только `Сертификат соответствия продукции РК`.
-    - сервис `Сертификат соответствия продукции РК`: полноширинный реестр заявок текущего пользователя с action `Открыть`/`Продолжить` и кнопкой `Подать новую заявку`.
+    - единая дизайн-система приведена к референсу `.agentkit/_temp/prototype_v2.html`: бело-синий shell, serif-заголовки, обновленные карточки, таблицы, кнопки, формы и цветовая шкала состояний без изменения существующих `id` и JS-связок.
+    - applicant landing `Главная` теперь оформлена как лендинг внутри кабинета и максимально приближена к `prototype_v2`: hero-блок, сетка сервисов, блок `Система в цифрах`, `Процесс подачи заявки`, `Нормативные правовые акты` и `Частые вопросы`; CTA используют существующую навигацию и не меняют бизнес-логику.
+    - OIDC login helper сохраняет PKCE `S256`, но теперь умеет fallback на встроенную JS-реализацию SHA-256, если браузер открывает страницу по insecure origin и не предоставляет `crypto.subtle.digest`; это устраняет падение кнопки `Войти через Keycloak` на server-IP/HTTP окружениях.
+    - applicant default-экран: `Главная` с карточками модулей `Аккредитация`, `Государственный контроль`, `Метрология`, `Оценка соответствия`, `Стандартизация`; активен модуль `Оценка соответствия`, `Стандартизация` и остальные неподтвержденные модули отображаются disabled.
+    - header для внутренних экранов переведен в single-entry navigation: верхнее меню скрыто, переходы выполняются из `Главная`, а на applicant/form/certificate view показывается кнопка `Назад` в верхнем левом углу; footer не затрагивается.
+    - applicant shell для `Оценка соответствия`: root-экран с витриной сервисов, карточками в новом стиле и breadcrumb-навигацией `ОЦЕНКА СООТВЕТСТВИЯ / <сервис>`; из сервисов активен только `Сертификат соответствия продукции РК`.
+    - сервис `Сертификат соответствия продукции РК`: полноширинный реестр заявок текущего пользователя с action `Открыть`/`Продолжить` и кнопкой `Подать новую заявку`; это тот же рабочий контур, ранее ошибочно размещенный под модулем `Стандартизация`.
     - applicant-режим формы: открытие заявки из реестра с тем же wizard layout, показом блока `Ход выполнения` (текущий статус + history transitions) и automatic switch `editable` (`DRAFT`, `REVISION_REQUESTED`) vs `read-only` (остальные статусы).
     - отдельный OPS-экран: полноширинный реестр отправленных заявок заявителей для роли `OPS` (на базе `GET /applications/ops/queue`) с action `Открыть`.
     - отдельный режим wizard (8 шагов): `Заявитель`, `Адрес заявителя`, `ОПС`, `Схема сертификации`, `Данные по продукции`, `Приложение`, `Документы`, `Примечание`.
@@ -434,6 +438,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - `frontend/public-registry.html` — отдельная публичная read-only страница реестра сертификатов (T8).
   - public surface / key exports:
     - listing опубликованных сертификатов через `GET /registry/public`.
+    - обновленный публичный landing-header в том же визуальном языке `prototype_v2`: hero, статистические карточки, переработанная таблица и поисковый toolbar без изменения JS-fetch логики.
   - invariants / assumptions:
     - без авторизации, без операций записи.
   - dependencies:
@@ -569,6 +574,10 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-06 [keycloak-login-http-pkce-fallback] В `frontend/index.html` login flow через Keycloak перестал падать на `http://<server-ip>:<port>`: для PKCE challenge добавлен fallback SHA-256 без деградации `code_challenge_method=S256`, если `crypto.subtle.digest` недоступен на insecure origin.
+- 2026-03-06 [prototype-v2-home-navigation] В `frontend/index.html` applicant `Главная` доведена до структуры прототипа `prototype_v2` по блокам (`Сервисы`, `Система в цифрах`, `Процесс подачи заявки`, `Нормативные правовые акты`, `Частые вопросы`), верхнее меню в header скрыто, а для внутренних applicant/form/certificate экранов добавлена кнопка `Назад` в верхнем левом углу с возвратом по текущему view без изменения API и role-based flow.
+- 2026-03-06 [conformity-module-reassignment] В `frontend/index.html` рабочий applicant-контур с сервисом `Сертификат соответствия продукции РК` перенесен из модуля `Стандартизация` в `Оценка соответствия`: `Оценка соответствия` разблокирован, `Стандартизация` снова disabled, breadcrumb/заголовки и CTA переведены на новый модуль без изменения API и форменного сценария.
+- 2026-03-06 [prototype-v2-ui-alignment] В `frontend/index.html` UI-shell и applicant landing приведены к референсу `.agentkit/_temp/prototype_v2.html`: добавлены новые токены/палитра, hero-блок, метрики, FAQ/процессные карточки, restyle модулей/сервисов/реестров/форм/кнопок/таблиц, а новые CTA используют существующие переходы без изменения API-потока; `frontend/public-registry.html` переведен в тот же визуальный язык с hero и переработанной таблицей.
 - 2026-03-06 [termination-reason-dictionary-alignment] В `services/runtime/app/seed/reference_data_seed.py` расширен `termination_reason` до нормативного списка для Applicant/OPS, в `post_issuance_service.py` добавлена backend-валидация `request_source` и допустимых причин прекращения, во `frontend/index.html` включены role-aware фильтрация причин и pre-submit валидация обязательных post-issuance полей, а `scripts/bootstrap.sh` / `scripts/bootstrap.ps1` теперь после миграций запускают `python -m app.seed.reference_data_sync`; добавлен новый seed-sync модуль и обновлены тесты/README.
 - 2026-03-06 [post-issuance-draft-reuse] В `services/runtime/app/services/post_issuance_service.py` повторное создание post-issuance процесса для того же сертификата и того же действия теперь переиспользует существующий `DRAFT` / `REVISION_REQUESTED` вместо `409`; добавлены регрессионные тесты в `test_post_issuance_service.py` и `test_post_issuance_api.py`.
 - 2026-03-06 [bootstrap-auto-alembic-upgrade] В `services/runtime/Dockerfile` добавлены `alembic.ini` и каталог `alembic`, а `scripts/bootstrap.sh` / `scripts/bootstrap.ps1` теперь после `docker compose up -d --build` автоматически выполняют `alembic upgrade head` через контейнер `gateway-service`; `README.md` обновлен container-run инструкциями для миграций и прямого запуска без bootstrap.

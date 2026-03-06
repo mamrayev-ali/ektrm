@@ -830,12 +830,1494 @@
         }
       }
     </style>
+    <style>
+      :root {
+        --black: #0a0a0b;
+        --dark: #1c1c1e;
+        --text-main: #2c2c2e;
+        --text-muted: #6c6c70;
+        --text-subtle: #aeaeb2;
+        --line: #e5e5ea;
+        --surface: #ffffff;
+        --surface-soft: #f9f9fb;
+        --surface-soft-2: #fcfcfe;
+        --brand: #0071e3;
+        --brand-strong: #0059b4;
+        --brand-soft: #f0f7ff;
+        --danger: #d04141;
+        --danger-soft: #fff4f4;
+        --success: #30d158;
+        --success-dark: #1d7b3a;
+        --success-soft: #f0fff4;
+        --shadow-soft: 0 18px 44px rgba(10, 10, 11, 0.06);
+        --shadow-hover: 0 22px 54px rgba(10, 10, 11, 0.1);
+      }
+
+      html {
+        background: var(--surface);
+      }
+
+      body {
+        font-family: "DM Sans", "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 0% 0%, rgba(0, 113, 227, 0.1), transparent 25%),
+          radial-gradient(circle at 100% 0%, rgba(48, 209, 88, 0.08), transparent 20%),
+          linear-gradient(180deg, #ffffff 0%, #fafafc 100%);
+      }
+
+      .header {
+        z-index: 20;
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(18px);
+        border-bottom-color: rgba(229, 229, 234, 0.9);
+        box-shadow: 0 8px 24px rgba(10, 10, 11, 0.03);
+      }
+
+      .header-inner {
+        max-width: 1200px;
+        min-height: 64px;
+        padding: 0 28px;
+        gap: 18px;
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand,
+      .auth-gate-logo,
+      h1,
+      .registry-title,
+      .section-title,
+      .landing-title,
+      .home-hero-title {
+        font-family: "Cormorant Garamond", "Georgia", serif;
+        letter-spacing: -0.04em;
+      }
+
+      .brand {
+        color: var(--black);
+        font-size: 1.7rem;
+      }
+
+      .brand em,
+      .auth-gate-logo em {
+        color: var(--brand);
+      }
+
+      .header-back {
+        min-height: 36px;
+        padding: 0 12px 0 10px;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.96);
+        color: var(--text-main);
+        box-shadow: none;
+      }
+
+      .header-back:hover:not(:disabled) {
+        background: #f5f7fb;
+        color: var(--brand);
+        transform: none;
+      }
+
+      .header-back-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        color: var(--brand);
+        font-size: 0.94rem;
+      }
+
+      .menu {
+        gap: 4px;
+      }
+
+      .menu-item {
+        min-height: 36px;
+        padding: 8px 14px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        font-weight: 500;
+        transition:
+          color 0.18s ease,
+          background-color 0.18s ease,
+          border-color 0.18s ease;
+      }
+
+      .menu-item.active {
+        border-color: var(--brand);
+        background: var(--brand);
+        color: var(--surface);
+        box-shadow: 0 10px 24px rgba(0, 113, 227, 0.18);
+      }
+
+      .header.applicant-mode .menu-item.available {
+        border-color: rgba(0, 113, 227, 0.18);
+        background: var(--brand-soft);
+        color: var(--brand);
+      }
+
+      .header.applicant-mode .menu-item.disabled {
+        border-color: var(--line);
+        background: #f5f5f7;
+        color: var(--text-subtle);
+      }
+
+      .header-right {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+      }
+
+      .header-right span:first-child {
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(48, 209, 88, 0.3);
+        background: var(--success-soft);
+        color: var(--success-dark);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .shell {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 28px 28px 22px;
+        gap: 20px;
+      }
+
+      .card {
+        border-color: var(--line);
+        border-radius: 24px;
+        box-shadow: var(--shadow-soft);
+      }
+
+      .sidebar {
+        top: 88px;
+        padding: 18px;
+        background:
+          linear-gradient(180deg, rgba(240, 247, 255, 0.92), rgba(255, 255, 255, 0.98)),
+          var(--surface);
+      }
+
+      .app-meta {
+        padding: 16px;
+        border-radius: 18px;
+        border-color: rgba(0, 113, 227, 0.14);
+        background:
+          linear-gradient(180deg, rgba(240, 247, 255, 0.9), rgba(255, 255, 255, 0.98)),
+          var(--surface);
+      }
+
+      .meta-id {
+        color: var(--black);
+        font-size: 0.92rem;
+      }
+
+      .meta-sub {
+        color: var(--text-muted);
+      }
+
+      .chip {
+        min-height: 28px;
+        padding: 0 12px;
+        border: 1px solid transparent;
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .chip.warning {
+        border-color: rgba(0, 113, 227, 0.18);
+        background: var(--brand-soft);
+        color: var(--brand);
+      }
+
+      .chip.success {
+        border-color: rgba(48, 209, 88, 0.28);
+        background: var(--success-soft);
+        color: var(--success-dark);
+      }
+
+      .chip.danger {
+        border-color: rgba(208, 65, 65, 0.2);
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .step-item {
+        gap: 10px;
+        padding: 10px 12px;
+        border-color: var(--line);
+        border-radius: 16px;
+        background: var(--surface);
+        color: var(--text-muted);
+      }
+
+      .step-item.active {
+        border-color: rgba(0, 113, 227, 0.25);
+        background: var(--brand-soft);
+        color: var(--brand);
+      }
+
+      .step-item.done {
+        border-color: rgba(48, 209, 88, 0.24);
+        background: var(--success-soft);
+        color: var(--success-dark);
+      }
+
+      .bullet {
+        width: 30px;
+        height: 30px;
+        border-color: var(--line);
+        font-weight: 700;
+        background: var(--surface);
+      }
+
+      .step-item.active .bullet {
+        border-color: var(--brand);
+        background: var(--brand);
+      }
+
+      .step-item.done .bullet {
+        border-color: rgba(48, 209, 88, 0.28);
+        background: var(--success-soft);
+        color: var(--success-dark);
+      }
+
+      .main {
+        min-width: 0;
+        padding: 28px;
+      }
+
+      .main.auth-only {
+        min-height: 720px;
+        align-items: center;
+      }
+
+      .page-head {
+        margin-bottom: 24px;
+        gap: 8px;
+      }
+
+      .page-head.is-hidden {
+        display: none;
+      }
+
+      .page-eyebrow,
+      .landing-eyebrow,
+      .hero-visual-title {
+        color: var(--brand);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .page-breadcrumb {
+        color: var(--text-muted);
+        font-size: 0.84rem;
+      }
+
+      h1 {
+        margin: 0;
+        color: var(--black);
+        font-size: clamp(2rem, 3vw, 3rem);
+        line-height: 1.05;
+      }
+
+      .auth-gate {
+        width: min(1080px, 100%);
+        padding: 40px;
+        border-color: var(--line);
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at right top, rgba(0, 113, 227, 0.12), transparent 22%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 249, 251, 0.98)),
+          var(--surface);
+        box-shadow: var(--shadow-soft);
+        text-align: left;
+      }
+
+      .auth-gate-logo {
+        font-size: 2.2rem;
+        color: var(--black);
+      }
+
+      .auth-gate-title {
+        margin-top: 14px;
+        color: var(--black);
+        font-family: "Cormorant Garamond", "Georgia", serif;
+        font-size: clamp(2rem, 3vw, 3rem);
+        line-height: 1.02;
+      }
+
+      .auth-gate-text {
+        max-width: 600px;
+        margin-top: 12px;
+        color: var(--text-muted);
+        font-size: 1rem;
+        line-height: 1.7;
+      }
+
+      .auth-gate-meta {
+        display: inline-flex;
+        margin-top: 18px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(48, 209, 88, 0.24);
+        background: var(--success-soft);
+        color: var(--success-dark);
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      #authGateLoginBtn {
+        margin-top: 24px;
+      }
+
+      .registry-view {
+        display: grid;
+        gap: 22px;
+      }
+
+      .registry-head {
+        align-items: flex-end;
+        gap: 18px;
+      }
+
+      .registry-title,
+      .section-title {
+        color: var(--black);
+        font-size: 1.7rem;
+        line-height: 1.08;
+      }
+
+      .registry-sub,
+      .section-sub {
+        margin-top: 6px;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        line-height: 1.65;
+      }
+
+      .registry-table-wrap,
+      .section {
+        border-color: var(--line);
+        border-radius: 22px;
+      }
+
+      .registry-table th,
+      .registry-table td {
+        padding: 15px 14px;
+        border-bottom-color: var(--line);
+        font-size: 0.86rem;
+      }
+
+      .registry-table th {
+        color: var(--text-subtle);
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .registry-table thead {
+        background: #fbfbfd;
+      }
+
+      .registry-table tbody tr:hover {
+        background: #fcfdff;
+      }
+
+      .registry-empty {
+        padding: 22px;
+        color: var(--text-muted);
+      }
+
+      .section-head {
+        padding: 18px 20px;
+        border-bottom-color: var(--line);
+        background:
+          linear-gradient(180deg, rgba(249, 249, 251, 0.96), rgba(255, 255, 255, 0.96)),
+          var(--surface);
+      }
+
+      .section-body {
+        padding: 18px 20px;
+      }
+
+      .grid-2,
+      .grid-3,
+      .doc-grid {
+        gap: 14px;
+      }
+
+      .field {
+        gap: 8px;
+      }
+
+      .field label {
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .field input,
+      .field select,
+      .field textarea {
+        min-height: 46px;
+        padding: 12px 14px;
+        border-color: var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+        color: var(--text-main);
+        transition:
+          border-color 0.16s ease,
+          box-shadow 0.16s ease,
+          background-color 0.16s ease;
+      }
+
+      .field input:focus,
+      .field select:focus,
+      .field textarea:focus {
+        outline: none;
+        border-color: rgba(0, 113, 227, 0.45);
+        box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.08);
+      }
+
+      .field textarea {
+        min-height: 124px;
+      }
+
+      .field input:disabled,
+      .field select:disabled,
+      .field textarea:disabled,
+      .field input[readonly],
+      .field textarea[readonly] {
+        background: #f5f6f8;
+        color: #64646a;
+      }
+
+      .field .hint {
+        color: var(--text-subtle);
+        font-size: 0.78rem;
+      }
+
+      .field.error input,
+      .field.error select,
+      .field.error textarea {
+        border-color: rgba(208, 65, 65, 0.5);
+        background: #fff7f7;
+      }
+
+      .field .error-text {
+        color: var(--danger);
+        font-size: 0.78rem;
+      }
+
+      .doc-item {
+        padding: 14px;
+        border-color: var(--line);
+        border-radius: 16px;
+        background: var(--surface-soft);
+      }
+
+      .doc-item label {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .obligation {
+        padding: 14px;
+        border-color: rgba(0, 113, 227, 0.18);
+        border-radius: 16px;
+        background: var(--brand-soft);
+        color: var(--text-muted);
+        line-height: 1.65;
+      }
+
+      .checks {
+        margin-top: 14px;
+        gap: 10px;
+        font-size: 0.88rem;
+      }
+
+      .checks label {
+        gap: 10px;
+      }
+
+      .checks input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin-top: 2px;
+        accent-color: var(--brand);
+      }
+
+      .action-bar {
+        margin-top: 16px;
+        gap: 10px;
+      }
+
+      .process {
+        margin-bottom: 18px;
+        gap: 12px;
+      }
+
+      .process-step {
+        padding: 14px;
+        border-color: var(--line);
+        border-radius: 18px;
+      }
+
+      .process-step .n {
+        color: var(--text-subtle);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .process-step .name {
+        margin-top: 8px;
+        color: var(--black);
+        font-size: 1rem;
+      }
+
+      .process-step .who {
+        margin-top: 6px;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+
+      .process-step.active {
+        border-color: rgba(0, 113, 227, 0.24);
+        background: var(--brand-soft);
+      }
+
+      .process-step.done {
+        border-color: rgba(48, 209, 88, 0.24);
+        background: var(--success-soft);
+      }
+
+      button,
+      .btn-primary,
+      .btn-secondary,
+      .btn-danger {
+        min-height: 44px;
+        padding: 11px 18px;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        font: inherit;
+        font-size: 0.9rem;
+        font-weight: 600;
+        line-height: 1;
+        text-decoration: none;
+        transition:
+          background-color 0.16s ease,
+          color 0.16s ease,
+          border-color 0.16s ease,
+          box-shadow 0.16s ease,
+          transform 0.16s ease;
+      }
+
+      .btn-primary {
+        background: var(--brand);
+        color: var(--surface);
+        box-shadow: 0 14px 28px rgba(0, 113, 227, 0.18);
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background: var(--brand-strong);
+        transform: translateY(-1px);
+      }
+
+      .btn-secondary {
+        border-color: var(--line);
+        background: var(--surface);
+        color: var(--text-main);
+      }
+
+      .btn-secondary:hover:not(:disabled) {
+        background: #f5f7fb;
+        border-color: rgba(0, 113, 227, 0.2);
+        color: var(--brand);
+      }
+
+      .btn-danger {
+        border-color: #f1d7d7;
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      button:disabled,
+      .btn-primary:disabled,
+      .btn-secondary:disabled,
+      .btn-danger:disabled {
+        border-color: var(--line);
+        background: #f2f3f5;
+        color: var(--text-subtle);
+        box-shadow: none;
+        transform: none;
+      }
+
+      .ops-status-row {
+        color: var(--text-muted);
+      }
+
+      .ops-history {
+        margin-top: 12px;
+        max-height: 220px;
+        padding: 10px 12px;
+        border-color: var(--line);
+        border-radius: 16px;
+        background: var(--surface-soft);
+      }
+
+      .ops-history-item {
+        padding: 8px 0;
+        border-bottom-color: var(--line);
+        font-size: 0.84rem;
+        line-height: 1.55;
+      }
+
+      .session-dock {
+        max-width: 1200px;
+        margin: 0 auto 24px;
+        padding: 0 28px;
+      }
+
+      .session-toggle {
+        min-height: 40px;
+        padding: 0 14px;
+        border-color: var(--line);
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--text-muted);
+      }
+
+      .session-toggle:hover {
+        background: #f5f7fb;
+      }
+
+      .session-toggle-icon {
+        color: var(--brand);
+      }
+
+      .session {
+        padding: 16px;
+        border-color: var(--line);
+        border-radius: 22px;
+        background: var(--surface);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .session-meta {
+        color: var(--text-muted);
+      }
+
+      .api-output {
+        margin-top: 14px;
+        max-height: 300px;
+        padding: 14px;
+        border-color: #151d27;
+        border-radius: 18px;
+        background: #0f1720;
+        color: #d9edf2;
+        line-height: 1.55;
+      }
+
+      .home-hero,
+      .service-card-wrap,
+      .home-panel {
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 249, 251, 0.98)),
+          var(--surface);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .home-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+        gap: 28px;
+        padding: 32px;
+      }
+
+      .home-hero-content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        padding: 6px 14px;
+        border: 1px solid rgba(48, 209, 88, 0.24);
+        border-radius: 999px;
+        background: var(--success-soft);
+        color: var(--success-dark);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hero-eyebrow::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--success);
+      }
+
+      .home-hero-title {
+        margin: 20px 0 0;
+        color: var(--black);
+        font-size: clamp(2.6rem, 4vw, 4rem);
+        line-height: 0.98;
+      }
+
+      .home-hero-title span {
+        color: var(--brand);
+      }
+
+      .home-hero-sub {
+        max-width: 520px;
+        margin-top: 18px;
+        color: var(--text-muted);
+        font-size: 1rem;
+        line-height: 1.75;
+      }
+
+      .home-hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .home-hero-visual {
+        position: relative;
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--surface-soft);
+      }
+
+      .hero-visual-badge {
+        position: absolute;
+        top: -12px;
+        right: 20px;
+        min-height: 30px;
+        padding: 0 12px;
+        border-radius: 999px;
+        background: var(--success);
+        color: var(--surface);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      .hero-metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .hero-metric,
+      .info-card {
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface);
+      }
+
+      .hero-metric-value {
+        color: var(--black);
+        font-family: "Cormorant Garamond", "Georgia", serif;
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .hero-metric-value.accent {
+        color: var(--brand);
+      }
+
+      .hero-metric-label {
+        margin-top: 6px;
+        color: var(--text-subtle);
+        font-size: 0.78rem;
+        line-height: 1.45;
+      }
+
+      .hero-progress {
+        margin-top: 14px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface);
+      }
+
+      .hero-progress-row + .hero-progress-row {
+        margin-top: 14px;
+      }
+
+      .hero-progress-label {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+        color: var(--text-main);
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .hero-progress-label span {
+        color: var(--text-subtle);
+        font-weight: 500;
+      }
+
+      .hero-progress-track {
+        height: 6px;
+        border-radius: 999px;
+        background: var(--line);
+        overflow: hidden;
+      }
+
+      .hero-progress-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--brand), var(--success));
+      }
+
+      .landing-section {
+        display: grid;
+        gap: 18px;
+      }
+
+      .landing-section-head {
+        max-width: 640px;
+      }
+
+      .landing-section.centered .landing-section-head {
+        max-width: 760px;
+        margin: 0 auto;
+        text-align: center;
+      }
+
+      .landing-title {
+        margin-top: 8px;
+        color: var(--black);
+        font-size: clamp(2rem, 3vw, 2.75rem);
+        line-height: 1.05;
+      }
+
+      .landing-sub {
+        margin-top: 12px;
+        color: var(--text-muted);
+        font-size: 0.98rem;
+        line-height: 1.7;
+      }
+
+      .module-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .module-card,
+      .service-card {
+        position: relative;
+        border-color: var(--line);
+        border-radius: 22px;
+        background: var(--surface);
+        box-shadow: 0 12px 30px rgba(10, 10, 11, 0.04);
+      }
+
+      .module-card {
+        padding: 22px;
+        gap: 16px;
+      }
+
+      .module-card.is-disabled {
+        background: var(--surface-soft-2);
+      }
+
+      .module-card-top,
+      .service-card-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .module-card-icon,
+      .service-card-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid rgba(48, 209, 88, 0.24);
+        background: var(--success-soft);
+        color: var(--success-dark);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .module-card.is-disabled .module-card-icon,
+      .service-card:disabled .service-card-icon {
+        border-color: var(--line);
+        background: #f3f3f5;
+        color: var(--text-subtle);
+      }
+
+      .module-card-badge,
+      .service-card-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: var(--brand-soft);
+        color: var(--brand);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .module-card.is-disabled .module-card-badge,
+      .service-card:disabled .service-card-badge {
+        background: #f3f3f5;
+        color: var(--text-subtle);
+      }
+
+      .module-card-title {
+        color: var(--black);
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      .module-card-description {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        line-height: 1.65;
+      }
+
+      .service-card-wrap {
+        padding: 28px;
+      }
+
+      .service-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .service-card {
+        min-height: 170px;
+        width: 100%;
+        padding: 20px;
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .service-card.is-enabled {
+        background:
+          linear-gradient(180deg, rgba(240, 247, 255, 0.94), rgba(255, 255, 255, 0.98)),
+          var(--surface);
+      }
+
+      .service-card-label {
+        color: var(--black);
+        font-size: 0.96rem;
+        font-weight: 700;
+        line-height: 1.45;
+      }
+
+      .service-card-copy {
+        color: var(--text-muted);
+        font-size: 0.86rem;
+        line-height: 1.6;
+      }
+
+      .service-card:disabled .service-card-label,
+      .service-card:disabled .service-card-copy {
+        color: var(--text-subtle);
+      }
+
+      .home-info-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 18px;
+      }
+
+      .stats-showcase {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        overflow: hidden;
+        background: var(--surface);
+      }
+
+      .stats-showcase-cell {
+        min-height: 162px;
+        padding: 24px 18px;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .stats-showcase-cell:nth-child(4n) {
+        border-right: 0;
+      }
+
+      .stats-showcase-cell:nth-last-child(-n + 4) {
+        border-bottom: 0;
+      }
+
+      .stats-showcase-value {
+        color: var(--brand);
+        font-family: "Cormorant Garamond", "Georgia", serif;
+        font-size: 2.15rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .stats-showcase-label {
+        max-width: 210px;
+        margin-top: 12px;
+        color: var(--text-muted);
+        font-size: 0.88rem;
+        line-height: 1.55;
+      }
+
+      .process-showcase {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 18px;
+        padding-top: 28px;
+      }
+
+      .process-showcase-line {
+        position: absolute;
+        left: 10%;
+        right: 10%;
+        top: 56px;
+        height: 1px;
+        background: var(--line);
+      }
+
+      .process-showcase-item {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+
+      .process-showcase-dot {
+        width: 58px;
+        height: 58px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--text-subtle);
+        font-family: "Cormorant Garamond", "Georgia", serif;
+        font-size: 1.45rem;
+        font-weight: 700;
+      }
+
+      .process-showcase-item.done .process-showcase-dot {
+        border-color: var(--success);
+        color: var(--success-dark);
+        background: rgba(240, 255, 244, 0.8);
+      }
+
+      .process-showcase-item.active .process-showcase-dot {
+        border-color: var(--brand);
+        color: var(--brand);
+        background: rgba(240, 247, 255, 0.92);
+      }
+
+      .process-showcase-name {
+        margin-top: 18px;
+        color: var(--black);
+        font-size: 0.94rem;
+        font-weight: 700;
+      }
+
+      .process-showcase-item.done .process-showcase-name {
+        color: var(--success-dark);
+      }
+
+      .process-showcase-item.active .process-showcase-name {
+        color: var(--brand);
+      }
+
+      .process-showcase-text {
+        max-width: 180px;
+        margin-top: 8px;
+        color: var(--text-subtle);
+        font-size: 0.82rem;
+        line-height: 1.55;
+      }
+
+      .regulations-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .regulation-card {
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface);
+      }
+
+      .regulation-tag {
+        color: var(--brand);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .regulation-title {
+        margin-top: 14px;
+        color: var(--black);
+        font-size: 0.98rem;
+        font-weight: 500;
+        line-height: 1.45;
+      }
+
+      .regulation-sub {
+        margin-top: 10px;
+        color: var(--text-subtle);
+        font-size: 0.86rem;
+        line-height: 1.55;
+      }
+
+      .faq-shell {
+        max-width: 920px;
+        margin: 0 auto;
+      }
+
+      .faq-line {
+        padding: 22px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .faq-line.highlight .faq-line-head {
+        padding: 14px 16px;
+        border: 2px solid var(--black);
+        border-radius: 10px;
+      }
+
+      .faq-line-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .faq-line-title {
+        color: var(--black);
+        font-size: 0.98rem;
+        line-height: 1.45;
+      }
+
+      .faq-line-icon {
+        width: 24px;
+        height: 24px;
+        flex: 0 0 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: 1px solid var(--brand);
+        color: var(--brand);
+        font-size: 0.74rem;
+      }
+
+      .faq-line-body {
+        max-width: 860px;
+        margin-top: 18px;
+        color: var(--text-muted);
+        font-size: 0.94rem;
+        line-height: 1.7;
+      }
+
+      .info-grid-rows,
+      .faq-list {
+        display: grid;
+        gap: 16px;
+      }
+
+      .info-card {
+        padding: 22px;
+      }
+
+      .info-card-title {
+        margin-top: 10px;
+        color: var(--black);
+        font-size: 1.02rem;
+        font-weight: 700;
+      }
+
+      .info-card-copy {
+        margin-top: 8px;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        line-height: 1.65;
+      }
+
+      .process-overview {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+        position: relative;
+      }
+
+      .process-overview::before {
+        content: "";
+        position: absolute;
+        left: 10%;
+        right: 10%;
+        top: 28px;
+        height: 1px;
+        background: var(--line);
+      }
+
+      .process-node {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        text-align: center;
+      }
+
+      .process-num {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid var(--line);
+        background: var(--surface);
+        color: var(--brand);
+        font-family: "Cormorant Garamond", "Georgia", serif;
+        font-size: 1.4rem;
+        font-weight: 700;
+      }
+
+      .process-node-title {
+        color: var(--black);
+        font-size: 0.88rem;
+        font-weight: 700;
+      }
+
+      .process-node-text,
+      .faq-a-static {
+        color: var(--text-subtle);
+        font-size: 0.78rem;
+        line-height: 1.6;
+      }
+
+      .faq-item {
+        padding: 18px 20px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface);
+      }
+
+      .faq-q-static {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        color: var(--black);
+        font-size: 0.92rem;
+        font-weight: 700;
+      }
+
+      .faq-q-static::after {
+        content: "+";
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 1px solid var(--line);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--brand);
+      }
+
+      .faq-a-static {
+        margin-top: 10px;
+      }
+
+      @media (max-width: 1120px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: static;
+        }
+
+        .home-hero,
+        .home-info-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .module-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .service-grid,
+        .grid-3,
+        .process,
+        .process-overview,
+        .stats-showcase,
+        .process-showcase,
+        .regulations-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .process-overview::before {
+          display: none;
+        }
+
+        .process-showcase-line {
+          display: none;
+        }
+
+        .stats-showcase-cell:nth-child(4n) {
+          border-right: 1px solid var(--line);
+        }
+
+        .stats-showcase-cell:nth-child(2n) {
+          border-right: 0;
+        }
+
+        .stats-showcase-cell:nth-last-child(-n + 4) {
+          border-bottom: 1px solid var(--line);
+        }
+
+        .stats-showcase-cell:nth-last-child(-n + 2) {
+          border-bottom: 0;
+        }
+      }
+
+      @media (max-width: 780px) {
+        .header-inner {
+          align-items: flex-start;
+          padding-top: 14px;
+          padding-bottom: 14px;
+          flex-direction: column;
+        }
+
+        .shell,
+        .session-dock {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+
+        .main,
+        .auth-gate,
+        .home-hero,
+        .service-card-wrap {
+          padding: 20px;
+        }
+
+        .grid-2,
+        .grid-3,
+        .doc-grid,
+        .module-grid,
+        .service-grid,
+        .process,
+        .process-overview,
+        .stats-showcase,
+        .process-showcase,
+        .regulations-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .registry-head,
+        .home-hero-actions {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .hero-metrics {
+          grid-template-columns: 1fr;
+        }
+
+        .stats-showcase-cell,
+        .stats-showcase-cell:nth-child(2n),
+        .stats-showcase-cell:nth-child(4n) {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .stats-showcase-cell:last-child {
+          border-bottom: 0;
+        }
+      }
+    </style>
   </head>
   <body>
     <header class="header" id="appHeader">
       <div class="header-inner">
-        <div class="brand"><em>e</em>-КТРМ</div>
-        <nav class="menu" aria-label="Главное меню">
+        <div class="header-left">
+          <button class="header-back is-hidden" id="headerBackBtn" type="button">
+            <span class="header-back-icon">&#8592;</span>
+            <span id="headerBackText">Назад</span>
+          </button>
+          <div class="brand"><em>e</em>-КТРМ</div>
+        </div>
+        <nav class="menu is-hidden" aria-label="Главное меню">
           <span class="menu-item" id="menuHome">Главная</span>
           <span class="menu-item" id="menuApplications">Заявки</span>
           <span class="menu-item" id="menuCertificates">Реестр сертификатов</span>
@@ -861,7 +2343,7 @@
       </aside>
 
       <main class="card main" id="mainPanel">
-        <div class="page-head">
+        <div class="page-head" id="pageHead">
           <div class="page-eyebrow" id="pageEyebrow">Раздел заявок</div>
           <h1 id="pageTitle">Заявки</h1>
           <div class="page-breadcrumb is-hidden" id="pageBreadcrumb"></div>
@@ -877,27 +2359,324 @@
 
         <div id="protectedContent" class="is-hidden">
           <section class="registry-view is-hidden" id="applicantHomeView">
-            <div class="registry-head">
-              <div>
-                <div class="registry-title">Модули заявителя</div>
-                <div class="registry-sub">
-                  Выберите доступный модуль. Недоступные разделы отображаются в статусе "В работе".
+            <section class="home-hero">
+              <div class="home-hero-content">
+                <div class="hero-eyebrow">Государственная цифровая платформа</div>
+                <div class="home-hero-title">
+                  Информационная система технического <span>регулирования</span>
+                </div>
+                <div class="home-hero-sub">
+                  Единая рабочая среда для подачи заявок, сопровождения сертификатов и доступа к сервисам
+                  заявителя без изменения уже реализованного бизнес-потока.
+                </div>
+                <div class="home-hero-actions">
+                  <button class="btn-primary" id="homeStartBtn" type="button">Получить услугу</button>
+                  <button class="btn-secondary" id="homeRegistryBtn" type="button">Реестр сертификатов</button>
                 </div>
               </div>
-            </div>
-            <div class="module-grid" id="applicantModuleCards"></div>
+              <div class="home-hero-visual">
+                <div class="hero-visual-badge">Онлайн</div>
+                <div class="hero-visual-title">Текущие показатели системы</div>
+                <div class="hero-metrics">
+                  <div class="hero-metric">
+                    <div class="hero-metric-value accent">1 634</div>
+                    <div class="hero-metric-label">Субъектов аккредитации</div>
+                  </div>
+                  <div class="hero-metric">
+                    <div class="hero-metric-value accent">9 415</div>
+                    <div class="hero-metric-label">Национальных стандартов СТ РК</div>
+                  </div>
+                  <div class="hero-metric">
+                    <div class="hero-metric-value accent">47</div>
+                    <div class="hero-metric-label">Технических регламентов ЕАЭС</div>
+                  </div>
+                  <div class="hero-metric">
+                    <div class="hero-metric-value accent">1 683</div>
+                    <div class="hero-metric-label">Выданных сертификатов СМ</div>
+                  </div>
+                </div>
+                <div class="hero-progress">
+                  <div class="hero-progress-row">
+                    <div class="hero-progress-label">Обработка заявок <span>сегодня: 48</span></div>
+                    <div class="hero-progress-track"><div class="hero-progress-fill" style="width: 72%"></div></div>
+                  </div>
+                  <div class="hero-progress-row">
+                    <div class="hero-progress-label">Выдано сертификатов <span>+12 за день</span></div>
+                    <div class="hero-progress-track"><div class="hero-progress-fill" style="width: 58%"></div></div>
+                  </div>
+                  <div class="hero-progress-row">
+                    <div class="hero-progress-label">Открытых реестров <span>26 публичных</span></div>
+                    <div class="hero-progress-track"><div class="hero-progress-fill" style="width: 88%"></div></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="landing-section centered">
+              <div class="landing-section-head">
+                <div class="landing-eyebrow">Сервисы</div>
+                <div class="landing-title">Государственные услуги онлайн</div>
+                <div class="landing-sub">
+                  Выберите доступный модуль. Недоступные разделы остаются в статусе «В работе», без изменения
+                  текущих ограничений по функциональности.
+                </div>
+              </div>
+              <div class="module-grid" id="applicantModuleCards"></div>
+            </section>
+
+            <section class="landing-section centered">
+              <div class="landing-section-head">
+                <div class="landing-eyebrow">Текущие показатели</div>
+                <div class="landing-title">Система в цифрах</div>
+              </div>
+              <div class="stats-showcase">
+                <div class="stats-showcase-cell">
+                  <div class="stats-showcase-value">47</div>
+                  <div class="stats-showcase-label">Действующих технических регламентов ЕАЭС</div>
+                </div>
+                <div class="stats-showcase-cell">
+                  <div class="stats-showcase-value">1 634</div>
+                  <div class="stats-showcase-label">Субъектов аккредитации</div>
+                </div>
+                <div class="stats-showcase-cell">
+                  <div class="stats-showcase-value">104</div>
+                  <div class="stats-showcase-label">Госэталонов единиц величин</div>
+                </div>
+                <div class="stats-showcase-cell">
+                  <div class="stats-showcase-value">9 415</div>
+                  <div class="stats-showcase-label">Национальных стандартов СТ РК</div>
+                </div>
+                <div class="stats-showcase-cell">
+                  <div class="stats-showcase-value">26 684</div>
+                  <div class="stats-showcase-label">Межгосударственных стандартов ГОСТ</div>
+                </div>
+                <div class="stats-showcase-cell">
+                  <div class="stats-showcase-value">17</div>
+                  <div class="stats-showcase-label">Технических регламентов РК</div>
+                </div>
+                <div class="stats-showcase-cell">
+                  <div class="stats-showcase-value">20 153</div>
+                  <div class="stats-showcase-label">Утвержденных типов средств измерений</div>
+                </div>
+                <div class="stats-showcase-cell">
+                  <div class="stats-showcase-value">1 683</div>
+                  <div class="stats-showcase-label">Выданных сертификатов СМ</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="landing-section centered">
+              <div class="landing-section-head">
+                <div class="landing-eyebrow">Как это работает</div>
+                <div class="landing-title">Процесс подачи заявки</div>
+                <div class="landing-sub">От регистрации до получения документа — всё в одном личном кабинете</div>
+              </div>
+              <div class="process-showcase">
+                <div class="process-showcase-line"></div>
+                <div class="process-showcase-item done">
+                  <div class="process-showcase-dot">1</div>
+                  <div class="process-showcase-name">Регистрация</div>
+                  <div class="process-showcase-text">Авторизация через ЭЦП или eGov</div>
+                </div>
+                <div class="process-showcase-item done">
+                  <div class="process-showcase-dot">2</div>
+                  <div class="process-showcase-name">Выбор услуги</div>
+                  <div class="process-showcase-text">Выберите нужную государственную услугу</div>
+                </div>
+                <div class="process-showcase-item active">
+                  <div class="process-showcase-dot">3</div>
+                  <div class="process-showcase-name">Заполнение заявки</div>
+                  <div class="process-showcase-text">Автоматическое заполнение из баз данных</div>
+                </div>
+                <div class="process-showcase-item">
+                  <div class="process-showcase-dot">4</div>
+                  <div class="process-showcase-name">Рассмотрение</div>
+                  <div class="process-showcase-text">ОПС обрабатывает вашу заявку</div>
+                </div>
+                <div class="process-showcase-item">
+                  <div class="process-showcase-dot">5</div>
+                  <div class="process-showcase-name">Получение</div>
+                  <div class="process-showcase-text">Документ в личном кабинете</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="landing-section centered">
+              <div class="landing-section-head">
+                <div class="landing-eyebrow">Нормативная база</div>
+                <div class="landing-title">Нормативные правовые акты</div>
+              </div>
+              <div class="regulations-grid">
+                <article class="regulation-card">
+                  <div class="regulation-tag">Метрология</div>
+                  <div class="regulation-title">Обеспечение единства измерений (метрология)</div>
+                  <div class="regulation-sub">Закон РК от 7 июня 2000 года N 53-II</div>
+                </article>
+                <article class="regulation-card">
+                  <div class="regulation-tag">Аккредитация</div>
+                  <div class="regulation-title">Об аккредитации в области оценки соответствия</div>
+                  <div class="regulation-sub">Закон РК от 5 июля 2008 года N 61-IV</div>
+                </article>
+                <article class="regulation-card">
+                  <div class="regulation-tag">Стандартизация</div>
+                  <div class="regulation-title">О стандартизации</div>
+                  <div class="regulation-sub">Закон РК от 5 октября 2018 года № 183-VI ЗРК</div>
+                </article>
+                <article class="regulation-card">
+                  <div class="regulation-tag">Техническое регулирование</div>
+                  <div class="regulation-title">В сфере технического регулирования</div>
+                  <div class="regulation-sub">Нормативные правовые акты и регламенты</div>
+                </article>
+                <article class="regulation-card">
+                  <div class="regulation-tag">Ювелирные изделия</div>
+                  <div class="regulation-title">В сфере обращения ювелирных изделий</div>
+                  <div class="regulation-sub">Специальные требования и регуляции</div>
+                </article>
+                <article class="regulation-card">
+                  <div class="regulation-tag">Маркировка</div>
+                  <div class="regulation-title">В сфере маркировки средствами идентификации</div>
+                  <div class="regulation-sub">Требования к маркировке и идентификации</div>
+                </article>
+              </div>
+            </section>
+
+            <section class="landing-section centered">
+              <div class="landing-section-head">
+                <div class="landing-eyebrow">Поддержка</div>
+                <div class="landing-title">Частые вопросы</div>
+              </div>
+              <div class="faq-shell">
+                <article class="faq-line is-open">
+                  <div class="faq-line-head">
+                    <div class="faq-line-title">Последовательность заполнения данных и их заполнение</div>
+                    <div class="faq-line-icon">&#10005;</div>
+                  </div>
+                  <div class="faq-line-body">
+                    Для заполнения заявки войдите в личный кабинет, выберите нужную услугу и следуйте инструкциям на экране.
+                    Большинство полей заполняется автоматически из государственных баз данных по вашему БИН или ИИН.
+                  </div>
+                </article>
+                <article class="faq-line is-open">
+                  <div class="faq-line-head">
+                    <div class="faq-line-title">Что делать если заявку подавали ранее, осталось отправить документы?</div>
+                    <div class="faq-line-icon">&#10005;</div>
+                  </div>
+                  <div class="faq-line-body">
+                    Войдите в личный кабинет, перейдите в раздел «Мои заявки» и найдите черновик заявки. Прикрепите
+                    необходимые документы и нажмите «Подать заявку».
+                  </div>
+                </article>
+                <article class="faq-line is-open">
+                  <div class="faq-line-head">
+                    <div class="faq-line-title">Как подать заявку на сертификаты СМ</div>
+                    <div class="faq-line-icon">&#10005;</div>
+                  </div>
+                  <div class="faq-line-body">
+                    Выберите услугу «Оценка соответствия. Сертификация», заполните сведения о заявителе и продукции,
+                    загрузите необходимые документы и подпишите заявку электронной цифровой подписью.
+                  </div>
+                </article>
+                <article class="faq-line is-open">
+                  <div class="faq-line-head">
+                    <div class="faq-line-title">Несколько лабораторий и филиалов под одним БИН</div>
+                    <div class="faq-line-icon">&#10005;</div>
+                  </div>
+                  <div class="faq-line-body">
+                    При наличии нескольких филиалов под одним БИН обратитесь в службу поддержки для настройки отдельного
+                    доступа для каждого подразделения.
+                  </div>
+                </article>
+                <article class="faq-line is-open highlight">
+                  <div class="faq-line-head">
+                    <div class="faq-line-title">Невозможность работать одновременно на нескольких компьютерах</div>
+                    <div class="faq-line-icon">&#10005;</div>
+                  </div>
+                  <div class="faq-line-body">
+                    Система поддерживает работу только с одной активной сессией одновременно. Для завершения предыдущей
+                    сессии воспользуйтесь кнопкой «Выйти» или подождите истечения таймаута.
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="home-info-grid is-hidden">
+              <div class="home-panel" style="padding: 28px">
+                <div class="landing-eyebrow">Как это работает</div>
+                <div class="landing-title" style="font-size: 2.15rem">Процесс подачи заявки</div>
+                <div class="landing-sub">
+                  От выбора услуги до выпуска документа. Бизнес-логика не меняется, обновлен только визуальный слой.
+                </div>
+                <div class="process-overview" style="margin-top: 22px">
+                  <div class="process-node">
+                    <div class="process-num">1</div>
+                    <div class="process-node-title">Регистрация</div>
+                    <div class="process-node-text">Авторизация через OIDC</div>
+                  </div>
+                  <div class="process-node">
+                    <div class="process-num">2</div>
+                    <div class="process-node-title">Выбор услуги</div>
+                    <div class="process-node-text">Переход в нужный модуль</div>
+                  </div>
+                  <div class="process-node">
+                    <div class="process-num">3</div>
+                    <div class="process-node-title">Заполнение</div>
+                    <div class="process-node-text">Работа с формой и черновиком</div>
+                  </div>
+                  <div class="process-node">
+                    <div class="process-num">4</div>
+                    <div class="process-node-title">Рассмотрение</div>
+                    <div class="process-node-text">Проверка и решение ОПС</div>
+                  </div>
+                  <div class="process-node">
+                    <div class="process-num">5</div>
+                    <div class="process-node-title">Результат</div>
+                    <div class="process-node-text">Сертификат и post-issuance</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="info-grid-rows">
+                <div class="info-card">
+                  <div class="landing-eyebrow">Нормативная база</div>
+                  <div class="info-card-title">Доступ к правовой и справочной информации</div>
+                  <div class="info-card-copy">
+                    Визуальная оболочка выровнена под новый референс, но состав модулей и доступов остается прежним.
+                  </div>
+                </div>
+                <div class="info-card">
+                  <div class="landing-eyebrow">Поддержка</div>
+                  <div class="info-card-title">Частые вопросы по работе кабинета</div>
+                  <div class="faq-list" style="margin-top: 12px">
+                    <div class="faq-item">
+                      <div class="faq-q-static">Как начать новую заявку?</div>
+                      <div class="faq-a-static">Перейдите в доступный модуль и нажмите «Получить услугу» или откройте нужный сервис.</div>
+                    </div>
+                    <div class="faq-item">
+                      <div class="faq-q-static">Можно ли продолжить черновик позже?</div>
+                      <div class="faq-a-static">Да. Для статусов `DRAFT` и `REVISION_REQUESTED` сохранено текущее поведение продолжения заполнения.</div>
+                    </div>
+                    <div class="faq-item">
+                      <div class="faq-q-static">Где смотреть сертификаты?</div>
+                      <div class="faq-a-static">В разделе «Реестр сертификатов» доступны внутренний и публичный реестры, как и раньше.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
           </section>
 
           <section class="registry-view is-hidden" id="standardizationView">
-            <div class="registry-head">
-              <div>
-                <div class="registry-title">Сервисы модуля</div>
-                <div class="registry-sub">
-                  Выберите сервис стандартизации. Доступен только сервис с текущим реализованным функционалом заявителя.
+            <div class="service-card-wrap">
+              <div class="landing-section-head">
+                <div class="landing-eyebrow">Оценка соответствия</div>
+                <div class="landing-title">Сервисы модуля</div>
+                <div class="landing-sub">
+                  Визуальный язык приведен к новому референсу. Рабочим остается только текущий реализованный сервис
+                  заявителя по сертификации продукции РК.
                 </div>
               </div>
+              <div class="service-grid" id="standardizationServiceCards" style="margin-top: 22px"></div>
             </div>
-            <div class="service-grid" id="standardizationServiceCards"></div>
           </section>
 
           <section class="registry-view is-hidden" id="registryView">
@@ -1513,51 +3292,118 @@
         {
           key: "accreditation",
           title: "Аккредитация",
+          badge: "Модуль",
+          icon: "АК",
           description: "Управление аккредитационными услугами, статусами и сопроводительными действиями по заявкам заявителя.",
           available: false,
         },
         {
           key: "state-control",
           title: "Государственный контроль",
+          badge: "Модуль",
+          icon: "ГК",
           description: "Просмотр проверок, контрольных мероприятий и связанных уведомлений по направлению государственного контроля.",
           available: false,
         },
         {
           key: "metrology",
           title: "Метрология",
+          badge: "Модуль",
+          icon: "МЕ",
           description: "Рабочая зона для метрологических сервисов, сопровождения измерений и связанной отчетности.",
           available: false,
         },
         {
           key: "conformity",
           title: "Оценка соответствия",
-          description: "Модуль для будущих сценариев оценки соответствия, проверки комплектности и маршрута оказания услуги.",
-          available: false,
+          badge: "Доступно",
+          icon: "ОС",
+          description: "Рабочий модуль для текущего реализованного контура сертификации продукции РК, реестра заявок и маршрута оказания услуги.",
+          available: true,
         },
         {
           key: "standardization",
           title: "Стандартизация",
-          description: "Переход к сервисам стандартизации и текущему реестру заявок по сертификации продукции в рамках реализованного контура.",
-          available: true,
+          badge: "Модуль",
+          icon: "СТ",
+          description: "Раздел стандартизации остается закрытым до появления подтвержденного функционального контура.",
+          available: false,
         },
       ];
-      const STANDARDIZATION_SERVICES = [
-        { key: "declaration-620", title: "Декларация о соответствии продукции 620", available: false },
-        { key: "declaration-eaeu", title: "Декларация о соответствии продукции ЕАЭС", available: false },
-        { key: "declaration-rk", title: "Декларация о соответствии продукции РК", available: false },
-        { key: "registry-sm", title: "Реестр сертификатов СМ", available: false },
-        { key: "registry-voluntary", title: "Реестр добровольной сертификации", available: false },
-        { key: "certificate-eaeu", title: "Сертификат соответствия продукции ЕАЭС", available: false },
-        { key: "certificate-rk", title: "Сертификат соответствия продукции РК", available: true },
-        { key: "certificate-sm", title: "Сертификат соответствия системы менеджмента", available: false },
+      const CONFORMITY_SERVICES = [
+        {
+          key: "declaration-620",
+          title: "Декларация о соответствии продукции 620",
+          badge: "Сервис",
+          icon: "620",
+          description: "Будущий контур деклараций по услуге 620. Сейчас отображается как дизайн-ориентир без рабочего сценария.",
+          available: false,
+        },
+        {
+          key: "declaration-eaeu",
+          title: "Декларация о соответствии продукции ЕАЭС",
+          badge: "Сервис",
+          icon: "EA",
+          description: "Поток ЕАЭС пока не реализован и остается недоступным для взаимодействия.",
+          available: false,
+        },
+        {
+          key: "declaration-rk",
+          title: "Декларация о соответствии продукции РК",
+          badge: "Сервис",
+          icon: "RK",
+          description: "Карточка выровнена по новому визуальному языку и подготовлена под будущую реализацию.",
+          available: false,
+        },
+        {
+          key: "registry-sm",
+          title: "Реестр сертификатов СМ",
+          badge: "Реестр",
+          icon: "CM",
+          description: "Отдельный реестр будет подключен позже. Пока сохранен статус «в работе».",
+          available: false,
+        },
+        {
+          key: "registry-voluntary",
+          title: "Реестр добровольной сертификации",
+          badge: "Реестр",
+          icon: "RD",
+          description: "Будущий read-only раздел для добровольной сертификации без текущего активного функционала.",
+          available: false,
+        },
+        {
+          key: "certificate-eaeu",
+          title: "Сертификат соответствия продукции ЕАЭС",
+          badge: "Сервис",
+          icon: "EA",
+          description: "Контур услуги ЕАЭС пока не активирован в рабочем приложении.",
+          available: false,
+        },
+        {
+          key: "certificate-rk",
+          title: "Сертификат соответствия продукции РК",
+          badge: "Доступно",
+          icon: "RK",
+          description: "Текущий рабочий сервис заявителя с реестром заявок, формой подачи и дальнейшим маршрутом обработки.",
+          available: true,
+        },
+        {
+          key: "certificate-sm",
+          title: "Сертификат соответствия системы менеджмента",
+          badge: "Сервис",
+          icon: "SM",
+          description: "Карточка подготовлена под расширение продуктовой поверхности без влияния на текущее поведение.",
+          available: false,
+        },
       ];
       const APPLICANT_ACTIVE_SERVICE_KEY = "certificate-rk";
-      const APPLICANT_STANDARDIZATION_TITLE = "СТАНДАРТИЗАЦИЯ";
+      const APPLICANT_CONFORMITY_TITLE = "ОЦЕНКА СООТВЕТСТВИЯ";
 
       const output = document.getElementById("output");
       const appHeader = document.getElementById("appHeader");
       const shellContainer = document.getElementById("shellContainer");
       const authState = document.getElementById("authState");
+      const pageHead = document.getElementById("pageHead");
       const pageEyebrow = document.getElementById("pageEyebrow");
       const pageTitle = document.getElementById("pageTitle");
       const pageBreadcrumb = document.getElementById("pageBreadcrumb");
@@ -1577,8 +3423,8 @@
       const protectedContent = document.getElementById("protectedContent");
       const applicantHomeView = document.getElementById("applicantHomeView");
       const applicantModuleCards = document.getElementById("applicantModuleCards");
-      const standardizationView = document.getElementById("standardizationView");
-      const standardizationServiceCards = document.getElementById("standardizationServiceCards");
+      const conformityView = document.getElementById("standardizationView");
+      const conformityServiceCards = document.getElementById("standardizationServiceCards");
       const registryView = document.getElementById("registryView");
       const opsRegistryView = document.getElementById("opsRegistryView");
       const certificatesRegistryView = document.getElementById("certificatesRegistryView");
@@ -1631,6 +3477,10 @@
       const authGateText = document.getElementById("authGateText");
       const authGateMeta = document.getElementById("authGateMeta");
       const authGateLoginBtn = document.getElementById("authGateLoginBtn");
+      const headerBackBtn = document.getElementById("headerBackBtn");
+      const headerBackText = document.getElementById("headerBackText");
+      const homeStartBtn = document.getElementById("homeStartBtn");
+      const homeRegistryBtn = document.getElementById("homeRegistryBtn");
       const processSteps = Array.from(document.querySelectorAll("[data-process-step]"));
       const processStepIndex = new Map([
         ["DRAFT", 0],
@@ -1853,8 +3703,8 @@
             { key: "accreditation", label: "Аккредитация", element: menuApplications, enabled: false },
             { key: "state-control", label: "Государственный контроль", element: menuCertificates, enabled: false },
             { key: "metrology", label: "Метрология", element: menuDictionaries, enabled: false },
-            { key: "conformity", label: "Оценка соответствия", element: menuConformity, enabled: false },
-            { key: "standardization", label: "Стандартизация", element: menuStandardization, enabled: true },
+            { key: "conformity", label: "Оценка соответствия", element: menuConformity, enabled: true },
+            { key: "standardization", label: "Стандартизация", element: menuStandardization, enabled: false },
           ];
         }
         return [
@@ -1899,12 +3749,71 @@
         });
       }
 
-      function getStandardizationService(serviceKey) {
-        return STANDARDIZATION_SERVICES.find((service) => service.key === serviceKey) || null;
+      function getBackButtonLabel() {
+        if (currentView === "conformity" || currentView === "cert-registry") {
+          return "На главную";
+        }
+        if (currentView === "registry") {
+          return "К услугам";
+        }
+        if (currentView === "form" || currentView === "ops-form") {
+          return "К заявкам";
+        }
+        return "Назад";
+      }
+
+      function updatePageChrome() {
+        const hasWorkspace = oidcSession.authenticated && (isApplicantUser() || isOpsUser());
+        const isApplicantHome = currentView === "applicant-home";
+        const showBackButton = hasWorkspace && ["conformity", "registry", "form", "ops-form", "cert-registry"].includes(currentView);
+
+        if (pageHead) {
+          pageHead.classList.toggle("is-hidden", !hasWorkspace || isApplicantHome);
+        }
+        if (headerBackBtn) {
+          headerBackBtn.classList.toggle("is-hidden", !showBackButton);
+        }
+        if (headerBackText) {
+          headerBackText.textContent = getBackButtonLabel();
+        }
+      }
+
+      async function handleBackNavigation() {
+        if (!oidcSession.authenticated) {
+          return;
+        }
+        if (currentView === "form") {
+          if (!discardUnsavedApplicantDraftIfNeeded()) {
+            return;
+          }
+          await loadApplicationsRegistry();
+          showRegistryView();
+          writeOutput("Заявки", "Открыт реестр ваших заявок.");
+          return;
+        }
+        if (currentView === "ops-form") {
+          await loadOpsRegistry();
+          showOpsRegistryView();
+          writeOutput("Реестр ОПС", "Открыта очередь заявок заявителей.");
+          return;
+        }
+        if (currentView === "registry") {
+          showConformityModuleView();
+          writeOutput("Оценка соответствия", "Открыт модуль оценки соответствия.");
+          return;
+        }
+        if (currentView === "conformity" || currentView === "cert-registry") {
+          showApplicantHomeView();
+          writeOutput("Главная", "Открыта главная страница.");
+        }
+      }
+
+      function getConformityService(serviceKey) {
+        return CONFORMITY_SERVICES.find((service) => service.key === serviceKey) || null;
       }
 
       function ensureApplicantServiceContext() {
-        currentApplicantModule = "standardization";
+        currentApplicantModule = "conformity";
         if (!currentApplicantService) {
           currentApplicantService = APPLICANT_ACTIVE_SERVICE_KEY;
         }
@@ -1918,6 +3827,19 @@
           if (!module.available) {
             card.classList.add("is-disabled");
           }
+
+          const top = document.createElement("div");
+          top.className = "module-card-top";
+
+          const icon = document.createElement("div");
+          icon.className = "module-card-icon";
+          icon.textContent = module.icon || "EK";
+
+          const badge = document.createElement("div");
+          badge.className = "module-card-badge";
+          badge.textContent = module.badge || (module.available ? "Доступно" : "В работе");
+
+          top.append(icon, badge);
 
           const title = document.createElement("div");
           title.className = "module-card-title";
@@ -1936,14 +3858,14 @@
             await navigateApplicantModule(module.key);
           });
 
-          card.append(title, description, actionButton);
+          card.append(top, title, description, actionButton);
           applicantModuleCards.appendChild(card);
         });
       }
 
-      function renderStandardizationServices() {
-        standardizationServiceCards.innerHTML = "";
-        STANDARDIZATION_SERVICES.forEach((service) => {
+      function renderConformityServices() {
+        conformityServiceCards.innerHTML = "";
+        CONFORMITY_SERVICES.forEach((service) => {
           const card = document.createElement("button");
           card.type = "button";
           card.className = "service-card";
@@ -1952,22 +3874,41 @@
           } else {
             card.disabled = true;
           }
+
+          const top = document.createElement("div");
+          top.className = "service-card-top";
+
+          const icon = document.createElement("div");
+          icon.className = "service-card-icon";
+          icon.textContent = service.icon || "EK";
+
+          const badge = document.createElement("div");
+          badge.className = "service-card-badge";
+          badge.textContent = service.badge || (service.available ? "Доступно" : "В работе");
+
+          top.append(icon, badge);
+
           const label = document.createElement("span");
           label.className = "service-card-label";
           label.textContent = service.title;
-          card.appendChild(label);
+
+          const copy = document.createElement("span");
+          copy.className = "service-card-copy";
+          copy.textContent = service.description || "";
+
+          card.append(top, label, copy);
           if (service.available) {
             card.addEventListener("click", async () => {
-              await openApplicantStandardizationService(service.key);
+              await openApplicantConformityService(service.key);
             });
           }
-          standardizationServiceCards.appendChild(card);
+          conformityServiceCards.appendChild(card);
         });
       }
 
       function resetApplicantModuleViews() {
         applicantHomeView.classList.add("is-hidden");
-        standardizationView.classList.add("is-hidden");
+        conformityView.classList.add("is-hidden");
       }
 
       function discardUnsavedApplicantDraftIfNeeded() {
@@ -2934,24 +4875,25 @@
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = true;
         updateHeaderMeta();
+        updatePageChrome();
       }
 
-      function showStandardizationModuleView() {
-        currentView = "standardization";
+      function showConformityModuleView() {
+        currentView = "conformity";
         currentFormMode = "applicant";
-        currentApplicantModule = "standardization";
+        currentApplicantModule = "conformity";
         currentApplicantService = null;
         currentApplicationId = null;
         currentOpsApplication = null;
         resetPostIssuanceForm();
-        setActiveMenu("standardization");
+        setActiveMenu("conformity");
         pageEyebrow.textContent = "Модуль заявителя";
-        pageTitle.textContent = APPLICANT_STANDARDIZATION_TITLE;
+        pageTitle.textContent = APPLICANT_CONFORMITY_TITLE;
         setBreadcrumb([]);
         shellContainer.classList.add("single-column");
         sidebarPanel.classList.add("is-hidden");
         resetApplicantModuleViews();
-        standardizationView.classList.remove("is-hidden");
+        conformityView.classList.remove("is-hidden");
         registryView.classList.add("is-hidden");
         opsRegistryView.classList.add("is-hidden");
         certificatesRegistryView.classList.add("is-hidden");
@@ -2964,6 +4906,7 @@
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = true;
         updateHeaderMeta();
+        updatePageChrome();
       }
 
       async function navigateApplicantModule(moduleKey) {
@@ -2975,24 +4918,24 @@
           writeOutput("Главная", "Открыта главная страница заявителя с модульными карточками.");
           return;
         }
-        if (moduleKey !== "standardization") {
+        if (moduleKey !== "conformity") {
           writeOutput("Модуль в работе", "Переход в этот модуль пока недоступен.");
           return;
         }
-        showStandardizationModuleView();
-        writeOutput("Стандартизация", "Открыт модуль стандартизации.");
+        showConformityModuleView();
+        writeOutput("Оценка соответствия", "Открыт модуль оценки соответствия.");
       }
 
-      async function openApplicantStandardizationService(serviceKey) {
+      async function openApplicantConformityService(serviceKey) {
         if (!discardUnsavedApplicantDraftIfNeeded()) {
           return;
         }
-        const service = getStandardizationService(serviceKey);
+        const service = getConformityService(serviceKey);
         if (!service || !service.available) {
           writeOutput("Сервис в работе", "Переход в этот сервис пока недоступен.");
           return;
         }
-        currentApplicantModule = "standardization";
+        currentApplicantModule = "conformity";
         currentApplicantService = serviceKey;
         await loadApplicationsRegistry();
         showRegistryView();
@@ -3006,14 +4949,14 @@
         resetPostIssuanceForm();
         if (isApplicantUser()) {
           ensureApplicantServiceContext();
-          const service = getStandardizationService(currentApplicantService);
-          setActiveMenu("standardization");
+          const service = getConformityService(currentApplicantService);
+          setActiveMenu("conformity");
           pageEyebrow.textContent = "Модуль заявителя";
-          pageTitle.textContent = APPLICANT_STANDARDIZATION_TITLE;
-          setBreadcrumb([APPLICANT_STANDARDIZATION_TITLE, service ? service.title : "Сервис"]);
+          pageTitle.textContent = APPLICANT_CONFORMITY_TITLE;
+          setBreadcrumb([APPLICANT_CONFORMITY_TITLE, service ? service.title : "Сервис"]);
           applicationsRegistryTitle.textContent = service ? service.title : "Реестр моих заявок";
           applicationsRegistrySub.textContent =
-            "Текущий реализованный список ваших заявок по выбранному сервису стандартизации.";
+            "Текущий реализованный список ваших заявок по выбранному сервису оценки соответствия.";
         } else {
           setActiveMenu("applications");
           pageEyebrow.textContent = "Раздел заявок";
@@ -3039,6 +4982,7 @@
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = false;
         updateHeaderMeta();
+        updatePageChrome();
       }
 
       function showOpsRegistryView() {
@@ -3066,6 +5010,7 @@
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = true;
         updateHeaderMeta();
+        updatePageChrome();
       }
 
       function showCertificatesRegistryView() {
@@ -3095,6 +5040,7 @@
           resetPostIssuanceForm();
         }
         updateHeaderMeta();
+        updatePageChrome();
       }
 
       function showFormView(mode = "applicant") {
@@ -3109,11 +5055,11 @@
           buttons.next.textContent = "Следующий шаг";
         } else {
           ensureApplicantServiceContext();
-          const service = getStandardizationService(currentApplicantService);
-          setActiveMenu("standardization");
+          const service = getConformityService(currentApplicantService);
+          setActiveMenu("conformity");
           pageEyebrow.textContent = "Модуль заявителя";
-          pageTitle.textContent = APPLICANT_STANDARDIZATION_TITLE;
-          setBreadcrumb([APPLICANT_STANDARDIZATION_TITLE, service ? service.title : "Сервис"]);
+          pageTitle.textContent = APPLICANT_CONFORMITY_TITLE;
+          setBreadcrumb([APPLICANT_CONFORMITY_TITLE, service ? service.title : "Сервис"]);
           buttons.next.textContent = "Сохранить и продолжить";
         }
         shellContainer.classList.remove("single-column");
@@ -3133,6 +5079,7 @@
         }
         buttons.createApplication.disabled = true;
         renderStep();
+        updatePageChrome();
       }
 
       function markFieldError(fieldId, message) {
@@ -3360,17 +5307,130 @@
         return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
       }
 
+      function getCryptoApi() {
+        if (typeof globalThis !== "undefined" && globalThis.crypto) {
+          return globalThis.crypto;
+        }
+        if (typeof window !== "undefined" && window.crypto) {
+          return window.crypto;
+        }
+        return null;
+      }
+
       function randomString(length = 64) {
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+        const cryptoApi = getCryptoApi();
+        if (!cryptoApi || typeof cryptoApi.getRandomValues !== "function") {
+          throw new Error("Браузер не поддерживает secure random для OIDC PKCE.");
+        }
         const random = new Uint8Array(length);
-        crypto.getRandomValues(random);
+        cryptoApi.getRandomValues(random);
         return Array.from(random, (v) => chars[v % chars.length]).join("");
+      }
+
+      function rightRotate(value, bits) {
+        return (value >>> bits) | (value << (32 - bits));
+      }
+
+      function sha256Fallback(inputBytes) {
+        const hash = new Uint32Array([
+          0x6a09e667,
+          0xbb67ae85,
+          0x3c6ef372,
+          0xa54ff53a,
+          0x510e527f,
+          0x9b05688c,
+          0x1f83d9ab,
+          0x5be0cd19,
+        ]);
+        const constants = new Uint32Array([
+          0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
+          0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
+          0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+          0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+          0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+          0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+          0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
+          0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+          0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
+          0xc67178f2,
+        ]);
+
+        const bitLength = inputBytes.length * 8;
+        const paddedLength = Math.ceil((inputBytes.length + 1 + 8) / 64) * 64;
+        const padded = new Uint8Array(paddedLength);
+        padded.set(inputBytes);
+        padded[inputBytes.length] = 0x80;
+
+        const paddedView = new DataView(padded.buffer);
+        const highBits = Math.floor(bitLength / 0x100000000);
+        const lowBits = bitLength >>> 0;
+        paddedView.setUint32(paddedLength - 8, highBits, false);
+        paddedView.setUint32(paddedLength - 4, lowBits, false);
+
+        const words = new Uint32Array(64);
+        for (let offset = 0; offset < paddedLength; offset += 64) {
+          for (let index = 0; index < 16; index += 1) {
+            words[index] = paddedView.getUint32(offset + index * 4, false);
+          }
+          for (let index = 16; index < 64; index += 1) {
+            const s0 =
+              rightRotate(words[index - 15], 7) ^
+              rightRotate(words[index - 15], 18) ^
+              (words[index - 15] >>> 3);
+            const s1 =
+              rightRotate(words[index - 2], 17) ^
+              rightRotate(words[index - 2], 19) ^
+              (words[index - 2] >>> 10);
+            words[index] = (words[index - 16] + s0 + words[index - 7] + s1) >>> 0;
+          }
+
+          let [a, b, c, d, e, f, g, h] = hash;
+          for (let index = 0; index < 64; index += 1) {
+            const s1 = rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25);
+            const choice = (e & f) ^ (~e & g);
+            const temp1 = (h + s1 + choice + constants[index] + words[index]) >>> 0;
+            const s0 = rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22);
+            const majority = (a & b) ^ (a & c) ^ (b & c);
+            const temp2 = (s0 + majority) >>> 0;
+
+            h = g;
+            g = f;
+            f = e;
+            e = (d + temp1) >>> 0;
+            d = c;
+            c = b;
+            b = a;
+            a = (temp1 + temp2) >>> 0;
+          }
+
+          hash[0] = (hash[0] + a) >>> 0;
+          hash[1] = (hash[1] + b) >>> 0;
+          hash[2] = (hash[2] + c) >>> 0;
+          hash[3] = (hash[3] + d) >>> 0;
+          hash[4] = (hash[4] + e) >>> 0;
+          hash[5] = (hash[5] + f) >>> 0;
+          hash[6] = (hash[6] + g) >>> 0;
+          hash[7] = (hash[7] + h) >>> 0;
+        }
+
+        const result = new Uint8Array(32);
+        const resultView = new DataView(result.buffer);
+        hash.forEach((value, index) => {
+          resultView.setUint32(index * 4, value, false);
+        });
+        return result;
       }
 
       async function createCodeChallenge(verifier) {
         const data = new TextEncoder().encode(verifier);
-        const digest = await crypto.subtle.digest("SHA-256", data);
-        return toBase64Url(new Uint8Array(digest));
+        const cryptoApi = getCryptoApi();
+        // Preserve PKCE S256 even on insecure origins where crypto.subtle is unavailable.
+        if (cryptoApi && cryptoApi.subtle && typeof cryptoApi.subtle.digest === "function") {
+          const digest = await cryptoApi.subtle.digest("SHA-256", data);
+          return toBase64Url(new Uint8Array(digest));
+        }
+        return toBase64Url(sha256Fallback(data));
       }
 
       function decodeJwt(token) {
@@ -3607,7 +5667,7 @@
           shellContainer.classList.add("single-column");
           sidebarPanel.classList.add("is-hidden");
           applicantHomeView.classList.add("is-hidden");
-          standardizationView.classList.add("is-hidden");
+          conformityView.classList.add("is-hidden");
           registryView.classList.add("is-hidden");
           opsRegistryView.classList.add("is-hidden");
           certificatesRegistryView.classList.add("is-hidden");
@@ -3618,6 +5678,7 @@
         }
         protectedContent.classList.toggle("is-hidden", !visible);
         authGate.classList.toggle("is-hidden", visible);
+        updatePageChrome();
       }
 
       function renderAccessGate(mode, realmRoles = []) {
@@ -3628,25 +5689,28 @@
 
         setProtectedVisibility(false);
         if (mode === "loading") {
-          authGateTitle.textContent = "";
-          authGateText.textContent = "";
-          authGateMeta.textContent = "";
+          authGateTitle.textContent = "Проверка сессии и загрузка рабочего пространства";
+          authGateText.textContent =
+            "Подождите, идет инициализация авторизации и подготовка интерфейса под текущую роль пользователя.";
+          authGateMeta.textContent = "OIDC init: инициализация";
           authGateLoginBtn.disabled = true;
           authGateLoginBtn.textContent = "Проверка OIDC...";
           authGateLoginBtn.classList.remove("is-hidden");
           return;
         }
         if (mode === "forbidden") {
-          authGateTitle.textContent = "Недостаточно прав";
-          authGateText.textContent = `Текущие роли: ${realmRoles.join(", ") || "-"}. Для этого экрана недостаточно прав.`;
+          authGateTitle.textContent = "Недостаточно прав для этого рабочего места";
+          authGateText.textContent =
+            `Текущие роли: ${realmRoles.join(", ") || "-"}. Для входа в контур заявителя требуется роль Applicant.`;
           authGateMeta.textContent = `OIDC init: roles ${realmRoles.join(", ") || "-"}`;
           authGateLoginBtn.disabled = true;
           authGateLoginBtn.classList.add("is-hidden");
           return;
         }
-        authGateTitle.textContent = "";
-        authGateText.textContent = "";
-        authGateMeta.textContent = "";
+        authGateTitle.textContent = "Получите государственную услугу онлайн";
+        authGateText.textContent =
+          "Авторизуйтесь через Keycloak, чтобы открыть доступ к модулям, реестрам и действующим сценариям подачи заявки.";
+        authGateMeta.textContent = "Государственная цифровая платформа";
         authGateLoginBtn.disabled = false;
         authGateLoginBtn.textContent = "Войти через Keycloak";
         authGateLoginBtn.classList.remove("is-hidden");
@@ -3904,6 +5968,14 @@
           buttons.createApplication.disabled = true;
           setFormButtonsEnabled(false);
           renderAccessGate("authorized");
+          if (currentView === "ops-form") {
+            showFormView("ops");
+            return;
+          }
+          if (currentView === "cert-registry") {
+            showCertificatesRegistryView();
+            return;
+          }
           showOpsRegistryView();
           return;
         }
@@ -3924,8 +5996,12 @@
           showRegistryView();
           return;
         }
-        if (currentView === "standardization") {
-          showStandardizationModuleView();
+        if (currentView === "conformity") {
+          showConformityModuleView();
+          return;
+        }
+        if (currentView === "cert-registry") {
+          showCertificatesRegistryView();
           return;
         }
         showApplicantHomeView();
@@ -3973,8 +6049,11 @@
               showRegistryView();
             } else if (currentView === "form") {
               showFormView();
-            } else if (currentView === "standardization") {
-              showStandardizationModuleView();
+            } else if (currentView === "conformity") {
+              showConformityModuleView();
+            } else if (currentView === "cert-registry") {
+              await refreshCertificatesWorkspace();
+              showCertificatesRegistryView();
             } else {
               showApplicantHomeView();
             }
@@ -4189,6 +6268,45 @@
         await loginWithOidc();
       });
 
+      if (headerBackBtn) {
+        headerBackBtn.addEventListener("click", async () => {
+          try {
+            await handleBackNavigation();
+          } catch (error) {
+            writeOutput("Ошибка навигации", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        });
+      }
+
+      if (homeStartBtn) {
+        homeStartBtn.addEventListener("click", async () => {
+          try {
+            await navigateApplicantModule("conformity");
+          } catch (error) {
+            writeOutput("Ошибка перехода к услуге", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        });
+      }
+
+      if (homeRegistryBtn) {
+        homeRegistryBtn.addEventListener("click", async () => {
+          try {
+            await loadInternalCertificatesRegistry();
+            await loadPostIssuanceRegistry();
+            showCertificatesRegistryView();
+            writeOutput("Реестр сертификатов", "Открыт внутренний реестр сертификатов.");
+          } catch (error) {
+            writeOutput("Ошибка открытия реестра сертификатов", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        });
+      }
+
       sessionToggleBtn.addEventListener("click", () => {
         setSessionExpanded(!sessionExpanded);
       });
@@ -4210,8 +6328,8 @@
           } else if (oidcSession.authenticated && isApplicantUser() && activeView === "registry") {
             await loadApplicationsRegistry();
             showRegistryView();
-          } else if (oidcSession.authenticated && isApplicantUser() && activeView === "standardization") {
-            showStandardizationModuleView();
+          } else if (oidcSession.authenticated && isApplicantUser() && activeView === "conformity") {
+            showConformityModuleView();
           } else if (oidcSession.authenticated && isApplicantUser()) {
             showApplicantHomeView();
           } else if (oidcSession.authenticated && isOpsUser()) {
@@ -4311,7 +6429,7 @@
 
       renderStep();
       renderApplicantModuleCards();
-      renderStandardizationServices();
+      renderConformityServices();
       setSessionExpanded(false);
       setStatusChip("DRAFT");
       renderProcessByStatus("DRAFT");

@@ -12,7 +12,9 @@ router = APIRouter(prefix="/files", tags=["files"])
 
 
 class SlotUploadRequest(BaseModel):
-    application_id: int = Field(gt=0)
+    application_id: int | None = Field(default=None, gt=0)
+    entity_kind: str | None = Field(default=None, min_length=3, max_length=32)
+    entity_id: int | None = Field(default=None, gt=0)
     slot: str = Field(min_length=2, max_length=64)
     file_name: str = Field(min_length=1, max_length=255)
     content_base64: str = Field(min_length=4)
@@ -36,9 +38,11 @@ def upload_slot_file(
 ) -> dict[str, object]:
     return service.upload_slot_file(
         current_user=current_user,
-        application_id=request.application_id,
         slot=request.slot,
         file_name=request.file_name,
         content_base64=request.content_base64,
         content_type=request.content_type,
+        application_id=request.application_id,
+        entity_kind=request.entity_kind,
+        entity_id=request.entity_id,
     )

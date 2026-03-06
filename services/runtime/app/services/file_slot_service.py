@@ -13,7 +13,10 @@ from fastapi import HTTPException, status
 from app.auth import CurrentUser
 
 PROTOCOL_FILE_SLOT = "protocol_test_report"
-ALLOWED_SLOTS = frozenset({PROTOCOL_FILE_SLOT})
+POST_ISSUANCE_BASIS_FILE_SLOT = "post_issuance_basis"
+APPLICATION_ENTITY_KIND = "application"
+POST_ISSUANCE_ENTITY_KIND = "post_issuance"
+ALLOWED_SLOTS = frozenset({PROTOCOL_FILE_SLOT, POST_ISSUANCE_BASIS_FILE_SLOT})
 ALLOWED_EXTENSIONS = frozenset({".pdf", ".doc", ".docx", ".xls", ".xlsx", ".jpg", ".jpeg", ".png"})
 DEFAULT_CONTENT_TYPE = "application/octet-stream"
 
@@ -69,24 +72,37 @@ class FileSlotService:
     def upload_slot_file(
         self,
         current_user: CurrentUser,
-        application_id: int,
         slot: str,
         file_name: str,
         content_base64: str,
         content_type: str | None = None,
+        application_id: int | None = None,
+        entity_kind: str | None = None,
+        entity_id: int | None = None,
     ) -> dict[str, object]:
-        if "OPS" not in current_user.roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only OPS role can upload protocol files",
-            )
-
         normalized_slot = slot.strip()
         if normalized_slot not in ALLOWED_SLOTS:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Unsupported slot '{normalized_slot}'",
             )
+        if normalized_slot == PROTOCOL_FILE_SLOT:
+            if "OPS" not in current_user.roles:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only OPS role can upload protocol files",
+                )
+        elif "OPS" not in current_user.roles and "Applicant" not in current_user.roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only Applicant or OPS role can upload post-issuance basis files",
+            )
+
+        resolved_entity_kind, resolved_entity_id, object_prefix = self._resolve_target(
+            application_id=application_id,
+            entity_kind=entity_kind,
+            entity_id=entity_id,
+        )
 
         normalized_name = file_name.strip()
         if not normalized_name:
@@ -123,12 +139,13 @@ class FileSlotService:
 
         safe_file_name = re.sub(r"[^a-zA-Z0-9_.-]+", "_", normalized_name)
         timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-        object_key = f"applications/{application_id}/{normalized_slot}/{timestamp}-{token_hex(6)}-{safe_file_name}"
+        object_key = f"{object_prefix}/{resolved_entity_id}/{normalized_slot}/{timestamp}-{token_hex(6)}-{safe_file_name}"
         resolved_content_type = (content_type or DEFAULT_CONTENT_TYPE).strip() or DEFAULT_CONTENT_TYPE
         etag = self._storage.put_object(object_key, content, resolved_content_type)
 
-        return {
-            "application_id": application_id,
+        response: dict[str, object] = {
+            "entity_kind": resolved_entity_kind,
+            "entity_id": resolved_entity_id,
             "slot": normalized_slot,
             "object_key": object_key,
             "file_name": normalized_name,
@@ -138,6 +155,33 @@ class FileSlotService:
             "uploaded_by_subject": current_user.subject,
             "uploaded_at": datetime.now(UTC).isoformat(),
         }
+        if resolved_entity_kind == APPLICATION_ENTITY_KIND:
+            response["application_id"] = resolved_entity_id
+        if resolved_entity_kind == POST_ISSUANCE_ENTITY_KIND:
+            response["post_issuance_id"] = resolved_entity_id
+        return response
+
+    def _resolve_target(
+        self,
+        application_id: int | None,
+        entity_kind: str | None,
+        entity_id: int | None,
+    ) -> tuple[str, int, str]:
+        if application_id is not None:
+            return APPLICATION_ENTITY_KIND, application_id, "applications"
+        normalized_kind = str(entity_kind or "").strip().lower()
+        if normalized_kind not in {APPLICATION_ENTITY_KIND, POST_ISSUANCE_ENTITY_KIND}:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="entity_kind must be 'application' or 'post_issuance'",
+            )
+        if entity_id is None or entity_id <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="entity_id must be a positive integer",
+            )
+        object_prefix = "applications" if normalized_kind == APPLICATION_ENTITY_KIND else "post-issuance"
+        return normalized_kind, entity_id, object_prefix
 
 
 def build_file_slot_service() -> FileSlotService:

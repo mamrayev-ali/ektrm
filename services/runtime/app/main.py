@@ -9,6 +9,7 @@ from app.auth import AUTH_SETTINGS, CurrentUser, get_current_user, require_roles
 from app.routers.applications import router as applications_router
 from app.routers.certificates import router as certificates_router
 from app.routers.files import router as files_router
+from app.routers.post_issuance import router as post_issuance_router
 from app.routers.reference_data import router as reference_data_router
 from app.routers.registry import router as registry_router
 
@@ -41,6 +42,7 @@ if SERVICE_NAME in REFERENCE_DATA_SERVICES:
 
 if SERVICE_NAME in APPLICATION_SERVICES:
     app.include_router(applications_router)
+    app.include_router(post_issuance_router)
 
 if SERVICE_NAME in FILE_SERVICES:
     app.include_router(files_router)

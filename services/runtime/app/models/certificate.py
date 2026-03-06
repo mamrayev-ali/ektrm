@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -29,6 +29,13 @@ class Certificate(Base):
     signed_by_subject: Mapped[str | None] = mapped_column(String(255), nullable=True)
     signed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_dangerous_product: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -47,6 +54,11 @@ class Certificate(Base):
         back_populates="certificate",
         cascade="all, delete-orphan",
         order_by="CertificateRegistryPublication.published_at",
+    )
+    post_issuance_applications: Mapped[list["PostIssuanceApplication"]] = relationship(
+        back_populates="source_certificate",
+        cascade="all, delete-orphan",
+        order_by="PostIssuanceApplication.updated_at",
     )
 
 
@@ -84,3 +96,6 @@ class CertificateRegistryPublication(Base):
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     certificate: Mapped[Certificate] = relationship(back_populates="registry_publications")
+
+
+from app.models import post_issuance as _post_issuance_models  # noqa: E402,F401

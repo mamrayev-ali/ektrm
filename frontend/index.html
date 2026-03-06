@@ -799,6 +799,140 @@
                 Внутренний реестр сертификатов пока пуст.
               </div>
             </div>
+
+            <section class="section is-hidden" id="postIssuancePanel" style="margin-top: 12px">
+              <div class="section-head">
+                <div class="section-title">Ордер 5: Приостановление / прекращение</div>
+                <div class="section-sub" id="postIssuanceMeta">
+                  Выберите сертификат из реестра и создайте процесс post-issuance.
+                </div>
+              </div>
+              <div class="section-body">
+                <div class="grid-2">
+                  <div class="field">
+                    <label>Тип действия</label>
+                    <input id="pi_action_type_display" type="text" readonly />
+                  </div>
+                  <div class="field">
+                    <label>Подать заявку</label>
+                    <input id="pi_request_source" type="text" readonly />
+                  </div>
+                  <div class="field">
+                    <label>Номер сертификата</label>
+                    <input id="pi_source_certificate_number" type="text" readonly />
+                  </div>
+                  <div class="field">
+                    <label>Статус сертификата</label>
+                    <input id="pi_certificate_status" type="text" readonly />
+                  </div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 10px">
+                  <div class="field">
+                    <label>Причина приостановления <span class="required">*</span></label>
+                    <select id="pi_suspension_reason_code">
+                      <option value="">Выберите причину</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Причина прекращения <span class="required">*</span></label>
+                    <select id="pi_termination_reason_code">
+                      <option value="">Выберите причину</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 10px">
+                  <div class="field">
+                    <label>Заявитель</label>
+                    <input id="pi_applicant_name" type="text" readonly />
+                  </div>
+                  <div class="field">
+                    <label>БИН</label>
+                    <input id="pi_applicant_bin" type="text" readonly />
+                  </div>
+                  <div class="field">
+                    <label>ОПС</label>
+                    <input id="pi_ops_code" type="text" readonly />
+                  </div>
+                  <div class="field">
+                    <label>Ответственный ОПС</label>
+                    <input id="pi_ops_manager" type="text" readonly />
+                  </div>
+                  <div class="field">
+                    <label>Продукция</label>
+                    <input id="pi_product_name" type="text" readonly />
+                  </div>
+                  <div class="field">
+                    <label>Срок устранения <span class="required">*</span></label>
+                    <input id="pi_remediation_deadline" type="datetime-local" />
+                  </div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 10px">
+                  <div class="field">
+                    <label>Подробное описание причины <span class="required">*</span></label>
+                    <textarea id="pi_reason_detail"></textarea>
+                  </div>
+                  <div class="field">
+                    <label>Примечание <span class="required">*</span></label>
+                    <textarea id="pi_note"></textarea>
+                  </div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 10px">
+                  <div class="field">
+                    <label>Файл-основание <span class="required">*</span></label>
+                    <input id="pi_basis_file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" />
+                    <span class="hint" id="pi_basis_file_status">Файл еще не прикреплен.</span>
+                  </div>
+                  <div class="field">
+                    <label>Статус процесса</label>
+                    <input id="pi_application_status" type="text" readonly />
+                  </div>
+                </div>
+
+                <div class="action-bar">
+                  <button id="piSaveDraftBtn" type="button" class="btn-secondary">Сохранить черновик</button>
+                  <button id="piAttachBasisBtn" type="button" class="btn-secondary">Прикрепить основание</button>
+                  <button id="piSubmitBtn" type="button" class="btn-primary">Подать заявку</button>
+                  <button id="piCloseBtn" type="button" class="btn-danger">Закрыть форму</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="section" id="postIssuanceRegistrySection" style="margin-top: 12px">
+              <div class="section-head">
+                <div class="section-title">Очередь post-issuance</div>
+                <div class="section-sub">
+                  Applicant видит свои процессы, OPS — рабочую очередь suspend / terminate.
+                </div>
+              </div>
+              <div class="section-body" style="padding-top: 0">
+                <div class="action-bar" style="padding-top: 12px">
+                  <button id="piRefreshQueueBtn" type="button" class="btn-secondary">Обновить очередь</button>
+                </div>
+                <div class="registry-table-wrap" style="margin-top: 10px">
+                  <table class="registry-table" aria-label="Очередь post-issuance">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Номер процесса</th>
+                        <th>Тип</th>
+                        <th>Сертификат</th>
+                        <th>Статус</th>
+                        <th>Обновлено</th>
+                        <th>Действия</th>
+                      </tr>
+                    </thead>
+                    <tbody id="postIssuanceRegistryBody"></tbody>
+                  </table>
+                  <div class="registry-empty" id="postIssuanceRegistryEmpty">
+                    Процессы post-issuance пока отсутствуют.
+                  </div>
+                </div>
+              </div>
+            </section>
           </section>
 
           <div id="formView" class="is-hidden">
@@ -1200,6 +1334,32 @@
       const opsRegistryEmpty = document.getElementById("opsRegistryEmpty");
       const certificatesRegistryBody = document.getElementById("certificatesRegistryBody");
       const certificatesRegistryEmpty = document.getElementById("certificatesRegistryEmpty");
+      const postIssuancePanel = document.getElementById("postIssuancePanel");
+      const postIssuanceMeta = document.getElementById("postIssuanceMeta");
+      const postIssuanceRegistryBody = document.getElementById("postIssuanceRegistryBody");
+      const postIssuanceRegistryEmpty = document.getElementById("postIssuanceRegistryEmpty");
+      const piActionTypeDisplay = document.getElementById("pi_action_type_display");
+      const piRequestSource = document.getElementById("pi_request_source");
+      const piSourceCertificateNumber = document.getElementById("pi_source_certificate_number");
+      const piCertificateStatus = document.getElementById("pi_certificate_status");
+      const piSuspensionReasonCode = document.getElementById("pi_suspension_reason_code");
+      const piTerminationReasonCode = document.getElementById("pi_termination_reason_code");
+      const piApplicantName = document.getElementById("pi_applicant_name");
+      const piApplicantBin = document.getElementById("pi_applicant_bin");
+      const piOpsCode = document.getElementById("pi_ops_code");
+      const piOpsManager = document.getElementById("pi_ops_manager");
+      const piProductName = document.getElementById("pi_product_name");
+      const piRemediationDeadline = document.getElementById("pi_remediation_deadline");
+      const piReasonDetail = document.getElementById("pi_reason_detail");
+      const piNote = document.getElementById("pi_note");
+      const piBasisFile = document.getElementById("pi_basis_file");
+      const piBasisFileStatus = document.getElementById("pi_basis_file_status");
+      const piApplicationStatus = document.getElementById("pi_application_status");
+      const piSaveDraftBtn = document.getElementById("piSaveDraftBtn");
+      const piAttachBasisBtn = document.getElementById("piAttachBasisBtn");
+      const piSubmitBtn = document.getElementById("piSubmitBtn");
+      const piCloseBtn = document.getElementById("piCloseBtn");
+      const piRefreshQueueBtn = document.getElementById("piRefreshQueueBtn");
       const menuHome = document.getElementById("menuHome");
       const menuApplications = document.getElementById("menuApplications");
       const menuCertificates = document.getElementById("menuCertificates");
@@ -1263,12 +1423,19 @@
       };
       let currentStep = 0;
       let currentApplicationId = null;
+      let currentPostIssuanceId = null;
+      let currentPostIssuanceApplication = null;
       let currentView = "registry";
       let currentFormMode = "applicant";
       let currentOpsApplication = null;
       let currentApplicantCanEdit = true;
       let formDirty = false;
       let authReady = false;
+      let postIssuanceDictionariesLoaded = false;
+      let postIssuanceDictionaries = {
+        suspension: [],
+        termination: [],
+      };
       const pkceStorage = {
         verifier: "ektrm_oidc_pkce_verifier",
         state: "ektrm_oidc_state",
@@ -1523,8 +1690,10 @@
           const publishedAtCell = document.createElement("td");
           publishedAtCell.textContent = formatDateTime(certificate.published_at);
           const actionCell = document.createElement("td");
+          const status = normalizeStatus(certificate.status);
+          let hasAction = false;
 
-          if (isOpsUser() && normalizeStatus(certificate.status) === "GENERATED") {
+          if (isOpsUser() && status === "GENERATED") {
             const signButton = document.createElement("button");
             signButton.type = "button";
             signButton.className = "btn-secondary registry-action";
@@ -1534,7 +1703,7 @@
                 const signed = await callApi("POST", `/certificates/${certificate.id}/sign`, {
                   comment: "Подписано ОПС (T8)",
                 });
-                await loadInternalCertificatesRegistry();
+                await refreshCertificatesWorkspace();
                 writeOutput("Сертификат подписан и опубликован", signed);
               } catch (error) {
                 writeOutput("Ошибка подписи сертификата", {
@@ -1544,13 +1713,448 @@
               }
             });
             actionCell.appendChild(signButton);
-          } else {
+            hasAction = true;
+          }
+
+          if ((isApplicantUser() || isOpsUser()) && (status === "ACTIVE" || status === "SUSPENDED")) {
+            if (status === "ACTIVE") {
+              const suspendButton = document.createElement("button");
+              suspendButton.type = "button";
+              suspendButton.className = "btn-secondary registry-action";
+              suspendButton.textContent = "Приостановить";
+              suspendButton.addEventListener("click", async () => {
+                try {
+                  await openPostIssuanceDraft(certificate, "SUSPEND");
+                } catch (error) {
+                  writeOutput("Ошибка создания процесса приостановления", {
+                    message: error instanceof Error ? error.message : String(error),
+                    certificate_id: certificate.id,
+                  });
+                }
+              });
+              actionCell.appendChild(suspendButton);
+              hasAction = true;
+            }
+
+            const terminateButton = document.createElement("button");
+            terminateButton.type = "button";
+            terminateButton.className = "btn-secondary registry-action";
+            terminateButton.textContent = "Прекратить";
+            terminateButton.addEventListener("click", async () => {
+              try {
+                await openPostIssuanceDraft(certificate, "TERMINATE");
+              } catch (error) {
+                writeOutput("Ошибка создания процесса прекращения", {
+                  message: error instanceof Error ? error.message : String(error),
+                  certificate_id: certificate.id,
+                });
+              }
+            });
+            actionCell.appendChild(terminateButton);
+            hasAction = true;
+          }
+
+          if (!hasAction) {
             actionCell.textContent = "-";
           }
 
           row.append(idCell, numberCell, appNumberCell, statusCell, signedAtCell, publishedAtCell, actionCell);
           certificatesRegistryBody.appendChild(row);
         });
+      }
+
+      function formatPostIssuanceActionLabel(actionType) {
+        return normalizeStatus(actionType) === "SUSPEND" ? "Приостановление" : "Прекращение";
+      }
+
+      function isPostIssuanceEditableStatus(status) {
+        const normalized = normalizeStatus(status);
+        return normalized === "DRAFT" || normalized === "REVISION_REQUESTED";
+      }
+
+      function canEditCurrentPostIssuance(application) {
+        if (!application) {
+          return false;
+        }
+        if (!isPostIssuanceEditableStatus(application.status)) {
+          return false;
+        }
+        return isApplicantUser() || isOpsUser();
+      }
+
+      function setPostIssuanceFormEnabled(enabled) {
+        const editable = Boolean(enabled);
+        [piSuspensionReasonCode, piTerminationReasonCode, piRemediationDeadline, piReasonDetail, piNote, piBasisFile].forEach((element) => {
+          if (element) {
+            element.disabled = !editable;
+          }
+        });
+        if (piSaveDraftBtn) {
+          piSaveDraftBtn.disabled = !editable;
+        }
+        if (piAttachBasisBtn) {
+          piAttachBasisBtn.disabled = !editable;
+        }
+        if (piSubmitBtn) {
+          piSubmitBtn.disabled = !editable;
+        }
+        syncPostIssuanceReasonAvailability();
+      }
+
+      function resetPostIssuanceForm() {
+        currentPostIssuanceId = null;
+        currentPostIssuanceApplication = null;
+        if (postIssuancePanel) {
+          postIssuancePanel.classList.add("is-hidden");
+        }
+        if (postIssuanceMeta) {
+          postIssuanceMeta.textContent = "Выберите сертификат из реестра и создайте процесс post-issuance.";
+        }
+        [
+          piActionTypeDisplay,
+          piRequestSource,
+          piSourceCertificateNumber,
+          piCertificateStatus,
+          piApplicantName,
+          piApplicantBin,
+          piOpsCode,
+          piOpsManager,
+          piProductName,
+          piRemediationDeadline,
+          piReasonDetail,
+          piNote,
+          piApplicationStatus,
+        ].forEach((element) => {
+          if (element) {
+            element.value = "";
+          }
+        });
+        if (piSuspensionReasonCode) {
+          piSuspensionReasonCode.value = "";
+        }
+        if (piTerminationReasonCode) {
+          piTerminationReasonCode.value = "";
+        }
+        if (piBasisFile) {
+          piBasisFile.value = "";
+        }
+        if (piBasisFileStatus) {
+          piBasisFileStatus.textContent = "Файл еще не прикреплен.";
+        }
+        setPostIssuanceFormEnabled(false);
+      }
+
+      async function ensurePostIssuanceDictionariesLoaded() {
+        if (postIssuanceDictionariesLoaded) {
+          return;
+        }
+        const [suspension, termination] = await Promise.all([
+          callApi("GET", "/reference-data/dictionaries/suspension_reason/items"),
+          callApi("GET", "/reference-data/dictionaries/termination_reason/items"),
+        ]);
+        postIssuanceDictionaries = {
+          suspension: Array.isArray(suspension.items) ? suspension.items : [],
+          termination: Array.isArray(termination.items) ? termination.items : [],
+        };
+        populatePostIssuanceReasonSelect(piSuspensionReasonCode, postIssuanceDictionaries.suspension, "Выберите причину приостановления");
+        populatePostIssuanceReasonSelect(piTerminationReasonCode, postIssuanceDictionaries.termination, "Выберите причину прекращения");
+        postIssuanceDictionariesLoaded = true;
+      }
+
+      function populatePostIssuanceReasonSelect(selectNode, items, placeholder) {
+        if (!selectNode) {
+          return;
+        }
+        const currentValue = selectNode.value;
+        selectNode.innerHTML = "";
+        const placeholderOption = document.createElement("option");
+        placeholderOption.value = "";
+        placeholderOption.textContent = placeholder;
+        selectNode.appendChild(placeholderOption);
+        items.forEach((item) => {
+          const option = document.createElement("option");
+          option.value = item.code || "";
+          option.textContent = item.name || item.code || "-";
+          selectNode.appendChild(option);
+        });
+        selectNode.value = currentValue || "";
+      }
+
+      function syncPostIssuanceReasonAvailability() {
+        const actionType = normalizeStatus(currentPostIssuanceApplication ? currentPostIssuanceApplication.action_type : "");
+        const editable = canEditCurrentPostIssuance(currentPostIssuanceApplication);
+        if (piSuspensionReasonCode) {
+          piSuspensionReasonCode.disabled = actionType !== "SUSPEND" || !editable;
+        }
+        if (piTerminationReasonCode) {
+          piTerminationReasonCode.disabled = actionType !== "TERMINATE" || !editable;
+        }
+      }
+
+      function buildPostIssuancePayload() {
+        if (!currentPostIssuanceApplication) {
+          throw new Error("Сначала создайте или откройте процесс post-issuance");
+        }
+        return {
+          ...(currentPostIssuanceApplication.payload || {}),
+          request_source: piRequestSource.value.trim(),
+          source_certificate_id: currentPostIssuanceApplication.source_certificate_id,
+          source_certificate_number: currentPostIssuanceApplication.source_certificate_number,
+          source_application_id: currentPostIssuanceApplication.source_application_id,
+          source_application_number: currentPostIssuanceApplication.source_application_number,
+          suspension_reason_code: piSuspensionReasonCode.value.trim(),
+          termination_reason_code: piTerminationReasonCode.value.trim(),
+          reason_detail: piReasonDetail.value.trim(),
+          note: piNote.value.trim(),
+          remediation_deadline: piRemediationDeadline.value.trim(),
+        };
+      }
+
+      function applyPostIssuanceApplication(application) {
+        currentPostIssuanceApplication = application;
+        currentPostIssuanceId = application ? application.id : null;
+        if (!application) {
+          resetPostIssuanceForm();
+          return;
+        }
+        const payload = application.payload && typeof application.payload === "object" ? application.payload : {};
+        piActionTypeDisplay.value = formatPostIssuanceActionLabel(application.action_type || payload.action_type || "");
+        piRequestSource.value = payload.request_source || application.initiator_role || "";
+        piSourceCertificateNumber.value = application.source_certificate_number || payload.source_certificate_number || "";
+        piCertificateStatus.value = application.certificate?.status || payload.certificate_status || "";
+        piApplicantName.value = payload.applicant_name || "";
+        piApplicantBin.value = payload.applicant_bin || "";
+        piOpsCode.value = payload.ops_code || "";
+        piOpsManager.value = payload.ops_manager || "";
+        piProductName.value = payload.product_name || "";
+        piRemediationDeadline.value = payload.remediation_deadline || "";
+        piReasonDetail.value = payload.reason_detail || "";
+        piNote.value = payload.note || "";
+        piSuspensionReasonCode.value = payload.suspension_reason_code || "";
+        piTerminationReasonCode.value = payload.termination_reason_code || "";
+        piApplicationStatus.value = application.status || "";
+        const fileSlot = payload.file_slots && payload.file_slots.post_issuance_basis ? payload.file_slots.post_issuance_basis : null;
+        piBasisFileStatus.textContent = fileSlot && fileSlot.file_name ? `Прикреплен: ${fileSlot.file_name}` : "Файл еще не прикреплен.";
+        postIssuanceMeta.textContent =
+          `Процесс ${application.application_number || "-"} для сертификата ${application.source_certificate_number || "-"} (${application.status || "-"})`;
+        postIssuancePanel.classList.remove("is-hidden");
+        setPostIssuanceFormEnabled(canEditCurrentPostIssuance(application));
+      }
+
+      function renderPostIssuanceRegistry(items) {
+        postIssuanceRegistryBody.innerHTML = "";
+        if (!Array.isArray(items) || items.length === 0) {
+          postIssuanceRegistryEmpty.classList.remove("is-hidden");
+          return;
+        }
+        postIssuanceRegistryEmpty.classList.add("is-hidden");
+
+        items.forEach((application) => {
+          const row = document.createElement("tr");
+          const idCell = document.createElement("td");
+          idCell.textContent = String(application.id ?? "-");
+          const numberCell = document.createElement("td");
+          numberCell.textContent = application.application_number || "-";
+          const actionCell = document.createElement("td");
+          actionCell.textContent = formatPostIssuanceActionLabel(application.action_type || "");
+          const certificateCell = document.createElement("td");
+          certificateCell.textContent = application.source_certificate_number || "-";
+          const statusCell = document.createElement("td");
+          statusCell.textContent = application.status || "-";
+          const updatedCell = document.createElement("td");
+          updatedCell.textContent = formatDateTime(application.updated_at);
+          const actionsCell = document.createElement("td");
+
+          const openButton = document.createElement("button");
+          openButton.type = "button";
+          openButton.className = "btn-secondary registry-action";
+          openButton.textContent = "Открыть";
+          openButton.addEventListener("click", async () => {
+            try {
+              await openPostIssuanceApplication(Number(application.id));
+            } catch (error) {
+              writeOutput("Ошибка открытия post-issuance", {
+                message: error instanceof Error ? error.message : String(error),
+                application_id: application.id,
+              });
+            }
+          });
+          actionsCell.appendChild(openButton);
+
+          const status = normalizeStatus(application.status);
+          if (isOpsUser() && status === "REGISTERED") {
+            const reviewButton = document.createElement("button");
+            reviewButton.type = "button";
+            reviewButton.className = "btn-secondary registry-action";
+            reviewButton.textContent = "В работу";
+            reviewButton.addEventListener("click", async () => {
+              try {
+                await transitionPostIssuance(application.id, "IN_REVIEW", "Заявка принята в работу ОПС");
+              } catch (error) {
+                writeOutput("Ошибка перевода post-issuance в работу", {
+                  message: error instanceof Error ? error.message : String(error),
+                });
+              }
+            });
+            actionsCell.appendChild(reviewButton);
+          }
+
+          if (isOpsUser() && (status === "REGISTERED" || status === "IN_REVIEW")) {
+            const approveButton = document.createElement("button");
+            approveButton.type = "button";
+            approveButton.className = "btn-primary registry-action";
+            approveButton.textContent = "Одобрить";
+            approveButton.addEventListener("click", async () => {
+              try {
+                await transitionPostIssuance(application.id, "APPROVED", "Решение ОПС принято");
+              } catch (error) {
+                writeOutput("Ошибка одобрения post-issuance", {
+                  message: error instanceof Error ? error.message : String(error),
+                });
+              }
+            });
+            actionsCell.appendChild(approveButton);
+
+            const rejectButton = document.createElement("button");
+            rejectButton.type = "button";
+            rejectButton.className = "btn-danger registry-action";
+            rejectButton.textContent = "Отказать";
+            rejectButton.addEventListener("click", async () => {
+              try {
+                await transitionPostIssuance(application.id, "REJECTED", "Основания не подтверждены");
+              } catch (error) {
+                writeOutput("Ошибка отказа post-issuance", {
+                  message: error instanceof Error ? error.message : String(error),
+                });
+              }
+            });
+            actionsCell.appendChild(rejectButton);
+          }
+
+          if (isOpsUser() && status === "IN_REVIEW") {
+            const revisionButton = document.createElement("button");
+            revisionButton.type = "button";
+            revisionButton.className = "btn-secondary registry-action";
+            revisionButton.textContent = "На доработку";
+            revisionButton.addEventListener("click", async () => {
+              try {
+                await transitionPostIssuance(application.id, "REVISION_REQUESTED", "Требуется уточнение оснований");
+              } catch (error) {
+                writeOutput("Ошибка возврата post-issuance на доработку", {
+                  message: error instanceof Error ? error.message : String(error),
+                });
+              }
+            });
+            actionsCell.appendChild(revisionButton);
+          }
+
+          row.append(idCell, numberCell, actionCell, certificateCell, statusCell, updatedCell, actionsCell);
+          postIssuanceRegistryBody.appendChild(row);
+        });
+      }
+
+      async function loadPostIssuanceRegistry() {
+        if (!oidcSession.authenticated || !oidcSession.token) {
+          throw new Error("Сначала выполните вход через Keycloak");
+        }
+        let response;
+        if (isOpsUser()) {
+          const statuses = ["REGISTERED", "IN_REVIEW", "REVISION_REQUESTED", "ARCHIVED", "COMPLETED"].join(",");
+          response = await callApi("GET", `/post-issuance/ops/queue?limit=200&statuses=${encodeURIComponent(statuses)}`);
+        } else {
+          response = await callApi("GET", "/post-issuance/mine?limit=200");
+        }
+        const items = Array.isArray(response.items) ? response.items : [];
+        renderPostIssuanceRegistry(items);
+        return items;
+      }
+
+      async function refreshCertificatesWorkspace() {
+        await loadInternalCertificatesRegistry();
+        await loadPostIssuanceRegistry();
+      }
+
+      async function openPostIssuanceDraft(certificate, actionType) {
+        await ensurePostIssuanceDictionariesLoaded();
+        const created = await callApi("POST", "/post-issuance/drafts", {
+          source_certificate_id: certificate.id,
+          action_type: actionType,
+        });
+        applyPostIssuanceApplication(created);
+        await loadPostIssuanceRegistry();
+        writeOutput(`Создан процесс: ${formatPostIssuanceActionLabel(actionType)}`, created);
+      }
+
+      async function openPostIssuanceApplication(applicationId) {
+        await ensurePostIssuanceDictionariesLoaded();
+        const application = await callApi("GET", `/post-issuance/${applicationId}`);
+        applyPostIssuanceApplication(application);
+        writeOutput("Открыт процесс post-issuance", application);
+      }
+
+      async function saveCurrentPostIssuanceDraft() {
+        if (!currentPostIssuanceId || !currentPostIssuanceApplication) {
+          throw new Error("Сначала создайте процесс post-issuance");
+        }
+        const payload = buildPostIssuancePayload();
+        const saved = await callApi("PUT", `/post-issuance/${currentPostIssuanceId}/draft`, payload);
+        applyPostIssuanceApplication(saved);
+        await loadPostIssuanceRegistry();
+        writeOutput("Черновик post-issuance сохранен", saved);
+      }
+
+      async function attachCurrentPostIssuanceBasis() {
+        if (!currentPostIssuanceId || !currentPostIssuanceApplication) {
+          throw new Error("Сначала создайте процесс post-issuance");
+        }
+        if (!piBasisFile.files || !piBasisFile.files[0]) {
+          throw new Error("Выберите файл-основание перед прикреплением");
+        }
+        const file = piBasisFile.files[0];
+        const contentBase64 = await fileToBase64(file);
+        const uploadMeta = await callApi("POST", "/files/slots/upload", {
+          entity_kind: "post_issuance",
+          entity_id: currentPostIssuanceId,
+          slot: "post_issuance_basis",
+          file_name: file.name,
+          content_base64: contentBase64,
+          content_type: file.type || "application/octet-stream",
+        });
+        const attached = await callApi("POST", `/post-issuance/${currentPostIssuanceId}/basis/attach`, {
+          slot: uploadMeta.slot,
+          object_key: uploadMeta.object_key,
+          file_name: uploadMeta.file_name,
+          content_type: uploadMeta.content_type,
+          size_bytes: uploadMeta.size_bytes,
+          etag: uploadMeta.etag || null,
+        });
+        applyPostIssuanceApplication(attached);
+        await loadPostIssuanceRegistry();
+        writeOutput("Файл-основание прикреплен", attached);
+      }
+
+      async function submitCurrentPostIssuance() {
+        if (!currentPostIssuanceId || !currentPostIssuanceApplication) {
+          throw new Error("Сначала создайте процесс post-issuance");
+        }
+        await saveCurrentPostIssuanceDraft();
+        const submitted = await callApi("POST", `/post-issuance/${currentPostIssuanceId}/submit`);
+        applyPostIssuanceApplication(submitted);
+        await refreshCertificatesWorkspace();
+        writeOutput("Заявка post-issuance отправлена", submitted);
+      }
+
+      async function transitionPostIssuance(applicationId, toStatus, comment) {
+        const updated = await callApi("POST", `/post-issuance/${applicationId}/transitions`, {
+          to_status: toStatus,
+          comment: comment || null,
+        });
+        if (currentPostIssuanceId === applicationId) {
+          applyPostIssuanceApplication(updated);
+        }
+        await refreshCertificatesWorkspace();
+        writeOutput(`Post-issuance: ${toStatus}`, updated);
+        return updated;
       }
 
       async function loadApplicationsRegistry() {
@@ -1809,6 +2413,7 @@
         currentFormMode = "applicant";
         currentOpsApplication = null;
         currentApplicationId = null;
+        resetPostIssuanceForm();
         setActiveMenu("applications");
         pageEyebrow.textContent = "Раздел заявок";
         pageTitle.textContent = "Заявки";
@@ -1834,6 +2439,7 @@
         currentFormMode = "ops";
         currentOpsApplication = null;
         currentApplicationId = null;
+        resetPostIssuanceForm();
         setActiveMenu("applications");
         pageEyebrow.textContent = "Раздел заявок ОПС";
         pageTitle.textContent = "Реестр заявок заявителей";
@@ -1874,12 +2480,16 @@
         setOpsButtonsEnabled(false);
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = true;
+        if (!currentPostIssuanceApplication) {
+          resetPostIssuanceForm();
+        }
         updateHeaderMeta();
       }
 
       function showFormView(mode = "applicant") {
         currentFormMode = mode === "ops" ? "ops" : "applicant";
         currentView = currentFormMode === "ops" ? "ops-form" : "form";
+        resetPostIssuanceForm();
         setActiveMenu("applications");
         if (currentFormMode === "ops") {
           pageEyebrow.textContent = "Раздел заявок ОПС";
@@ -2782,7 +3392,7 @@
           if (!isOpsUser() && !isApplicantUser()) {
             throw new Error("Недостаточно прав для раздела сертификатов");
           }
-          await loadInternalCertificatesRegistry();
+          await refreshCertificatesWorkspace();
           showCertificatesRegistryView();
         } catch (error) {
           writeOutput("Ошибка открытия реестра сертификатов", {
@@ -2946,15 +3556,19 @@
           return;
         }
         try {
+          const activeView = currentView;
+          const hadPostIssuanceOpen = Boolean(currentPostIssuanceApplication);
           const refreshed = await refreshAccessToken(30);
           renderAuthState();
-          if (oidcSession.authenticated && isApplicantUser()) {
+          if (oidcSession.authenticated && (activeView === "cert-registry" || hadPostIssuanceOpen)) {
+            await refreshCertificatesWorkspace();
+            showCertificatesRegistryView();
+          } else if (oidcSession.authenticated && isApplicantUser()) {
             await loadApplicationsRegistry();
             if (currentView !== "form") {
               showRegistryView();
             }
-          }
-          if (oidcSession.authenticated && isOpsUser()) {
+          } else if (oidcSession.authenticated && isOpsUser()) {
             await loadOpsRegistry();
             showOpsRegistryView();
           }
@@ -2971,7 +3585,54 @@
           return;
         }
         currentView = "registry";
+        resetPostIssuanceForm();
         await logoutFromOidc();
+      });
+
+      piSaveDraftBtn.addEventListener("click", async () => {
+        try {
+          await saveCurrentPostIssuanceDraft();
+        } catch (error) {
+          writeOutput("Ошибка сохранения черновика post-issuance", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      });
+
+      piAttachBasisBtn.addEventListener("click", async () => {
+        try {
+          await attachCurrentPostIssuanceBasis();
+        } catch (error) {
+          writeOutput("Ошибка прикрепления файла-основания", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      });
+
+      piSubmitBtn.addEventListener("click", async () => {
+        try {
+          await submitCurrentPostIssuance();
+        } catch (error) {
+          writeOutput("Ошибка отправки post-issuance заявки", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      });
+
+      piCloseBtn.addEventListener("click", () => {
+        resetPostIssuanceForm();
+        writeOutput("Post-issuance", "Форма приостановления / прекращения закрыта.");
+      });
+
+      piRefreshQueueBtn.addEventListener("click", async () => {
+        try {
+          await refreshCertificatesWorkspace();
+          writeOutput("Очередь post-issuance", "Данные реестра сертификатов и очереди обновлены.");
+        } catch (error) {
+          writeOutput("Ошибка обновления очереди post-issuance", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
       });
 
       const formInputs = Array.from(document.querySelectorAll("#sectionsWrap input, #sectionsWrap select, #sectionsWrap textarea"));

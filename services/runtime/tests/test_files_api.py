@@ -94,6 +94,33 @@ class FilesApiTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 403)
 
+    def test_upload_post_issuance_basis_allows_applicant(self) -> None:
+        self._set_auth_user(
+            CurrentUser(
+                subject="applicant-1",
+                username="applicant.demo",
+                email="applicant@example.local",
+                roles=frozenset({"Applicant"}),
+                claims={},
+            )
+        )
+        response = self._client.post(
+            "/files/slots/upload",
+            json={
+                "entity_kind": "post_issuance",
+                "entity_id": 17,
+                "slot": "post_issuance_basis",
+                "file_name": "basis.pdf",
+                "content_type": "application/pdf",
+                "content_base64": "dGVzdCBiYXNpcw==",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["post_issuance_id"], 17)
+        self.assertEqual(data["entity_kind"], "post_issuance")
+        self.assertTrue(data["object_key"].startswith("post-issuance/17/post_issuance_basis/"))
+
     def test_upload_slot_file_rejects_invalid_extension(self) -> None:
         response = self._client.post(
             "/files/slots/upload",

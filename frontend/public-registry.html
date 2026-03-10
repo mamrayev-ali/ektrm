@@ -364,9 +364,34 @@
       </section>
     </div>
 
+    <script src="/runtime-config.js"></script>
     <script>
+      function trimTrailingSlash(value) {
+        return value ? value.replace(/\/+$/, "") : value;
+      }
+
+      function readRuntimeOverride(queryKey, storageKey) {
+        const params = new URLSearchParams(window.location.search);
+        const queryValue = params.get(queryKey);
+        if (queryValue && queryValue.trim()) {
+          localStorage.setItem(storageKey, queryValue.trim());
+          return queryValue.trim();
+        }
+        const storedValue = localStorage.getItem(storageKey);
+        return storedValue && storedValue.trim() ? storedValue.trim() : "";
+      }
+
+      function getDefaultApiBase() {
+        const protocol = window.location.protocol === "https:" ? "https:" : "http:";
+        const apiPort = runtimeConfig.apiPort || "8180";
+        return `${protocol}//${window.location.hostname}:${apiPort}`;
+      }
+
+      const runtimeConfig = window.__EKTRM_RUNTIME_CONFIG__ || {};
       const config = {
-        apiBase: "http://localhost:8080",
+        apiBase: trimTrailingSlash(
+          readRuntimeOverride("api_base", "ektrm.apiBase") || runtimeConfig.apiBase || getDefaultApiBase(),
+        ),
       };
 
       const bodyNode = document.getElementById("registryBody");

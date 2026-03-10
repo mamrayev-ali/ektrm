@@ -3251,20 +3251,62 @@
             Пользователь: <span id="username">-</span> | Роли: <span id="roles">-</span>
           </div>
           <div class="session-meta">
-            API base: <code id="apiBaseLabel">http://localhost:8080</code>
+            API base: <code id="apiBaseLabel">http://localhost:8180</code>
           </div>
           <pre class="api-output" id="output">Ожидание действий пользователя...</pre>
         </section>
       </div>
     </div>
 
+    <script src="/runtime-config.js"></script>
     <script>
-      const config = {
-        authority: "http://localhost:8088/realms/ektrm",
-        clientId: "ektrm-web",
-        apiBase: "http://localhost:8080",
-        draftStorageKey: "ektrm_t5_current_application_id",
-      };
+      function trimTrailingSlash(value) {
+        return value ? value.replace(/\/+$/, "") : value;
+      }
+
+      function getRuntimeOrigin(port) {
+        const protocol = window.location.protocol === "https:" ? "https:" : "http:";
+        return `${protocol}//${window.location.hostname}:${port}`;
+      }
+
+      function readRuntimeOverride(queryKey, storageKey) {
+        const params = new URLSearchParams(window.location.search);
+        const queryValue = params.get(queryKey);
+        if (queryValue && queryValue.trim()) {
+          localStorage.setItem(storageKey, queryValue.trim());
+          return queryValue.trim();
+        }
+        const storedValue = localStorage.getItem(storageKey);
+        return storedValue && storedValue.trim() ? storedValue.trim() : "";
+      }
+
+      function resolveRuntimeConfig() {
+        const runtimeConfig = window.__EKTRM_RUNTIME_CONFIG__ || {};
+        const defaultKeycloakPort = runtimeConfig.oidcPort || "8088";
+        const defaultApiPort = runtimeConfig.apiPort || "8180";
+
+        const authority =
+          readRuntimeOverride("oidc_authority", "ektrm.oidcAuthority") ||
+          runtimeConfig.oidcAuthority ||
+          `${getRuntimeOrigin(defaultKeycloakPort)}/realms/ektrm`;
+        const apiBase =
+          readRuntimeOverride("api_base", "ektrm.apiBase") ||
+          runtimeConfig.apiBase ||
+          getRuntimeOrigin(defaultApiPort);
+        const clientId =
+          readRuntimeOverride("oidc_client_id", "ektrm.oidcClientId") ||
+          runtimeConfig.oidcClientId ||
+          "ektrm-web";
+
+        return {
+          authority: trimTrailingSlash(authority),
+          clientId,
+          apiBase: trimTrailingSlash(apiBase),
+          draftStorageKey: "ektrm_t5_current_application_id",
+        };
+      }
+
+      const config = resolveRuntimeConfig();
 
       const STEP_TITLES = [
         "Заявитель",

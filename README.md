@@ -42,21 +42,46 @@
 2. Поднять платформу:
    - Linux/macOS: `./scripts/bootstrap.sh`
    - Windows: `pwsh -File .\\scripts\\bootstrap.ps1`
-   - bootstrap-скрипты автоматически пересобирают runtime image, выполняют `alembic upgrade head` и затем idempotent sync seeded reference-data внутри контейнера перед дальнейшей работой с API.
+   - bootstrap-скрипты сначала валидируют `.env` через `python scripts/validate_deploy_env.py`, затем автоматически пересобирают runtime image, выполняют `alembic upgrade head` и idempotent sync seeded reference-data внутри контейнера.
    - Альтернатива: `docker compose up -d --build`
    - если запуск делается напрямую без bootstrap-скриптов, после старта контейнеров нужно отдельно выполнить:
      - `docker compose run --rm --no-deps gateway-service python -m alembic -c /app/alembic.ini upgrade head`
      - `docker compose run --rm --no-deps gateway-service python -m app.seed.reference_data_sync`
 3. Проверить health endpoints:
-   - Gateway: `http://localhost:8080/health`
+   - Gateway: `http://localhost:8180/health`
    - Applications: `http://localhost:8081/health`
    - Certificates: `http://localhost:8082/health`
    - Reference Data: `http://localhost:8083/health`
    - Files: `http://localhost:8084/health`
    - Notifications: `http://localhost:8085/health`
-   - Frontend: `http://localhost:4200/health`
+   - Frontend: `http://localhost:9035/health`
 4. Остановить платформу:
    - `docker compose down`
+
+## Server deployment checklist
+
+- Default host ports in this repo are now:
+  - `gateway`: `8180`
+  - `frontend`: `9035`
+  - `keycloak`: `8088`
+  - `postgres`: `6432`
+  - `redis`: `7379`
+- Frontend runtime URLs are now generated inside the nginx container from env:
+  - `FRONTEND_API_BASE`
+  - `FRONTEND_OIDC_AUTHORITY`
+  - `FRONTEND_OIDC_CLIENT_ID`
+  - if explicit frontend URLs are empty, runtime config derives them from the current host plus `GATEWAY_PORT` / `KEYCLOAK_EXPOSE_PORT`
+- Important: only host-exposed ports change. Internal container ports remain:
+  - PostgreSQL: `5432`
+  - Redis: `6379`
+  - Keycloak: `8080`
+- Common fatal mistake:
+  - do not set `POSTGRES_PORT=6432`, `REDIS_PORT=7379`, or `KEYCLOAK_URL=http://keycloak:8180`;
+  - those are host ports, not internal Docker-network ports.
+- If Keycloak realm already exists in a persistent volume, changes in `infra/keycloak/realm-export.json` will not retroactively update the live client. In that case, update client `ektrm-web` manually in Keycloak admin UI or recreate the imported realm.
+- Before treating deployment as successful, always run:
+  - `docker compose run --rm --no-deps gateway-service python -m alembic -c /app/alembic.ini upgrade head`
+  - `docker compose run --rm --no-deps gateway-service python -m app.seed.reference_data_sync`
 
 ## Контейнерная топология
 
@@ -97,7 +122,7 @@ Demo users:
 
 ## T2 Auth/RBAC baseline: как проверить
 
-1. Открыть фронтенд: `http://localhost:4200`.
+1. Открыть фронтенд: `http://localhost:9035`.
 2. Нажать `Войти` и авторизоваться одним из demo users.
 3. Вызвать:
    - `GET /auth/me` (любой авторизованный пользователь),
@@ -108,10 +133,10 @@ Demo users:
    - при недостаточной роли backend возвращает `403`.
 
 Публичные endpoint-ы для auth baseline (gateway):
-- `GET http://localhost:8080/auth/config`
-- `GET http://localhost:8080/auth/me` (Bearer required)
-- `GET http://localhost:8080/auth/applicant-area` (Bearer + `Applicant`)
-- `GET http://localhost:8080/auth/ops-area` (Bearer + `OPS`)
+- `GET http://localhost:8180/auth/config`
+- `GET http://localhost:8180/auth/me` (Bearer required)
+- `GET http://localhost:8180/auth/applicant-area` (Bearer + `Applicant`)
+- `GET http://localhost:8180/auth/ops-area` (Bearer + `OPS`)
 
 ## T3 Reference Data baseline: как применить и проверить
 
@@ -125,10 +150,10 @@ Demo users:
    - `ops_registry`
    - `accreditation_attestats`
 3. Проверить read-only endpoint-ы (с Bearer токеном):
-   - `GET http://localhost:8080/reference-data/dictionaries`
-   - `GET http://localhost:8080/reference-data/dictionaries/termination_reason/items`
-   - `GET http://localhost:8080/reference-data/ops-registry`
-   - `GET http://localhost:8080/reference-data/accreditation-attestats`
+   - `GET http://localhost:8180/reference-data/dictionaries`
+   - `GET http://localhost:8180/reference-data/dictionaries/termination_reason/items`
+   - `GET http://localhost:8180/reference-data/ops-registry`
+   - `GET http://localhost:8180/reference-data/accreditation-attestats`
 
 ## T4 Order 3 Domain Model: как применить и проверить
 
@@ -139,17 +164,17 @@ Demo users:
    - `cert_application`
    - `cert_application_status_history`
 3. Проверить API Ордер 3 через gateway (с Bearer токеном):
-   - создать черновик: `POST http://localhost:8080/applications/drafts`
-   - отправить заявку: `POST http://localhost:8080/applications/{id}/submit`
-   - выполнить переход: `POST http://localhost:8080/applications/{id}/transitions`
-   - получить историю: `GET http://localhost:8080/applications/{id}/history`
+   - создать черновик: `POST http://localhost:8180/applications/drafts`
+   - отправить заявку: `POST http://localhost:8180/applications/{id}/submit`
+   - выполнить переход: `POST http://localhost:8180/applications/{id}/transitions`
+   - получить историю: `GET http://localhost:8180/applications/{id}/history`
 4. Проверить базовую матрицу переходов:
    - допустимые переходы соответствуют `TECH_SPEC` (раздел 10.8);
    - недопустимый переход должен возвращать `409`.
 
 ## T5 Order 3 Applicant Wizard: как проверить
 
-1. Открыть `http://localhost:4200` и выполнить вход (`applicant.demo / Applicant123!`).
+1. Открыть `http://localhost:9035` и выполнить вход (`applicant.demo / Applicant123!`).
 2. Заполнить шаги wizard: `Заявитель` -> `Адрес заявителя` -> `ОПС` -> `Схема сертификации` -> `Данные по продукции` -> `Приложение` -> `Документы` -> `Примечание`.
 3. Нажать `Сохранить черновик`:
    - backend создает/обновляет draft через `/applications/drafts` и `/applications/{id}/draft`.
@@ -163,7 +188,7 @@ Demo users:
 ## T6 OPS Review and Protocol Attachment: как проверить
 
 1. Войти как `ops.demo / Ops123456!` (или использовать Bearer с ролью `OPS`).
-2. Через UI открыть `http://localhost:4200`:
+2. Через UI открыть `http://localhost:9035`:
    - для роли `OPS` отображается реестр заявок заявителей;
    - кнопка `Открыть` в строке заявки переводит в OPS-режим формы (read-only данные заявки + блок действий `Проверка и решение`);
    - доступные действия в UI:
@@ -173,13 +198,13 @@ Demo users:
      - `Принять решение` (`APPROVED` или `REJECTED`);
      - `Завершить` (`APPROVED -> COMPLETED`).
 3. Получить очередь ОПС (API-проверка):
-   - `GET http://localhost:8080/applications/ops/queue`
+   - `GET http://localhost:8180/applications/ops/queue`
    - опционально фильтр: `?statuses=IN_REVIEW,PROTOCOL_ATTACHED`.
 4. Выполнить review-переходы заявки:
-   - `POST http://localhost:8080/applications/{id}/transitions` с `{"to_status":"REGISTERED"}`;
+   - `POST http://localhost:8180/applications/{id}/transitions` с `{"to_status":"REGISTERED"}`;
    - `POST ...` с `{"to_status":"IN_REVIEW"}`.
 5. Загрузить протокол в `files-service` (через gateway):
-   - `POST http://localhost:8080/files/slots/upload`
+   - `POST http://localhost:8180/files/slots/upload`
    - body:
      - `application_id`,
      - `slot=protocol_test_report`,
@@ -187,11 +212,11 @@ Demo users:
      - `content_base64`,
      - `content_type`.
 6. Привязать протокол к заявке:
-   - `POST http://localhost:8080/applications/{id}/protocol/attach`
+   - `POST http://localhost:8180/applications/{id}/protocol/attach`
    - body содержит metadata из шага upload (`slot`, `object_key`, `file_name`, `content_type`, `size_bytes`, `etag`).
    - ожидаемый результат: статус `PROTOCOL_ATTACHED`.
 7. Проверить отказную ветку:
-   - `POST http://localhost:8080/applications/{id}/transitions` с `{"to_status":"REJECTED","comment":"..."}`.
+   - `POST http://localhost:8180/applications/{id}/transitions` с `{"to_status":"REJECTED","comment":"..."}`.
    - ожидаемый результат: заявка автоматически переходит в `ARCHIVED`, в истории есть записи `REJECTED` и `ARCHIVED`.
 8. Проверить role-based visibility:
    - Applicant не может вызывать `GET /applications/ops/queue` и OPS review transitions (ожидается `403`).
@@ -200,13 +225,13 @@ Demo users:
 
 1. Войти как `ops.demo / Ops123456!` (или Bearer с ролью `OPS`) и довести заявку до `PROTOCOL_ATTACHED`.
 2. Выполнить переход в `APPROVED`:
-   - `POST http://localhost:8080/applications/{id}/transitions` с `{"to_status":"APPROVED"}`.
+   - `POST http://localhost:8180/applications/{id}/transitions` с `{"to_status":"APPROVED"}`.
 3. Проверить, что в ответе появился объект `certificate`:
    - `status = GENERATED`;
    - заполнены `certificate_number`, `source_application_id`, `snapshot`.
 4. Проверить read API сертификатов:
-   - `GET http://localhost:8080/certificates/by-application/{application_id}`
-   - `GET http://localhost:8080/certificates/{certificate_id}`
+   - `GET http://localhost:8180/certificates/by-application/{application_id}`
+   - `GET http://localhost:8180/certificates/{certificate_id}`
 5. Проверить инварианты:
    - до `APPROVED` сертификат по заявке не находится (`404`);
    - Applicant не может читать чужой сертификат (`403`);
@@ -217,16 +242,16 @@ Demo users:
 1. Войти как `ops.demo / Ops123456!` и убедиться, что есть сертификат в статусе `GENERATED` (после `APPROVED` в Ордер 3).
 2. Подписать сертификат:
    - UI: раздел `Реестр сертификатов` -> действие `Подписать`;
-   - API: `POST http://localhost:8080/certificates/{certificate_id}/sign` с body `{"comment":"..."}`.
+   - API: `POST http://localhost:8180/certificates/{certificate_id}/sign` с body `{"comment":"..."}`.
 3. Проверить результат подписи:
    - статус становится `ACTIVE`;
    - заполнены поля `signed_by_subject`, `signed_at`, `published_at`.
 4. Проверить внутренний реестр:
-   - `GET http://localhost:8080/registry/internal` (Bearer required);
+   - `GET http://localhost:8180/registry/internal` (Bearer required);
    - роль `OPS` видит все записи, роль `Applicant` видит только свои.
 5. Проверить публичный read-only реестр:
-   - `GET http://localhost:8080/registry/public` (без Bearer);
-   - UI: `http://localhost:4200/public-registry.html`.
+   - `GET http://localhost:8180/registry/public` (без Bearer);
+   - UI: `http://localhost:9035/public-registry.html`.
 6. Проверить ограничения:
    - подпись сертификата не-ролью `OPS` возвращает `403`;
    - повторная подпись уже активного сертификата возвращает `409`.
@@ -241,22 +266,22 @@ Demo users:
    - нажать `Подать заявку`.
    - для `Причина прекращения`: заявитель видит только основание `Прекращение производства...`, роль `OPS` видит расширенный нормативный перечень.
 3. Проверить API-эквивалент applicant-flow:
-   - `POST http://localhost:8080/post-issuance/drafts`
-   - `PUT http://localhost:8080/post-issuance/{id}/draft`
-   - `POST http://localhost:8080/post-issuance/{id}/basis/attach`
-   - `POST http://localhost:8080/post-issuance/{id}/submit`
+   - `POST http://localhost:8180/post-issuance/drafts`
+   - `PUT http://localhost:8180/post-issuance/{id}/draft`
+   - `POST http://localhost:8180/post-issuance/{id}/basis/attach`
+   - `POST http://localhost:8180/post-issuance/{id}/submit`
 4. Войти как `ops.demo / Ops123456!` и открыть раздел `Реестр сертификатов`:
    - в таблице `Очередь post-issuance` доступны `В работу`, `На доработку`, `Одобрить`, `Отказать`.
 5. Проверить happy-path suspend:
    - `REGISTERED -> IN_REVIEW -> APPROVED`;
    - сертификат получает статус `SUSPENDED`;
-   - `GET http://localhost:8080/registry/internal` и `GET http://localhost:8080/registry/public` показывают новый статус.
+   - `GET http://localhost:8180/registry/internal` и `GET http://localhost:8180/registry/public` показывают новый статус.
 6. Проверить happy-path terminate:
    - `REGISTERED -> APPROVED`;
    - сертификат получает статус `TERMINATED`;
    - в ответе и internal registry выставляется `is_dangerous_product=true`.
 7. Проверить reject path:
-   - `POST http://localhost:8080/post-issuance/{id}/transitions` с `{"to_status":"REJECTED","comment":"..."}`.
+   - `POST http://localhost:8180/post-issuance/{id}/transitions` с `{"to_status":"REJECTED","comment":"..."}`.
    - ожидаемый результат: post-issuance заявка переводится в `ARCHIVED`, а статус сертификата не меняется.
 8. Проверить ограничения:
    - applicant не может `APPROVE/REJECT` (`403`);

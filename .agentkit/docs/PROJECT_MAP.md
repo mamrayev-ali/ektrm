@@ -48,7 +48,8 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - `/frontend/` — контейнер статического frontend baseline (nginx + OIDC/RBAC demo shell + health probes).
 - `/infra/keycloak/` — realm import для локального Keycloak baseline (`Applicant`, `OPS`).
 - `/scripts/bootstrap.sh`, `/scripts/bootstrap.ps1` — единый bootstrap для локального старта платформы.
-  - Boundary: кроме `docker compose up -d --build`, bootstrap обязан доводить schema state до актуального Alembic head перед ручной работой с API/UI.
+  - Boundary: bootstrap сначала валидирует `.env`, затем кроме `docker compose up -d --build` обязан доводить schema state до актуального Alembic head перед ручной работой с API/UI.
+- `/scripts/validate_deploy_env.py` — preflight-проверка `.env` на типовые deploy-ошибки (подмена внутренних container ports host-портами, localhost URL в server mode, конфликтующие наружные порты).
 - `/.github/workflows/` — CI automation workflows (GitHub Actions) для PR/push верификации.
 
 ## 2) Key contracts & boundaries
@@ -206,6 +207,8 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - сервисы `gateway`, `applications`, `certificates`, `reference-data`, `files`, `notifications`, `frontend`;
     - отдельный profile `test` с service-ами `runtime-tests`, `gateway-test`, `applications-test`, `certificates-test`, `reference-data-test`, `files-test` для контейнерного запуска runtime tests;
     - инфраструктура `postgres`, `redis`, `minio`, `keycloak`.
+    - default host ports для текущего deployment contract: `gateway=8180`, `frontend=9035`, `keycloak=8088`, `postgres=6432`, `redis=7379`; при этом внутренние container ports остаются `8000/8080/5432/6379`.
+    - frontend container получает runtime env `FRONTEND_API_BASE`, `FRONTEND_OIDC_AUTHORITY`, `FRONTEND_OIDC_CLIENT_ID`, из которых на старте nginx генерируется `runtime-config.js`.
   - invariants / assumptions:
     - каждый runtime-сервис обязан иметь доступный `/health`;
     - test service не публикует порты и не участвует в default runtime startup;
@@ -412,6 +415,8 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - единая дизайн-система приведена к референсу `.agentkit/_temp/prototype_v2.html`: бело-синий shell, serif-заголовки, обновленные карточки, таблицы, кнопки, формы и цветовая шкала состояний без изменения существующих `id` и JS-связок.
     - applicant landing `Главная` теперь оформлена как лендинг внутри кабинета и максимально приближена к `prototype_v2`: hero-блок, сетка сервисов, блок `Система в цифрах`, `Процесс подачи заявки`, `Нормативные правовые акты` и `Частые вопросы`; CTA используют существующую навигацию и не меняют бизнес-логику.
     - OIDC login helper сохраняет PKCE `S256`, но теперь умеет fallback на встроенную JS-реализацию SHA-256, если браузер открывает страницу по insecure origin и не предоставляет `crypto.subtle.digest`; это устраняет падение кнопки `Войти через Keycloak` на server-IP/HTTP окружениях.
+    - frontend runtime config больше не завязан на `localhost`: `authority` и `apiBase` берутся из env-generated `runtime-config.js`, а при необходимости могут быть явно переопределены через query/localStorage (`oidc_authority`, `api_base`, `oidc_client_id`) без правки HTML.
+    - приоритет runtime config: `window.__EKTRM_RUNTIME_CONFIG__` (из env контейнера) -> query/localStorage override -> вычисление по host.
     - applicant default-экран: `Главная` с карточками модулей `Аккредитация`, `Государственный контроль`, `Метрология`, `Оценка соответствия`, `Стандартизация`; активен модуль `Оценка соответствия`, `Стандартизация` и остальные неподтвержденные модули отображаются disabled.
     - header для внутренних экранов переведен в single-entry navigation: верхнее меню скрыто, переходы выполняются из `Главная`, а на applicant/form/certificate view показывается кнопка `Назад` в верхнем левом углу; footer не затрагивается.
     - applicant shell для `Оценка соответствия`: root-экран с витриной сервисов, карточками в новом стиле и breadcrumb-навигацией `ОЦЕНКА СООТВЕТСТВИЯ / <сервис>`; из сервисов активен только `Сертификат соответствия продукции РК`.
@@ -439,6 +444,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - public surface / key exports:
     - listing опубликованных сертификатов через `GET /registry/public`.
     - обновленный публичный landing-header в том же визуальном языке `prototype_v2`: hero, статистические карточки, переработанная таблица и поисковый toolbar без изменения JS-fetch логики.
+    - runtime-aware API base для публичного реестра: по умолчанию использует текущий host на `:8080`, но поддерживает override через `api_base`.
   - invariants / assumptions:
     - без авторизации, без операций записи.
   - dependencies:
@@ -466,8 +472,9 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - `infra/keycloak/realm-export.json` — baseline realm для локального OIDC/RBAC.
   - public surface / key exports:
     - realm `ektrm`, роли `Applicant` и `OPS`, demo users, audience mapper `ektrm-api`.
+    - client `ektrm-web` расширен redirect/web-origin шаблонами для frontend портов `4200` и `9035`, чтобы новые local/server-like инстансы не были жестко привязаны к одному `localhost:4200`.
   - invariants / assumptions:
-    - только локальная/development-конфигурация.
+    - только локальная/development-конфигурация; для уже существующего realm в running Keycloak import не применяется retroactively и client settings нужно обновлять вручную или через recreate.
   - dependencies:
     - контейнер Keycloak с `--import-realm`.
   - tests:
@@ -550,9 +557,12 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - `cp .env.example .env` (или `Copy-Item .env.example .env`)
   - Linux/macOS: `./scripts/bootstrap.sh`
   - Windows: `pwsh -File .\\scripts\\bootstrap.ps1`
-  - bootstrap-скрипты автоматически выполняют `docker compose run --rm --no-deps gateway-service python -m alembic -c /app/alembic.ini upgrade head`
-  - Проверить `http://localhost:8080/health` и `http://localhost:4200/health`
-  - Проверить auth baseline на `http://localhost:4200` (login/logout + `/auth/*` вызовы)
+  - bootstrap-скрипты сначала валидируют `.env` через `scripts/validate_deploy_env.py`, затем автоматически выполняют `docker compose run --rm --no-deps gateway-service python -m alembic -c /app/alembic.ini upgrade head`
+  - По default host-портам проверить `http://localhost:8180/health`, `http://localhost:9035/health` и `http://localhost:8088/health`
+  - Проверить auth baseline на `http://localhost:9035` (login/logout + `/auth/*` вызовы)
+  - Для server deployment менять только host/expose порты (`GATEWAY_PORT`, `FRONTEND_PORT`, `POSTGRES_EXPOSE_PORT`, `REDIS_EXPOSE_PORT`, `KEYCLOAK_EXPOSE_PORT`), а внутренние container ports оставлять `5432`, `6379`, `8080`
+  - Для server deployment дополнительно выставить реальные public URL в `.env`: `PUBLIC_BASE_URL`, `KEYCLOAK_ISSUER`, `KEYCLOAK_ALLOWED_ISSUERS`, `KEYCLOAK_JWKS_URL`, `KEYCLOAK_LOGOUT_URL`, `CORS_ALLOWED_ORIGINS`
+  - `FRONTEND_API_BASE` и `FRONTEND_OIDC_AUTHORITY` можно оставить пустыми, если frontend должен строить их из текущего host и compose-портов `GATEWAY_PORT` / `KEYCLOAK_EXPOSE_PORT`
   - Остановить: `docker compose down`
 - Verification:
   - `make verify-smoke`
@@ -570,10 +580,16 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Если `verify.sh` недоступен на Windows, использовать `verify.ps1`.
   - Если падает DOC-gate, убедиться что `.agentkit/docs/PROJECT_MAP.md` изменен в том же тикете.
   - Если падает verify-local из-за template markers, очистить placeholder-текст в docs/rules.
+  - Если `frontend` остается `unhealthy`, проверить healthcheck в compose: для nginx alpine/wget probe должен ходить на `127.0.0.1:8080`, а не на `localhost`, иначе возможен ложный `Connection refused`.
 
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-10 [frontend-runtime-port-derivation] В `docker-compose.yml`, `frontend/nginx/10-generate-runtime-config.sh`, `frontend/index.html`, `frontend/public-registry.html`, `.env.example` и `README.md` runtime-config frontend перестал жестко подставлять `localhost:8180/8088`: явные public URLs стали optional overrides, а при их отсутствии frontend строит API/OIDC endpoints из текущего host и фактических compose-портов `GATEWAY_PORT` / `KEYCLOAK_EXPOSE_PORT`, что убирает рассинхрон со старым `.env`.
+- 2026-03-10 [frontend-healthcheck-ipv4-loopback] В `docker-compose.yml` healthcheck сервиса `frontend` переведен с `localhost` на `127.0.0.1`, потому что `wget` внутри nginx alpine давал ложный `Connection refused` при рабочем `127.0.0.1:8080/health`; runbook troubleshooting дополнен этим кейсом.
+- 2026-03-10 [runtime-config-and-env-preflight] Добавлены `scripts/validate_deploy_env.py` и генерация `runtime-config.js` во frontend nginx container: bootstrap теперь блокирует типовые deploy-ошибки в `.env`, а `frontend` получает `FRONTEND_API_BASE` / `FRONTEND_OIDC_AUTHORITY` / `FRONTEND_OIDC_CLIENT_ID` из env без ручной правки HTML, что делает развертывание устойчивее к изменению host-портов и public origin.
+- 2026-03-10 [deployment-default-ports-alignment] В `docker-compose.yml`, `.env.example`, `frontend/index.html`, `frontend/public-registry.html`, `README.md` и `PROJECT_MAP.md` default deployment contract переведен на host-порты `gateway=8180`, `frontend=9035`, `postgres=6432`, `redis=7379` при сохранении внутренних container ports; документация и frontend runtime defaults синхронизированы с этим runbook и отдельно зафиксировано, что live Keycloak realm не обновляется одним изменением `realm-export.json`.
+- 2026-03-06 [keycloak-server-origin-config] В `frontend/index.html` и `frontend/public-registry.html` OIDC/API конфиг перестал хардкодить `localhost`: runtime host используется по умолчанию, а `authority`/`apiBase` можно переопределить через query/localStorage для серверных портов; `infra/keycloak/realm-export.json` расширен redirect/web-origin шаблонами для frontend портов `4200` и `9035`.
 - 2026-03-06 [keycloak-login-http-pkce-fallback] В `frontend/index.html` login flow через Keycloak перестал падать на `http://<server-ip>:<port>`: для PKCE challenge добавлен fallback SHA-256 без деградации `code_challenge_method=S256`, если `crypto.subtle.digest` недоступен на insecure origin.
 - 2026-03-06 [prototype-v2-home-navigation] В `frontend/index.html` applicant `Главная` доведена до структуры прототипа `prototype_v2` по блокам (`Сервисы`, `Система в цифрах`, `Процесс подачи заявки`, `Нормативные правовые акты`, `Частые вопросы`), верхнее меню в header скрыто, а для внутренних applicant/form/certificate экранов добавлена кнопка `Назад` в верхнем левом углу с возвратом по текущему view без изменения API и role-based flow.
 - 2026-03-06 [conformity-module-reassignment] В `frontend/index.html` рабочий applicant-контур с сервисом `Сертификат соответствия продукции РК` перенесен из модуля `Стандартизация` в `Оценка соответствия`: `Оценка соответствия` разблокирован, `Стандартизация` снова disabled, breadcrumb/заголовки и CTA переведены на новый модуль без изменения API и форменного сценария.
@@ -605,3 +621,13 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - 2026-03-05 [t1-platform-bootstrap-and-container-topology] Добавлена контейнерная топология MVP (docker-compose), runtime-сервисный каркас с health/readiness, keycloak realm import, bootstrap-скрипты и обновленный runbook.
 - 2026-03-05 [gitignore-push-2026-03-05] Обновлен `.gitignore` (env/editor/log/build артефакты) и подготовлен репозиторий к публикации изменений.
 - 2026-03-05 [project-intake-2026-03-05] Полностью адаптирован PROJECT_MAP под домен e-КТРМ: архитектура, контракты, риски, verification-карта и runbook.
+- `frontend/Dockerfile` — nginx-based frontend image.
+  - public surface / key exports:
+    - копирует html и startup script `frontend/nginx/10-generate-runtime-config.sh` в `/docker-entrypoint.d/`.
+    - на старте контейнера генерирует `/usr/share/nginx/html/runtime-config.js` из env без пересборки HTML.
+  - invariants / assumptions:
+    - runtime-config generation не должна требовать внешних зависимостей.
+  - dependencies:
+    - `frontend/nginx/default.conf`, `frontend/nginx/10-generate-runtime-config.sh`, `frontend/*.html`.
+  - tests:
+    - browser smoke + container startup logs.

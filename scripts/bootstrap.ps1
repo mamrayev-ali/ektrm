@@ -10,6 +10,9 @@ if (-not (Test-Path ".env")) {
   Write-Host "Created .env from .env.example"
 }
 
+Write-Host "Validating deployment environment..."
+python scripts/validate_deploy_env.py
+
 Write-Host "Starting e-KTRM platform containers..."
 docker compose up -d --build
 
@@ -22,13 +25,14 @@ docker compose run --rm --no-deps gateway-service python -m app.seed.reference_d
 Write-Host ""
 Write-Host "Service health endpoints:"
 $ports = @{
-  "gateway-service"      = if ($env:GATEWAY_PORT) { $env:GATEWAY_PORT } else { "8080" }
+  "gateway-service"      = if ($env:GATEWAY_PORT) { $env:GATEWAY_PORT } else { "8180" }
+  "keycloak"             = if ($env:KEYCLOAK_EXPOSE_PORT) { $env:KEYCLOAK_EXPOSE_PORT } else { "8088" }
   "applications-service" = if ($env:APPLICATIONS_PORT) { $env:APPLICATIONS_PORT } else { "8081" }
   "certificates-service" = if ($env:CERTIFICATES_PORT) { $env:CERTIFICATES_PORT } else { "8082" }
   "reference-data-service" = if ($env:REFERENCE_DATA_PORT) { $env:REFERENCE_DATA_PORT } else { "8083" }
   "files-service" = if ($env:FILES_PORT) { $env:FILES_PORT } else { "8084" }
   "notifications-service" = if ($env:NOTIFICATIONS_PORT) { $env:NOTIFICATIONS_PORT } else { "8085" }
-  "frontend" = if ($env:FRONTEND_PORT) { $env:FRONTEND_PORT } else { "4200" }
+  "frontend" = if ($env:FRONTEND_PORT) { $env:FRONTEND_PORT } else { "9035" }
 }
 
 foreach ($service in $ports.Keys) {

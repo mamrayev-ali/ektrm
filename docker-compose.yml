@@ -41,7 +41,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-ektrm}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
     ports:
-      - "${POSTGRES_EXPOSE_PORT:-5432}:5432"
+      - "${POSTGRES_EXPOSE_PORT:-6432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -54,7 +54,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "${REDIS_EXPOSE_PORT:-6379}:6379"
+      - "${REDIS_EXPOSE_PORT:-7379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -133,7 +133,7 @@ services:
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
       AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
     ports:
-      - "${GATEWAY_PORT:-8080}:8000"
+      - "${GATEWAY_PORT:-8180}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -397,13 +397,19 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
     restart: unless-stopped
+    environment:
+      FRONTEND_API_BASE: ${FRONTEND_API_BASE:-}
+      FRONTEND_OIDC_AUTHORITY: ${FRONTEND_OIDC_AUTHORITY:-}
+      FRONTEND_OIDC_CLIENT_ID: ${FRONTEND_OIDC_CLIENT_ID:-ektrm-web}
+      FRONTEND_GATEWAY_PORT: ${GATEWAY_PORT:-8180}
+      FRONTEND_KEYCLOAK_PORT: ${KEYCLOAK_EXPOSE_PORT:-8088}
     ports:
-      - "${FRONTEND_PORT:-4200}:8080"
+      - "${FRONTEND_PORT:-9035}:8080"
     depends_on:
       gateway-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/health >/dev/null"]
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8080/health >/dev/null"]
       interval: 10s
       timeout: 5s
       retries: 8

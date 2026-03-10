@@ -2359,7 +2359,7 @@
 
         <div id="protectedContent" class="is-hidden">
           <section class="registry-view is-hidden" id="applicantHomeView">
-            <section class="home-hero">
+            <section class="home-hero" id="applicantHomeHero">
               <div class="home-hero-content">
                 <div class="hero-eyebrow">Государственная цифровая платформа</div>
                 <div class="home-hero-title">
@@ -2412,7 +2412,7 @@
               </div>
             </section>
 
-            <section class="landing-section centered">
+            <section class="landing-section centered" id="applicantServicesSection">
               <div class="landing-section-head">
                 <div class="landing-eyebrow">Сервисы</div>
                 <div class="landing-title">Государственные услуги онлайн</div>
@@ -3464,6 +3464,9 @@
       const sessionToggleIcon = document.getElementById("sessionToggleIcon");
       const protectedContent = document.getElementById("protectedContent");
       const applicantHomeView = document.getElementById("applicantHomeView");
+      const applicantHomeHero = document.getElementById("applicantHomeHero");
+      const applicantServicesSection = document.getElementById("applicantServicesSection");
+      const applicantHomeSections = Array.from(applicantHomeView.querySelectorAll(".landing-section"));
       const applicantModuleCards = document.getElementById("applicantModuleCards");
       const conformityView = document.getElementById("standardizationView");
       const conformityServiceCards = document.getElementById("standardizationServiceCards");
@@ -3579,7 +3582,7 @@
       let currentApplicationId = null;
       let currentPostIssuanceId = null;
       let currentPostIssuanceApplication = null;
-      let currentView = "applicant-home";
+      let currentView = "public-home";
       let currentFormMode = "applicant";
       let currentOpsApplication = null;
       let currentApplicantCanEdit = true;
@@ -3611,6 +3614,10 @@
         verifier: "ektrm_oidc_pkce_verifier",
         state: "ektrm_oidc_state",
         tokens: "ektrm_oidc_tokens",
+        authIntent: "ektrm_oidc_auth_intent",
+      };
+      const postLoginDestinations = {
+        applicantServices: "applicant-services",
       };
 
       function writeOutput(title, payload) {
@@ -3732,6 +3739,9 @@
       }
 
       function getMenuMode() {
+        if (!oidcSession.authenticated || (!isApplicantUser() && !isOpsUser())) {
+          return "public";
+        }
         if (isApplicantUser()) {
           return "applicant";
         }
@@ -3739,6 +3749,9 @@
       }
 
       function getMenuEntries() {
+        if (getMenuMode() === "public") {
+          return [];
+        }
         if (getMenuMode() === "applicant") {
           return [
             { key: "home", label: "Главная", element: menuHome, enabled: true },
@@ -3806,7 +3819,7 @@
 
       function updatePageChrome() {
         const hasWorkspace = oidcSession.authenticated && (isApplicantUser() || isOpsUser());
-        const isApplicantHome = currentView === "applicant-home";
+        const isApplicantHome = ["public-home", "applicant-home", "applicant-services"].includes(currentView);
         const showBackButton = hasWorkspace && ["conformity", "registry", "form", "ops-form", "cert-registry"].includes(currentView);
 
         if (pageHead) {
@@ -3870,19 +3883,6 @@
             card.classList.add("is-disabled");
           }
 
-          const top = document.createElement("div");
-          top.className = "module-card-top";
-
-          const icon = document.createElement("div");
-          icon.className = "module-card-icon";
-          icon.textContent = module.icon || "EK";
-
-          const badge = document.createElement("div");
-          badge.className = "module-card-badge";
-          badge.textContent = module.badge || (module.available ? "Доступно" : "В работе");
-
-          top.append(icon, badge);
-
           const title = document.createElement("div");
           title.className = "module-card-title";
           title.textContent = module.title;
@@ -3897,10 +3897,14 @@
           actionButton.textContent = module.available ? "Перейти" : "В работе";
           actionButton.disabled = !module.available;
           actionButton.addEventListener("click", async () => {
+            if (!oidcSession.authenticated) {
+              await beginLoginJourney(postLoginDestinations.applicantServices);
+              return;
+            }
             await navigateApplicantModule(module.key);
           });
 
-          card.append(top, title, description, actionButton);
+          card.append(title, description, actionButton);
           applicantModuleCards.appendChild(card);
         });
       }
@@ -3917,19 +3921,6 @@
             card.disabled = true;
           }
 
-          const top = document.createElement("div");
-          top.className = "service-card-top";
-
-          const icon = document.createElement("div");
-          icon.className = "service-card-icon";
-          icon.textContent = service.icon || "EK";
-
-          const badge = document.createElement("div");
-          badge.className = "service-card-badge";
-          badge.textContent = service.badge || (service.available ? "Доступно" : "В работе");
-
-          top.append(icon, badge);
-
           const label = document.createElement("span");
           label.className = "service-card-label";
           label.textContent = service.title;
@@ -3938,7 +3929,7 @@
           copy.className = "service-card-copy";
           copy.textContent = service.description || "";
 
-          card.append(top, label, copy);
+          card.append(label, copy);
           if (service.available) {
             card.addEventListener("click", async () => {
               await openApplicantConformityService(service.key);
@@ -4897,9 +4888,42 @@
         currentApplicationId = null;
         currentOpsApplication = null;
         resetPostIssuanceForm();
+        setApplicantHomePresentation("full");
         setActiveMenu("home");
         pageEyebrow.textContent = "Рабочее место заявителя";
         pageTitle.textContent = "Главная";
+        setBreadcrumb([]);
+        shellContainer.classList.add("single-column");
+        sidebarPanel.classList.add("is-hidden");
+        resetApplicantModuleViews();
+        applicantHomeView.classList.remove("is-hidden");
+        registryView.classList.add("is-hidden");
+        opsRegistryView.classList.add("is-hidden");
+        certificatesRegistryView.classList.add("is-hidden");
+        formView.classList.add("is-hidden");
+        setApplicantActionsVisible(false);
+        setApplicantActionButtonsEnabled(false);
+        setOpsActionsVisible(false);
+        setApplicationProgressVisible(false);
+        setOpsButtonsEnabled(false);
+        setFormButtonsEnabled(false);
+        buttons.createApplication.disabled = true;
+        updateHeaderMeta();
+        updatePageChrome();
+      }
+
+      function showApplicantServicesHubView() {
+        currentView = "applicant-services";
+        currentFormMode = "applicant";
+        currentApplicantModule = "home";
+        currentApplicantService = null;
+        currentApplicationId = null;
+        currentOpsApplication = null;
+        resetPostIssuanceForm();
+        setApplicantHomePresentation("services");
+        setActiveMenu("home");
+        pageEyebrow.textContent = "Сервисы заявителя";
+        pageTitle.textContent = "Государственные услуги онлайн";
         setBreadcrumb([]);
         shellContainer.classList.add("single-column");
         sidebarPanel.classList.add("is-hidden");
@@ -4928,6 +4952,7 @@
         currentApplicationId = null;
         currentOpsApplication = null;
         resetPostIssuanceForm();
+        setApplicantHomePresentation("full");
         setActiveMenu("conformity");
         pageEyebrow.textContent = "Модуль заявителя";
         pageTitle.textContent = APPLICANT_CONFORMITY_TITLE;
@@ -5701,11 +5726,16 @@
         return getCurrentRealmRoles().includes("OPS");
       }
 
-      function setProtectedVisibility(visible) {
-        mainPanel.classList.toggle("auth-only", !visible);
-        appHeader.classList.toggle("is-hidden", !visible);
-        sessionDock.classList.toggle("is-hidden", !visible);
-        if (!visible) {
+      function setLayoutMode(mode) {
+        const showWorkspace = mode !== "gate";
+        const showGate = mode === "gate";
+        const showHeader = mode !== "gate";
+        const showSessionDock = mode === "workspace";
+
+        mainPanel.classList.toggle("auth-only", mode === "gate");
+        appHeader.classList.toggle("is-hidden", !showHeader);
+        sessionDock.classList.toggle("is-hidden", !showSessionDock);
+        if (!showWorkspace) {
           shellContainer.classList.add("single-column");
           sidebarPanel.classList.add("is-hidden");
           applicantHomeView.classList.add("is-hidden");
@@ -5718,18 +5748,64 @@
           setApplicantActionsVisible(true);
           setSessionExpanded(false);
         }
-        protectedContent.classList.toggle("is-hidden", !visible);
-        authGate.classList.toggle("is-hidden", visible);
+        protectedContent.classList.toggle("is-hidden", !showWorkspace);
+        authGate.classList.toggle("is-hidden", !showGate);
+        updatePageChrome();
+      }
+
+      function setApplicantHomePresentation(mode = "full") {
+        const servicesOnly = mode === "services";
+        if (applicantHomeHero) {
+          applicantHomeHero.classList.toggle("is-hidden", servicesOnly);
+        }
+        applicantHomeSections.forEach((section) => {
+          const shouldShow = !servicesOnly || section === applicantServicesSection;
+          section.classList.toggle("is-hidden", !shouldShow);
+        });
+      }
+
+      function showPublicLandingView() {
+        currentView = "public-home";
+        currentFormMode = "applicant";
+        currentApplicantModule = "home";
+        currentApplicantService = null;
+        currentApplicationId = null;
+        currentOpsApplication = null;
+        resetPostIssuanceForm();
+        setLayoutMode("public");
+        setApplicantHomePresentation("full");
+        setActiveMenu("home");
+        shellContainer.classList.add("single-column");
+        sidebarPanel.classList.add("is-hidden");
+        resetApplicantModuleViews();
+        applicantHomeView.classList.remove("is-hidden");
+        registryView.classList.add("is-hidden");
+        opsRegistryView.classList.add("is-hidden");
+        certificatesRegistryView.classList.add("is-hidden");
+        formView.classList.add("is-hidden");
+        setApplicantActionsVisible(false);
+        setApplicantActionButtonsEnabled(false);
+        setOpsActionsVisible(false);
+        setApplicationProgressVisible(false);
+        setOpsButtonsEnabled(false);
+        setFormButtonsEnabled(false);
+        buttons.createApplication.disabled = true;
+        updateHeaderMeta();
         updatePageChrome();
       }
 
       function renderAccessGate(mode, realmRoles = []) {
         if (mode === "authorized") {
-          setProtectedVisibility(true);
+          setLayoutMode("workspace");
           return;
         }
 
-        setProtectedVisibility(false);
+        if (mode === "public") {
+          showPublicLandingView();
+          return;
+        }
+
+        setLayoutMode("gate");
         if (mode === "loading") {
           authGateTitle.textContent = "Проверка сессии и загрузка рабочего пространства";
           authGateText.textContent =
@@ -5774,6 +5850,25 @@
         if (!isOpsUser()) {
           throw new Error("Доступ к реестру ОПС есть только у роли OPS");
         }
+      }
+
+      function setAuthIntent(destination) {
+        if (!destination) {
+          sessionStorage.removeItem(pkceStorage.authIntent);
+          return;
+        }
+        sessionStorage.setItem(pkceStorage.authIntent, destination);
+      }
+
+      function consumeAuthIntent() {
+        const destination = sessionStorage.getItem(pkceStorage.authIntent);
+        sessionStorage.removeItem(pkceStorage.authIntent);
+        return destination || null;
+      }
+
+      async function beginLoginJourney(destination = postLoginDestinations.applicantServices) {
+        setAuthIntent(destination);
+        await loginWithOidc();
       }
 
       async function callApi(method, path, body) {
@@ -5993,7 +6088,7 @@
           buttons.refresh.disabled = true;
           buttons.createApplication.disabled = true;
           setFormButtonsEnabled(false);
-          renderAccessGate("unauthenticated");
+          renderAccessGate("public");
           return;
         }
 
@@ -6042,6 +6137,10 @@
           showConformityModuleView();
           return;
         }
+        if (currentView === "applicant-services") {
+          showApplicantServicesHubView();
+          return;
+        }
         if (currentView === "cert-registry") {
           showCertificatesRegistryView();
           return;
@@ -6052,8 +6151,9 @@
       async function initAuth() {
         authReady = false;
         renderAuthState();
+        let completedLogin = false;
         try {
-          await completeAuthorizationCodeFlow();
+          completedLogin = await completeAuthorizationCodeFlow();
         } catch (error) {
           clearAuthSession();
           writeOutput("OIDC init error", {
@@ -6084,9 +6184,13 @@
           authServer: getRealmBase(),
         });
 
+        const postLoginIntent = completedLogin ? consumeAuthIntent() : null;
+
         if (oidcSession.authenticated && isApplicantUser()) {
           try {
-            if (currentView === "registry") {
+            if (completedLogin || postLoginIntent === postLoginDestinations.applicantServices) {
+              showApplicantServicesHubView();
+            } else if (currentView === "registry") {
               await loadApplicationsRegistry();
               showRegistryView();
             } else if (currentView === "form") {
@@ -6303,11 +6407,11 @@
       });
 
       buttons.login.addEventListener("click", async () => {
-        await loginWithOidc();
+        await beginLoginJourney(postLoginDestinations.applicantServices);
       });
 
       authGateLoginBtn.addEventListener("click", async () => {
-        await loginWithOidc();
+        await beginLoginJourney(postLoginDestinations.applicantServices);
       });
 
       if (headerBackBtn) {
@@ -6325,6 +6429,10 @@
       if (homeStartBtn) {
         homeStartBtn.addEventListener("click", async () => {
           try {
+            if (!oidcSession.authenticated) {
+              await beginLoginJourney(postLoginDestinations.applicantServices);
+              return;
+            }
             await navigateApplicantModule("conformity");
           } catch (error) {
             writeOutput("Ошибка перехода к услуге", {
@@ -6337,6 +6445,10 @@
       if (homeRegistryBtn) {
         homeRegistryBtn.addEventListener("click", async () => {
           try {
+            if (!oidcSession.authenticated) {
+              await beginLoginJourney(postLoginDestinations.applicantServices);
+              return;
+            }
             await loadInternalCertificatesRegistry();
             await loadPostIssuanceRegistry();
             showCertificatesRegistryView();
@@ -6372,6 +6484,8 @@
             showRegistryView();
           } else if (oidcSession.authenticated && isApplicantUser() && activeView === "conformity") {
             showConformityModuleView();
+          } else if (oidcSession.authenticated && isApplicantUser() && activeView === "applicant-services") {
+            showApplicantServicesHubView();
           } else if (oidcSession.authenticated && isApplicantUser()) {
             showApplicantHomeView();
           } else if (oidcSession.authenticated && isOpsUser()) {
@@ -6390,7 +6504,7 @@
         if (!oidcSession.authenticated) {
           return;
         }
-        currentView = "applicant-home";
+        currentView = "public-home";
         resetPostIssuanceForm();
         await logoutFromOidc();
       });

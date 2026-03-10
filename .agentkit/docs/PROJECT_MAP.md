@@ -13,6 +13,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Репозиторий хранит процессный каркас AgentKit и базовую runtime-платформу e-КТРМ (MVP Phase 1) с приоритетом Ордер 3 -> Ордер 4 -> Ордер 5 (без возобновления).
 - Key user flows:
   - Applicant создает/отправляет заявку, OPS проверяет/возвращает/принимает решение, система формирует сертификат, OPS mock-подписывает, сертификат публикуется в реестр, далее доступны post-issuance действия.
+  - Публичный пользователь может открыть главный landing без авторизации, но переход в applicant-сервисы и внутренний реестр всегда проходит через OIDC login; после свежей авторизации Applicant открывается services hub с модульными карточками.
 - Tech stack:
   - Целевой: Angular SPA, Python/FastAPI микросервисы, PostgreSQL + SQLAlchemy/Alembic, Redis + Celery, MinIO, Keycloak, WebSocket, Docker Compose.
   - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`) + OPS review/protocol attachment API (`T6`) + baseline генерации сертификата/snapshot (`T7`) + mock-sign/publish и внутренний/публичный реестры (`T8`) + post-issuance suspend/terminate workflow и UI-очередь (`T9`).
@@ -138,6 +139,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ## 6) Frontend / UI surface (if applicable)
 - Routing approach:
   - Angular SPA route guards as UX layer; backend authorization is mandatory enforcement.
+  - Текущий статический shell в `frontend/index.html` поддерживает три UI-состояния: `public landing`, `auth gate/loading/forbidden`, `authenticated workspace`; public CTA сохраняют post-login intent и после свежего Applicant login ведут в services hub.
 - State management approach:
   - Feature-level state by domain modules (applications, certificates, registry, notifications).
   - Realtime updates via WebSocket + fallback refresh.
@@ -585,6 +587,8 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-10 [services-card-minimal-chrome] В `frontend/index.html` applicant-модульные и сервисные карточки упрощены до минимального состава: убраны буквенные иконки и верхние бейджи/теги, на карточках оставлены только заголовок, описание и action-button у модулей.
+- 2026-03-10 [public-landing-auth-redirect] В `frontend/index.html` главный landing стал доступен без авторизации, а CTA `Получить услугу`, `Реестр сертификатов` и `Перейти` на applicant-карточках теперь уводят неавторизованного пользователя в OIDC login; после успешного fresh login Applicant открывается отдельный services hub на базе секции `Государственные услуги онлайн`, при сохранении OPS-потока и backend auth enforcement без изменений.
 - 2026-03-10 [frontend-runtime-port-derivation] В `docker-compose.yml`, `frontend/nginx/10-generate-runtime-config.sh`, `frontend/index.html`, `frontend/public-registry.html`, `.env.example` и `README.md` runtime-config frontend перестал жестко подставлять `localhost:8180/8088`: явные public URLs стали optional overrides, а при их отсутствии frontend строит API/OIDC endpoints из текущего host и фактических compose-портов `GATEWAY_PORT` / `KEYCLOAK_EXPOSE_PORT`, что убирает рассинхрон со старым `.env`.
 - 2026-03-10 [frontend-healthcheck-ipv4-loopback] В `docker-compose.yml` healthcheck сервиса `frontend` переведен с `localhost` на `127.0.0.1`, потому что `wget` внутри nginx alpine давал ложный `Connection refused` при рабочем `127.0.0.1:8080/health`; runbook troubleshooting дополнен этим кейсом.
 - 2026-03-10 [runtime-config-and-env-preflight] Добавлены `scripts/validate_deploy_env.py` и генерация `runtime-config.js` во frontend nginx container: bootstrap теперь блокирует типовые deploy-ошибки в `.env`, а `frontend` получает `FRONTEND_API_BASE` / `FRONTEND_OIDC_AUTHORITY` / `FRONTEND_OIDC_CLIENT_ID` из env без ручной правки HTML, что делает развертывание устойчивее к изменению host-портов и public origin.

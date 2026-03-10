@@ -3511,6 +3511,7 @@
       const piSubmitBtn = document.getElementById("piSubmitBtn");
       const piCloseBtn = document.getElementById("piCloseBtn");
       const piRefreshQueueBtn = document.getElementById("piRefreshQueueBtn");
+      const mainMenu = document.querySelector("nav.menu");
       const menuHome = document.getElementById("menuHome");
       const menuApplications = document.getElementById("menuApplications");
       const menuCertificates = document.getElementById("menuCertificates");
@@ -3771,7 +3772,11 @@
       }
 
       function setActiveMenu(target) {
-        appHeader.classList.toggle("applicant-mode", getMenuMode() === "applicant");
+        const menuMode = getMenuMode();
+        appHeader.classList.toggle("applicant-mode", menuMode === "applicant");
+        if (mainMenu) {
+          mainMenu.classList.toggle("is-hidden", menuMode !== "ops");
+        }
         const entries = getMenuEntries();
         [menuHome, menuApplications, menuCertificates, menuDictionaries, menuConformity, menuStandardization].forEach(
           (element) => {
@@ -3795,7 +3800,7 @@
             element.classList.add("active");
             return;
           }
-          if (getMenuMode() === "applicant") {
+          if (menuMode === "applicant") {
             element.classList.add(enabled ? "available" : "disabled");
             if (!enabled) {
               element.setAttribute("aria-disabled", "true");

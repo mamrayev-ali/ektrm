@@ -68,49 +68,40 @@ class CertificateServiceTests(unittest.TestCase):
             "products": [{"name": "Провод"}],
         }
 
-    def _move_to_protocol_attached(self) -> dict:
+    def _approve_application(self) -> dict:
         app = self._application_service.create_draft(payload=self._payload(), current_user=self._applicant)
         app = self._application_service.transition(application_id=app["id"], to_status="SUBMITTED", current_user=self._applicant)
-        app = self._application_service.transition(application_id=app["id"], to_status="REGISTERED", current_user=self._ops)
-        app = self._application_service.transition(application_id=app["id"], to_status="IN_REVIEW", current_user=self._ops)
-        return self._application_service.transition(
+        return self._application_service.apply_ops_decision(
             application_id=app["id"],
-            to_status="PROTOCOL_ATTACHED",
+            decision_status="APPROVED",
             current_user=self._ops,
+            protocol_metadata={
+                "slot": "protocol_test_report",
+                "object_key": f"applications/{app['id']}/protocol_test_report/protocol.pdf",
+                "file_name": "protocol.pdf",
+                "content_type": "application/pdf",
+                "size_bytes": 512,
+                "etag": "etag-approve",
+            },
         )
 
     def _approve_with_certificate(self) -> dict:
-        app = self._move_to_protocol_attached()
-        approved = self._application_service.transition(
-            application_id=app["id"],
-            to_status="APPROVED",
-            current_user=self._ops,
-        )
+        approved = self._approve_application()
         return approved["certificate"]
 
     def test_approved_transition_generates_certificate(self) -> None:
-        app = self._move_to_protocol_attached()
-        approved = self._application_service.transition(
-            application_id=app["id"],
-            to_status="APPROVED",
-            current_user=self._ops,
-        )
+        approved = self._approve_application()
         self.assertEqual(approved["status"], "APPROVED")
         self.assertIn("certificate", approved)
         self.assertEqual(approved["certificate"]["status"], "GENERATED")
-        self.assertEqual(approved["certificate"]["source_application_id"], app["id"])
+        self.assertEqual(approved["certificate"]["source_application_id"], approved["id"])
 
     def test_snapshot_is_immutable_after_application_payload_changes(self) -> None:
-        app = self._move_to_protocol_attached()
-        approved = self._application_service.transition(
-            application_id=app["id"],
-            to_status="APPROVED",
-            current_user=self._ops,
-        )
+        approved = self._approve_application()
         certificate_before = approved["certificate"]
         self.assertEqual(certificate_before["snapshot"]["payload"]["applicant_name"], "ТОО Тест")
 
-        application_row = self._app_repository.get_application(app["id"])
+        application_row = self._app_repository.get_application(approved["id"])
         self.assertIsNotNone(application_row)
         self._app_repository.update_payload(
             application=application_row,

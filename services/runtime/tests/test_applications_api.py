@@ -209,7 +209,7 @@ class ApplicationsApiTests(unittest.TestCase):
         self._set_auth_user(self._ops_user())
         registered = self._client.post(
             f"/applications/{app_id}/transitions",
-            json={"to_status": "REGISTERED"},
+            json={"to_status": "REVISION_REQUESTED", "comment": "Нужна доработка"},
         )
         self.assertEqual(registered.status_code, 200)
 
@@ -229,74 +229,70 @@ class ApplicationsApiTests(unittest.TestCase):
         app_id = self._create_and_submit()
 
         self._set_auth_user(self._ops_user())
-        for to_status in ("REGISTERED", "IN_REVIEW"):
-            response = self._client.post(
-                f"/applications/{app_id}/transitions",
-                json={"to_status": to_status},
-            )
-            self.assertEqual(response.status_code, 200)
-
-        queue = self._client.get("/applications/ops/queue", params={"statuses": "IN_REVIEW,PROTOCOL_ATTACHED"})
+        queue = self._client.get("/applications/ops/queue", params={"statuses": "SUBMITTED"})
         self.assertEqual(queue.status_code, 200)
         items = queue.json()["items"]
         self.assertGreaterEqual(queue.json()["total"], 1)
         by_id = {item["id"]: item for item in items}
         self.assertIn(app_id, by_id)
-        self.assertEqual(by_id[app_id]["status"], "IN_REVIEW")
+        self.assertEqual(by_id[app_id]["status"], "SUBMITTED")
 
-    def test_attach_protocol_happy_path(self) -> None:
+    def test_apply_ops_decision_happy_path(self) -> None:
         app_id = self._create_and_submit()
         self._set_auth_user(self._ops_user())
 
-        for to_status in ("REGISTERED", "IN_REVIEW"):
-            response = self._client.post(
-                f"/applications/{app_id}/transitions",
-                json={"to_status": to_status},
-            )
-            self.assertEqual(response.status_code, 200)
-
-        attach = self._client.post(
-            f"/applications/{app_id}/protocol/attach",
+        decision = self._client.post(
+            f"/applications/{app_id}/ops-decision",
             json={
-                "slot": "protocol_test_report",
-                "object_key": f"applications/{app_id}/protocol_test_report/protocol.pdf",
-                "file_name": "protocol.pdf",
-                "content_type": "application/pdf",
-                "size_bytes": 2048,
-                "etag": "etag-1",
+                "decision_status": "APPROVED",
+                "comment": "Протокол подтвержден",
+                "protocol": {
+                    "slot": "protocol_test_report",
+                    "object_key": f"applications/{app_id}/protocol_test_report/protocol.pdf",
+                    "file_name": "protocol.pdf",
+                    "content_type": "application/pdf",
+                    "size_bytes": 2048,
+                    "etag": "etag-1",
+                },
             },
         )
-        self.assertEqual(attach.status_code, 200)
-        self.assertEqual(attach.json()["status"], "PROTOCOL_ATTACHED")
+        self.assertEqual(decision.status_code, 200)
+        self.assertEqual(decision.json()["status"], "APPROVED")
+        self.assertIn("certificate", decision.json())
 
-    def test_attach_protocol_requires_ops_role(self) -> None:
+    def test_apply_ops_decision_requires_ops_role(self) -> None:
         app_id = self._create_and_submit()
-        attach = self._client.post(
-            f"/applications/{app_id}/protocol/attach",
+        decision = self._client.post(
+            f"/applications/{app_id}/ops-decision",
             json={
-                "slot": "protocol_test_report",
-                "object_key": f"applications/{app_id}/protocol_test_report/protocol.pdf",
-                "file_name": "protocol.pdf",
-                "content_type": "application/pdf",
-                "size_bytes": 2048,
+                "decision_status": "APPROVED",
+                "protocol": {
+                    "slot": "protocol_test_report",
+                    "object_key": f"applications/{app_id}/protocol_test_report/protocol.pdf",
+                    "file_name": "protocol.pdf",
+                    "content_type": "application/pdf",
+                    "size_bytes": 2048,
+                },
             },
         )
-        self.assertEqual(attach.status_code, 403)
+        self.assertEqual(decision.status_code, 403)
 
     def test_approved_transition_returns_generated_certificate(self) -> None:
         app_id = self._create_and_submit()
         self._set_auth_user(self._ops_user())
 
-        for to_status in ("REGISTERED", "IN_REVIEW", "PROTOCOL_ATTACHED"):
-            response = self._client.post(
-                f"/applications/{app_id}/transitions",
-                json={"to_status": to_status},
-            )
-            self.assertEqual(response.status_code, 200)
-
         approved = self._client.post(
-            f"/applications/{app_id}/transitions",
-            json={"to_status": "APPROVED"},
+            f"/applications/{app_id}/ops-decision",
+            json={
+                "decision_status": "APPROVED",
+                "protocol": {
+                    "slot": "protocol_test_report",
+                    "object_key": f"applications/{app_id}/protocol_test_report/protocol.pdf",
+                    "file_name": "protocol.pdf",
+                    "content_type": "application/pdf",
+                    "size_bytes": 2048,
+                },
+            },
         )
         self.assertEqual(approved.status_code, 200)
         body = approved.json()
@@ -304,29 +300,54 @@ class ApplicationsApiTests(unittest.TestCase):
         self.assertEqual(body["certificate"]["status"], "GENERATED")
         self.assertEqual(body["certificate"]["source_application_id"], app_id)
 
-    def test_reject_transition_auto_archives(self) -> None:
+    def test_reject_transition_keeps_rejected_status(self) -> None:
         app_id = self._create_and_submit()
         self._set_auth_user(self._ops_user())
 
-        for to_status in ("REGISTERED", "IN_REVIEW", "PROTOCOL_ATTACHED"):
-            response = self._client.post(
-                f"/applications/{app_id}/transitions",
-                json={"to_status": to_status},
-            )
-            self.assertEqual(response.status_code, 200)
-
         rejected = self._client.post(
-            f"/applications/{app_id}/transitions",
-            json={"to_status": "REJECTED", "comment": "Несоответствие протоколу"},
+            f"/applications/{app_id}/ops-decision",
+            json={
+                "decision_status": "REJECTED",
+                "comment": "Несоответствие протоколу",
+                "protocol": {
+                    "slot": "protocol_test_report",
+                    "object_key": f"applications/{app_id}/protocol_test_report/protocol.pdf",
+                    "file_name": "protocol.pdf",
+                    "content_type": "application/pdf",
+                    "size_bytes": 2048,
+                },
+            },
         )
         self.assertEqual(rejected.status_code, 200)
-        self.assertEqual(rejected.json()["status"], "ARCHIVED")
+        self.assertEqual(rejected.json()["status"], "REJECTED")
 
         history = self._client.get(f"/applications/{app_id}/history")
         self.assertEqual(history.status_code, 200)
         to_statuses = [row["to_status"] for row in history.json()["items"]]
         self.assertIn("REJECTED", to_statuses)
-        self.assertIn("ARCHIVED", to_statuses)
+        self.assertNotIn("ARCHIVED", to_statuses)
+
+    def test_revision_requested_can_be_resubmitted_by_applicant(self) -> None:
+        app_id = self._create_and_submit()
+        self._set_auth_user(self._ops_user())
+        revision = self._client.post(
+            f"/applications/{app_id}/transitions",
+            json={"to_status": "REVISION_REQUESTED", "comment": "Добавьте уточнение"},
+        )
+        self.assertEqual(revision.status_code, 200)
+
+        self._set_auth_user(
+            CurrentUser(
+                subject="applicant-1",
+                username="applicant.demo",
+                email="applicant@example.local",
+                roles=frozenset({"Applicant"}),
+                claims={},
+            )
+        )
+        resubmitted = self._client.post(f"/applications/{app_id}/submit")
+        self.assertEqual(resubmitted.status_code, 200)
+        self.assertEqual(resubmitted.json()["status"], "SUBMITTED")
 
 
 if __name__ == "__main__":

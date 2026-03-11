@@ -18,28 +18,20 @@ ORDER3_STATUSES = frozenset(
     {
         "DRAFT",
         "SUBMITTED",
-        "REGISTERED",
-        "IN_REVIEW",
         "REVISION_REQUESTED",
-        "PROTOCOL_ATTACHED",
         "APPROVED",
         "REJECTED",
         "ARCHIVED",
-        "COMPLETED",
     }
 )
 
 TRANSITIONS: dict[str, frozenset[str]] = {
     "DRAFT": frozenset({"SUBMITTED"}),
-    "SUBMITTED": frozenset({"REGISTERED"}),
-    "REGISTERED": frozenset({"IN_REVIEW"}),
-    "IN_REVIEW": frozenset({"REVISION_REQUESTED", "PROTOCOL_ATTACHED"}),
-    "REVISION_REQUESTED": frozenset({"IN_REVIEW"}),
-    "PROTOCOL_ATTACHED": frozenset({"APPROVED", "REJECTED"}),
-    "REJECTED": frozenset({"ARCHIVED"}),
-    "APPROVED": frozenset({"COMPLETED"}),
+    "SUBMITTED": frozenset({"REVISION_REQUESTED"}),
+    "REVISION_REQUESTED": frozenset({"SUBMITTED"}),
+    "REJECTED": frozenset(),
+    "APPROVED": frozenset(),
     "ARCHIVED": frozenset(),
-    "COMPLETED": frozenset(),
 }
 
 REQUIRED_SUBMIT_FIELDS = (
@@ -54,17 +46,12 @@ REQUIRED_SUBMIT_FIELDS = (
 DELETABLE_DRAFT_STATUSES = frozenset({"DRAFT", "REVISION_REQUESTED"})
 OPS_REVIEW_STATUSES = frozenset(
     {
-        "REGISTERED",
-        "IN_REVIEW",
         "REVISION_REQUESTED",
-        "PROTOCOL_ATTACHED",
         "APPROVED",
         "REJECTED",
-        "ARCHIVED",
-        "COMPLETED",
     }
 )
-DEFAULT_OPS_QUEUE_STATUSES = ("SUBMITTED", "REGISTERED", "IN_REVIEW", "PROTOCOL_ATTACHED")
+DEFAULT_OPS_QUEUE_STATUSES = ("SUBMITTED",)
 PROTOCOL_FILE_SLOT = "protocol_test_report"
 BIN_PATTERN = re.compile(r"^\d{12}$")
 
@@ -210,6 +197,11 @@ class ApplicationStateService:
         payload = self._decode_payload(application.payload_json)
         if normalized == "SUBMITTED":
             self._validate_submit_payload(payload)
+        if normalized == "REVISION_REQUESTED" and not (comment or "").strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Revision request comment is required",
+            )
 
         previous = application.status
         self._repository.update_status(application, normalized)
@@ -220,20 +212,58 @@ class ApplicationStateService:
             changed_by_subject=current_user.subject,
             comment=comment,
         )
+        self._repository.commit()
+        return self._serialize_application(application)
+
+    def apply_ops_decision(
+        self,
+        application_id: int,
+        decision_status: str,
+        current_user: CurrentUser,
+        protocol_metadata: dict[str, Any],
+        comment: str | None = None,
+    ) -> dict[str, Any]:
+        normalized = decision_status.strip().upper()
+        if normalized not in {"APPROVED", "REJECTED"}:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="OPS decision must be APPROVED or REJECTED",
+            )
+
+        self._require_ops(current_user)
+        application = self._require_application(application_id)
+        if application.status != "SUBMITTED":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="OPS decision can only be applied to SUBMITTED applications",
+            )
+
+        protocol_slot = self._build_protocol_slot(
+            application_id=application_id,
+            metadata=protocol_metadata,
+            current_user=current_user,
+        )
+        payload = self._decode_payload(application.payload_json)
+        file_slots_raw = payload.get("file_slots", {})
+        file_slots = dict(file_slots_raw) if isinstance(file_slots_raw, dict) else {}
+        file_slots[PROTOCOL_FILE_SLOT] = protocol_slot
+        payload["file_slots"] = file_slots
+
+        previous = application.status
+        self._repository.update_payload(application, payload)
+        self._repository.update_status(application, normalized)
+        self._repository.add_history(
+            application_id=application.id,
+            from_status=previous,
+            to_status=normalized,
+            changed_by_subject=current_user.subject,
+            comment=(comment or "").strip() or None,
+        )
         generated_certificate: dict[str, Any] | None = None
         if normalized == "APPROVED" and self._certificate_service is not None:
             generated_certificate = self._certificate_service.generate_for_approved_application(
                 application=application,
                 current_user=current_user,
-            )
-        if normalized == "REJECTED":
-            self._repository.update_status(application, "ARCHIVED")
-            self._repository.add_history(
-                application_id=application.id,
-                from_status="REJECTED",
-                to_status="ARCHIVED",
-                changed_by_subject=current_user.subject,
-                comment="Application archived after rejection; applicant notification queued",
             )
         self._repository.commit()
         response = self._serialize_application(application)
@@ -247,54 +277,10 @@ class ApplicationStateService:
         current_user: CurrentUser,
         metadata: dict[str, Any],
     ) -> dict[str, Any]:
-        self._require_ops(current_user)
-        application = self._require_application(application_id)
-        if application.status != "IN_REVIEW":
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Protocol can only be attached when application is IN_REVIEW",
-            )
-
-        slot = str(metadata.get("slot", "")).strip()
-        if slot != PROTOCOL_FILE_SLOT:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Only '{PROTOCOL_FILE_SLOT}' slot is supported for protocol attachment",
-            )
-
-        object_key = str(metadata.get("object_key", "")).strip()
-        expected_prefix = f"applications/{application_id}/{PROTOCOL_FILE_SLOT}/"
-        if not object_key.startswith(expected_prefix):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Protocol file object_key does not match application or slot",
-            )
-
-        payload = self._decode_payload(application.payload_json)
-        file_slots_raw = payload.get("file_slots", {})
-        file_slots = dict(file_slots_raw) if isinstance(file_slots_raw, dict) else {}
-        file_slots[PROTOCOL_FILE_SLOT] = {
-            "slot": PROTOCOL_FILE_SLOT,
-            "object_key": object_key,
-            "file_name": str(metadata.get("file_name", "")).strip(),
-            "content_type": str(metadata.get("content_type", "")).strip(),
-            "size_bytes": int(metadata.get("size_bytes", 0) or 0),
-            "etag": str(metadata.get("etag", "")).strip() or None,
-            "attached_at": datetime.now(UTC).isoformat(),
-            "attached_by_subject": current_user.subject,
-        }
-        payload["file_slots"] = file_slots
-        self._repository.update_payload(application, payload)
-        self._repository.update_status(application, "PROTOCOL_ATTACHED")
-        self._repository.add_history(
-            application_id=application.id,
-            from_status="IN_REVIEW",
-            to_status="PROTOCOL_ATTACHED",
-            changed_by_subject=current_user.subject,
-            comment=f"Protocol attached: {file_slots[PROTOCOL_FILE_SLOT]['file_name']}",
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Standalone protocol attachment is not supported; use OPS decision flow",
         )
-        self._repository.commit()
-        return self._serialize_application(application)
 
     def _require_application(self, application_id: int) -> CertApplication:
         application = self._repository.get_application(application_id)
@@ -316,11 +302,57 @@ class ApplicationStateService:
             )
 
     def _assert_transition_actor(self, to_status: str, current_user: CurrentUser) -> None:
+        if to_status == "SUBMITTED" and "Applicant" not in current_user.roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Transition to 'SUBMITTED' requires Applicant role",
+            )
         if to_status in OPS_REVIEW_STATUSES and "OPS" not in current_user.roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Transition to '{to_status}' requires OPS role",
             )
+
+    def _build_protocol_slot(
+        self,
+        application_id: int,
+        metadata: dict[str, Any],
+        current_user: CurrentUser,
+    ) -> dict[str, Any]:
+        slot = str(metadata.get("slot", "")).strip()
+        if slot != PROTOCOL_FILE_SLOT:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Only '{PROTOCOL_FILE_SLOT}' slot is supported for protocol attachment",
+            )
+
+        object_key = str(metadata.get("object_key", "")).strip()
+        expected_prefix = f"applications/{application_id}/{PROTOCOL_FILE_SLOT}/"
+        if not object_key.startswith(expected_prefix):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Protocol file object_key does not match application or slot",
+            )
+
+        file_name = str(metadata.get("file_name", "")).strip()
+        content_type = str(metadata.get("content_type", "")).strip()
+        size_bytes = int(metadata.get("size_bytes", 0) or 0)
+        if not file_name or not content_type or size_bytes <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Protocol metadata is incomplete",
+            )
+
+        return {
+            "slot": PROTOCOL_FILE_SLOT,
+            "object_key": object_key,
+            "file_name": file_name,
+            "content_type": content_type,
+            "size_bytes": size_bytes,
+            "etag": str(metadata.get("etag", "")).strip() or None,
+            "attached_at": datetime.now(UTC).isoformat(),
+            "attached_by_subject": current_user.subject,
+        }
 
     def _validate_submit_payload(self, payload: dict[str, Any]) -> None:
         missing = [field for field in REQUIRED_SUBMIT_FIELDS if field not in payload or payload[field] in (None, "", [])]

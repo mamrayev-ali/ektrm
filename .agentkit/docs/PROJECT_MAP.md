@@ -317,21 +317,22 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/tests/test_post_issuance_service.py`, `services/runtime/tests/test_post_issuance_api.py`.
 - `services/runtime/app/services/application_state_service.py` — доменный state engine Ордер 3.
   - public surface / key exports:
-    - transition map `DRAFT -> ... -> COMPLETED`, submit-валидация обязательных полей (включая `applicant_bin` = 12 цифр), удаление черновика в `ARCHIVED`, OPS queue, реестр заявок текущего пользователя (`list_my_applications`), attach protocol, автоархивирование после отказа, запись status history, генерация сертификата при `APPROVED`.
+    - transition map сокращен до `DRAFT -> SUBMITTED -> REVISION_REQUESTED -> SUBMITTED` для доработок и отдельного OPS decision flow `SUBMITTED -> APPROVED|REJECTED` с deferred protocol attachment; submit по-прежнему валидирует обязательные поля (включая `applicant_bin` = 12 цифр), удаление черновика ведет в `ARCHIVED`, сервис отдает OPS queue и реестр заявок текущего пользователя (`list_my_applications`), пишет status history и генерирует сертификат при `APPROVED`.
   - invariants / assumptions:
     - недопустимые переходы запрещены (`409`);
     - submit невозможен при неполном payload (`422`);
     - удаление допускается только для статусов `DRAFT`/`REVISION_REQUESTED`.
-    - review-переходы требуют роль `OPS` (`403` при нарушении).
-    - переход `PROTOCOL_ATTACHED -> APPROVED` формирует сертификат со статусом `GENERATED`.
+    - review-переход `REVISION_REQUESTED` требует комментарий ОПС и роль `OPS` (`403/422` при нарушении).
+    - standalone `protocol/attach` более не используется продуктовым flow и возвращает конфликт; протокол прикладывается только в финальном OPS decision request.
+    - финальный decision `APPROVED`/`REJECTED` допустим только из `SUBMITTED`; `APPROVED` формирует сертификат со статусом `GENERATED`, `REJECTED` остается терминальным статусом заявки без автоархивации.
   - dependencies:
     - `services/runtime/app/repositories/application_repository.py`, `services/runtime/app/services/certificate_service.py`, `app/auth.py`.
   - tests:
     - `services/runtime/tests/test_application_state_engine.py`, `services/runtime/tests/test_certificate_service.py`.
 - `services/runtime/app/routers/applications.py` — API слой Ордер 3.
   - public surface / key exports:
-    - endpoint-ы create/update/delete draft, submit, transition, read, history, `GET /applications/ops/queue`, `GET /applications/mine`, `POST /applications/{id}/protocol/attach`.
-    - при переходе в `APPROVED` ответ включает объект `certificate` c baseline данными созданного сертификата.
+    - endpoint-ы create/update/delete draft, submit, transition, read, history, `GET /applications/ops/queue`, `GET /applications/mine`, deprecated-only `POST /applications/{id}/protocol/attach` и новый `POST /applications/{id}/ops-decision`.
+    - `POST /applications/{id}/ops-decision` принимает `decision_status`, optional `comment` и nested `protocol` metadata; при `APPROVED` ответ включает объект `certificate` c baseline данными созданного сертификата.
   - invariants / assumptions:
     - backend проверяет ownership (`Applicant`) и full-access для `OPS`.
   - dependencies:
@@ -350,11 +351,12 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py`.
 - `services/runtime/app/services/certificate_service.py` — доменный сервис генерации, подписи/публикации и реестров сертификатов (T7/T8).
   - public surface / key exports:
-    - `generate_for_approved_application`, `sign_and_publish`, `get_certificate`, `get_certificate_by_application`, `list_internal_registry`, `list_public_registry`.
+    - `generate_for_approved_application`, `sign_and_publish`, `get_certificate`, `get_certificate_by_application`, `download_certificate_pdf`, `list_internal_registry`, `list_public_registry`.
   - invariants / assumptions:
     - генерация разрешена только для `APPROVED`;
     - mock-sign+publish разрешены только для роли `OPS` и статуса `GENERATED`;
-    - ownership enforcement: Applicant только свои сертификаты, OPS — все.
+    - ownership enforcement: Applicant только свои сертификаты, OPS — все;
+    - downloadable PDF строится встроенным lightweight generator без внешних зависимостей и визуально приближен к референсу, но не повторяет исходный шаблон побайтно.
   - dependencies:
     - `services/runtime/app/repositories/certificate_repository.py`, `app/auth.py`.
   - tests:
@@ -370,19 +372,20 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/tests/test_post_issuance_service.py`, `services/runtime/tests/test_post_issuance_api.py`.
 - `services/runtime/app/services/post_issuance_service.py` — доменный сервис Ордер 5 для `SUSPEND` и `TERMINATE`.
   - public surface / key exports:
-    - `create_draft`, `update_draft`, `submit`, `transition`, `attach_basis`, `list_my_applications`, `get_ops_queue`.
+    - `create_draft`, `update_draft`, `delete_draft`, `submit`, `transition`, `attach_basis`, `list_my_applications`, `get_ops_queue`.
   - invariants / assumptions:
     - допускаются только действия `SUSPEND` и `TERMINATE`;
     - submit требует reason code, detail, note, deadline и файл-основание;
     - approve обновляет статус сертификата и завершает процесс в одной транзакции;
-    - reject автоархивирует post-issuance заявку и не меняет сертификат.
+    - reject автоархивирует post-issuance заявку и не меняет сертификат;
+    - `delete_draft` разрешен только для `DRAFT` / `REVISION_REQUESTED` и используется UI как отмена freshly-created detail.
   - dependencies:
     - `PostIssuanceRepository`, `CertificateRepository`, `ReferenceDataRepository`, `app/auth.py`.
   - tests:
     - `services/runtime/tests/test_post_issuance_service.py`, `services/runtime/tests/test_post_issuance_api.py`.
 - `services/runtime/app/routers/post_issuance.py` — API слой Ордер 5.
   - public surface / key exports:
-    - create/update draft, submit, transitions, attach basis, queue/read/history endpoint-ы.
+    - create/update/delete draft, submit, transitions, attach basis, queue/read/history endpoint-ы.
   - invariants / assumptions:
     - Applicant видит только свои post-issuance процессы; OPS работает через queue.
   - dependencies:
@@ -391,7 +394,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/tests/test_post_issuance_api.py`.
 - `services/runtime/app/routers/certificates.py` — API сертификатов (T7/T8).
   - public surface / key exports:
-    - `GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`, `POST /certificates/{id}/sign`.
+    - `GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`, `GET /certificates/{id}/download`, `POST /certificates/{id}/sign`.
   - invariants / assumptions:
     - чтение защищено backend RBAC + ownership checks;
     - операция sign доступна только `OPS`.
@@ -436,23 +439,25 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - OIDC login helper сохраняет PKCE `S256`, но теперь умеет fallback на встроенную JS-реализацию SHA-256, если браузер открывает страницу по insecure origin и не предоставляет `crypto.subtle.digest`; это устраняет падение кнопки `Войти через Keycloak` на server-IP/HTTP окружениях.
     - frontend runtime config больше не завязан на `localhost`: `authority` и `apiBase` берутся из env-generated `runtime-config.js`, а при необходимости могут быть явно переопределены через query/localStorage (`oidc_authority`, `api_base`, `oidc_client_id`) без правки HTML.
     - приоритет runtime config: `window.__EKTRM_RUNTIME_CONFIG__` (из env контейнера) -> query/localStorage override -> вычисление по host.
-    - applicant default-экран: `Главная` с карточками модулей `Аккредитация`, `Государственный контроль`, `Метрология`, `Оценка соответствия`, `Стандартизация`; активен модуль `Оценка соответствия`, `Стандартизация` и остальные неподтвержденные модули отображаются disabled.
-    - header публичного landing теперь содержит явный CTA `Войти`; после авторизации вместо него показывается account block с display name, role label и круглой avatar-кнопкой, ведущей в личный кабинет.
+    - applicant default-экран: `Главная` с карточками модулей `Аккредитация`, `Гос контроль`, `Метрология`, `Оценка соответствия`, `Стандартизация`; активен модуль `Оценка соответствия`, `Стандартизация` и остальные неподтвержденные модули отображаются disabled.
+    - header публичного landing теперь содержит явный CTA `Войти`; после авторизации вместо него показывается account block с display name, role label и круглой avatar-кнопкой, открывающей hover/focus dropdown c пунктами `Личный кабинет` и `Выйти`; dropdown должен оставаться достижимым курсором без hover-gap между pill и меню.
     - login intent стал явным: header login ведет в `Личный кабинет`, CTA модулей сохраняют `module/service` intent и после login открывают соответствующий applicant-контур, а CTA реестра открывает `Реестр сертификатов`.
     - applicant/ops cabinet добавлен как отдельный view-state: для `Applicant` доступны вкладки `Профиль`, `История заявок`, `Сертификаты`, для `OPS` — только `Профиль`.
-    - header для внутренних экранов переведен в single-entry navigation: верхнее меню скрыто, переходы выполняются из `Главная`, а на applicant/form/certificate view показывается кнопка `Назад` в верхнем левом углу; footer не затрагивается.
+    - header для внутренних экранов минимизирован: из визуального chrome убраны `Ордер 3` и `авторизован`, а back-навигация вынесена из header на отдельную строку над названием текущего модуля/сервиса и стилизована как кликабельная текстовая ссылка со стрелкой.
     - applicant shell для `Оценка соответствия`: root-экран с витриной сервисов, карточками в новом стиле и breadcrumb-навигацией `ОЦЕНКА СООТВЕТСТВИЯ / <сервис>`; из сервисов активен только `Сертификат соответствия продукции РК`.
     - сервис `Сертификат соответствия продукции РК`: полноширинный реестр заявок текущего пользователя с action `Открыть`/`Продолжить` и кнопкой `Подать новую заявку`; это тот же рабочий контур, ранее ошибочно размещенный под модулем `Стандартизация`.
-    - applicant-режим формы: открытие заявки из реестра с тем же wizard layout, показом блока `Ход выполнения` (текущий статус + history transitions) и automatic switch `editable` (`DRAFT`, `REVISION_REQUESTED`) vs `read-only` (остальные статусы).
+    - applicant-режим формы: экран приближен к `.agentkit/_temp/prototype.html` без изменения header, status chip и таблицы показывают русские цветные теги, breadcrumbs стали кликабельными, `Ход выполнения` перенесен в `Техническую панель`, а read/write режим по-прежнему определяется статусами `DRAFT` / `REVISION_REQUESTED` vs остальные; последний комментарий ОПС выводится в заявке отдельным заметным блоком.
+    - визуальный skin applicant-form следует layout-принципам `prototype.html`: карточки секций без теней, компактные `section-head`, серо-фоновые inputs, document rows и action-bar как в прототипе, но с сохранением текущей типографической шкалы проекта и существующего flow навигации по шагам; внутри формы и process-line допустима только шкала `28 / 22 / 18 / 16 / 14 / 12 px`.
     - отдельный OPS-экран: полноширинный реестр отправленных заявок заявителей для роли `OPS` (на базе `GET /applications/ops/queue`) с action `Открыть`.
     - отдельный режим wizard (8 шагов): `Заявитель`, `Адрес заявителя`, `ОПС`, `Схема сертификации`, `Данные по продукции`, `Приложение`, `Документы`, `Примечание`.
-    - действия формы: `К списку заявок`, `Сохранить черновик`, `Подписать и отправить`, `Удалить черновик`; при возврате в реестр выполняется confirm при несохраненной новой форме.
-    - OPS-режим формы (визуально тот же layout): read-only данные заявки + блок действий `ОПС: Проверка и решение` (`Принять`, `На доработку`, `Прикрепить протокол`, `Принять решение`, `Завершить`) с вызовами существующих T6/T7 endpoint-ов.
-    - визуал процесса `Подача -> Регистрация -> Проверка -> Решение -> Сертификат` подсвечивается по текущему статусу заявки.
-    - внутренний реестр сертификатов с действием `Подписать` для `OPS` (вызов `POST /certificates/{id}/sign`) и ссылкой на публичный read-only реестр.
-    - T9 panel в разделе `Реестр сертификатов`: действия `Приостановить` / `Прекратить`, форма post-issuance, upload файла-основания и очередь post-issuance для Applicant/OPS.
+    - действия формы заявителя перегруппированы по `prototype.html`: слева `Назад` и `Сохранить и продолжить`, справа `Сохранить черновик` и `Подписать и отправить`; кнопка `Удалить черновик` показывается только для статуса `DRAFT`, а `К списку заявок` удалена.
+    - OPS-режим формы теперь отдельный one-page review: левый wizard sidebar и process line скрываются, все секции заявки показываются последовательно в read-only, в page chrome доступны только две OPS-команды `На доработку` и `Принять решение`, а flow `Принять решение` больше не использует промежуточные статусы `REGISTERED / IN_REVIEW / PROTOCOL_ATTACHED / COMPLETED`.
+    - `На доработку` открывает отдельную модалку с обязательным комментарием; `Принять решение` открывает отдельную модалку с deferred upload протокола и кнопками `Одобрить` / `Отказать`, которые активируются только после выбора файла и только тогда отправляют upload + final OPS decision request.
+    - визуал процесса `Подача -> Регистрация -> Проверка -> Решение -> Сертификат` приближен к прототипу крупными карточками-плашками; активный шаг выделяется мягким серо-голубым фоном.
+    - внутренний реестр сертификатов с действиями `Скачать` и `Подписать` для `OPS` (вызовы `GET /certificates/{id}/download`, `POST /certificates/{id}/sign`) и same-tab переходом в публичный read-only реестр без открытия нового окна; во вкладке сертификатов личного кабинета номер сертификата стал clickable download-link.
+    - T9 panel в разделе `Реестр сертификатов`: действия `Приостановить` / `Прекратить`, форма post-issuance, upload файла-основания и очередь post-issuance для Applicant/OPS; создание процесса открывает detail внутри текущего workspace без новой вкладки, а `Назад и отменить` для свежего draft вызывает `DELETE /post-issuance/{id}/draft`.
     - OIDC-сессия (Authorization Code + PKCE, нативный JS-клиент без `keycloak.js`) + вызовы applications/certificates/registry API через gateway.
-    - Техническая OIDC/API панель (`Войти`, `Обновить токен`, `Выйти`, debug output) вынесена под основной shell и открывается отдельным шевроном; по умолчанию скрыта.
+    - Техническая OIDC/API панель (`Войти`, `Обновить токен`, `Выйти`, debug output) вынесена под основной shell и открывается отдельным шевроном; по умолчанию скрыта, а внутри нее теперь живут `Ход выполнения` заявки и OPS history.
     - auth/role gate: при неавторизованной сессии рабочие экраны и header скрыты, показывается центрированное окно входа (логотип + кнопка Keycloak). Для `OPS` отображается OPS-реестр, а не экран `Нет доступа`.
   - invariants / assumptions:
     - submit валидирует обязательные поля и форматы (BIN=12 digits/phone mask/email);
@@ -478,6 +483,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - public surface / key exports:
     - обязательные dictionary codes (TECH_SPEC section 15.2), причины Ордер 5, seed для `ops_registry` и `accreditation_attestats`.
     - `termination_reason` хранит расширенный нормативный перечень причин прекращения: заявитель видит только `term_applicant_decision`, а `OPS` получает полный набор кодов 1..9.
+    - `application_status` синхронизирован с новым Order3 flow и больше не seed-ит исключенные промежуточные статусы `REGISTERED`, `IN_REVIEW`, `PROTOCOL_ATTACHED`, `COMPLETED`.
   - invariants / assumptions:
     - длинные юридические основания хранятся в максимально близкой к аналитике формулировке.
   - dependencies:
@@ -608,6 +614,12 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-11 [order3-ui-and-ops-review-rework-form-typography-contract] В `frontend/index.html` applicant-form и process-line очищены от размеров шрифта вне дизайн-контракта: oversized `30/26/13/11px` overrides убраны из form-mode, введены явные CSS tokens `--text-page-title / --text-section-title / --text-card-title / --text-body / --text-label / --text-small`, а applicant wizard дополнительно подогнан к `prototype.html` без изменения заголовка, breadcrumbs, back-link и логики шагов.
+- 2026-03-11 [order3-ui-and-ops-review-rework-form-skin-pass] В `frontend/index.html` applicant-form skin доведен ближе к `prototype.html` без изменения заголовка, breadcrumbs, back-link и flow шагов: секции, поля, document rows и action-bar получили более точный прототипный layout с сохранением текущей типографической системы; дополнительно во вкладке сертификатов личного кабинета номер сертификата стал clickable download-link на `GET /certificates/{id}/download`.
+- 2026-03-11 [order3-ui-and-ops-review-rework-certificate-download] В `frontend/index.html`, `services/runtime/app/services/certificate_service.py`, `services/runtime/app/routers/certificates.py` и `services/runtime/tests/test_certificates_api.py` добавлены applicant/OPS download flow и backend PDF generation для сертификатов: внутренний реестр получил действие `Скачать`, menu label `Государственный контроль` сокращен до `Гос контроль`, конфликт `There is already an active post-issuance process for this certificate` маппится в понятное русскоязычное сообщение, process-line заявки визуально приведен ближе к референсу, а `GET /certificates/{id}/download` отдает встроенно сгенерированный PDF-сертификат, похожий на образец по структуре и реквизитам, но без побайтного воспроизведения исходного шаблона.
+- 2026-03-11 [order3-ui-and-ops-review-rework-post-issuance-detail] В `frontend/index.html`, `services/runtime/app/routers/post_issuance.py`, `services/runtime/app/services/post_issuance_service.py` и `services/runtime/tests/test_post_issuance_api.py` post-issuance UX переведен из new-window/hash-intent сценария в same-page detail workflow: applicant/OPS открывают форму прекращения и приостановления внутри раздела `Реестр сертификатов`, список и tabs скрываются на время detail-view, `Назад и отменить` для freshly-created draft вызывает новый `DELETE /post-issuance/{id}/draft`, applicant top-menu снова показывает реальные модули в одну строку, OPS page chrome унифицирован до `Раздел заявок / Заявки`, а applicant wizard получил дополнительный visual pass ближе к `.agentkit/_temp/prototype.html`.
+- 2026-03-11 [order3-ui-and-ops-review-rework-followup] В `frontend/index.html` выполнен follow-up pass по applicant/OPS shell: applicant cabinet лишился зеленого summary-block и получил возврат `На главную` через content back-link, на страницах реестров убрано дублирование page title внутри контента, `Удалить черновик` убран из формы и перенесен в колонку действий у `DRAFT`, в заявке заявителя комментарий ОПС стал видимым в основном контенте, в OPS review добавлен отдельный banner со статусом заявки, а раздел сертификатов получил tabs для реестра и заявок на прекращение/приостановление.
+- 2026-03-11 [order3-ui-and-ops-review-rework] В `frontend/index.html`, `services/runtime/app/services/application_state_service.py`, `services/runtime/app/routers/applications.py`, `services/runtime/app/seed/reference_data_seed.py` и runtime tests переработан UX и state contract Ордер 3/OPS review: из header убраны `Ордер 3` и текст авторизации, back-навигация перенесена на отдельную строку над заголовком текущего модуля/сервиса и стилизована как текстовая стрелка-ссылка, breadcrumbs стали кликабельными, applicant action bar приведен к схеме `Назад/Сохранить и продолжить` слева и `Сохранить черновик/Подписать и отправить` справа, `Удалить черновик` показывается только для `DRAFT`, блок `Ход выполнения` перенесен в техническую панель, последний комментарий ОПС выводится в заявке заявителя отдельным блоком, а OPS flow сокращен до `SUBMITTED -> REVISION_REQUESTED|APPROVED|REJECTED` с отдельными модалками `На доработку` и `Принять решение`, deferred upload протокола и новым endpoint `POST /applications/{id}/ops-decision`; исключенные промежуточные статусы больше не seed-ятся, account block в header открывает dropdown `Личный кабинет / Выйти` с logout-возвратом на главную, hover-gap между аватаром и dropdown закрыт, а ссылка на публичный реестр переведена в same-tab.
 - 2026-03-11 [applicant-cabinet-and-header-login] В `frontend/index.html` и runtime backend добавлен отдельный личный кабинет с profile API и `user_profile` migration: header CTA `Войти` теперь ведет в кабинет, account block в правом верхнем углу показывает display name/role/avatar, Applicant получает вкладки `Профиль`, `История заявок`, `Сертификаты`, OPS — только `Профиль`, а public login intents для модулей и реестра сохраняют post-login маршрут вместо безусловного перехода в общий services hub.
 - 2026-03-10 [font-size-system-normalization] В `frontend/index.html`, `frontend/public-registry.html` и `PROJECT_MAP.md` введен обязательный типографический контракт: все runtime `font-size` сведены к токенам `28 / 22 / 18 / 16 / 14 / 12 px`, а размеры `section/card/label/body/small` перераспределены по семантическим CSS-классам без изменения JS-связок и view-структуры.
 - 2026-03-10 [ops-menu-visibility-fix] В `frontend/index.html` исправлена навигация для роли `OPS`: header menu больше не остается скрытым целиком после входа и показывается только для `OPS`, тогда как applicant/public сценарии по-прежнему работают без верхнего меню.
@@ -649,6 +661,21 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - 2026-03-05 [t1-platform-bootstrap-and-container-topology] Добавлена контейнерная топология MVP (docker-compose), runtime-сервисный каркас с health/readiness, keycloak realm import, bootstrap-скрипты и обновленный runbook.
 - 2026-03-05 [gitignore-push-2026-03-05] Обновлен `.gitignore` (env/editor/log/build артефакты) и подготовлен репозиторий к публикации изменений.
 - 2026-03-05 [project-intake-2026-03-05] Полностью адаптирован PROJECT_MAP под домен e-КТРМ: архитектура, контракты, риски, verification-карта и runbook.
+- 2026-03-11 [order3-applicant-form-shell-widening] В `frontend/index.html` для applicant wizard добавлен условный layout-режим `shell.form-shell`: увеличена максимальная ширина shell и перераспределены колонки `sidebar/form`, чтобы правая форма была заметно шире и ближе по пропорциям к `.agentkit/_temp/prototype.html`, без влияния на OPS и остальные внутренние страницы.
+- 2026-03-11 [applicant-home-public-registry-cta] В `frontend/index.html` кнопка `Реестр сертификатов` на applicant `Главная` переведена с внутреннего сертификатного workspace на прямой переход в публичный реестр `/public-registry.html`; внутренний реестр по-прежнему остается доступным из авторизованных role-aware экранов.
+- 2026-03-11 [order3-applicant-form-shell-container-removal] В `frontend/index.html` applicant form-shell дополнительно очищен от внешних card-container-оберток: у левой панели шагов и правого блока формы отключены фон, бордер, тень и внешний padding, поэтому wizard рендерится непосредственно на фоне страницы, а визуальная иерархия держится только на внутренних секциях и элементах.
+- 2026-03-11 [order3-applicant-form-classless-shell-tags] В `frontend/index.html` теги applicant wizard `<aside id="sidebarPanel">` и `<main id="mainPanel">` переведены на classless-разметку: прежние `card/sidebar/main`-классы сняты с HTML, applicant skin и базовая shell-геометрия перепривязаны на `id`-селекторы и `shell.form-shell`, чтобы форма заявителя соответствовала требованию без классов на этих двух корневых тегах.
+- 2026-03-11 [certificate-pdf-reference-layout-pass] В `services/runtime/app/services/certificate_service.py` встроенный generator `download_certificate_pdf` переработан под A4 portrait и новый reference-like layout: добавлены верхний гербовый блок, псевдо-QR, центральный title block, длинные текстовые секции, блок оснований, подписи и нижняя legal-note строка, чтобы PDF был максимально близок к присланному образцу в рамках lightweight PDF builder без внешних библиотек и без нативного кириллического font embedding.
+- 2026-03-11 [certificate-pdf-geometry-polish] В `services/runtime/app/services/certificate_service.py` поверх нового portrait-layout выполнен geometry polish: логотипные блоки заменены на более похожие круглые эмблемы, body-секции переплотнены по интервалам и ширине, а основной текст сертификата переведен на serif-body (`Times-Roman`) для более близкого к образцу официального бланкового вида.
+- 2026-03-11 [certificate-pdf-unicode-runtime-upgrade] В `services/runtime/requirements.txt` добавлен `reportlab`, а в `services/runtime/Dockerfile` установлен `fonts-dejavu-core`; после этого `services/runtime/app/services/certificate_service.py` переведен с hand-made ASCII PDF stream на полноценную reportlab-генерацию с embedded DejaVu fonts, поэтому скачиваемые сертификаты теперь рендерятся на кириллице и не требуют транслитерации.
+- 2026-03-11 [runtime-bytecode-cache-cleanup] В `services/runtime/Dockerfile` добавлены `PYTHONDONTWRITEBYTECODE=1` и явная очистка `__pycache__` / `*.pyc` после копирования runtime-кода в image; это нужно, чтобы контейнеры `gateway-service` и `certificates-service` не поднимались со stale Python bytecode и всегда исполняли актуальный generator сертификата.
+- 2026-03-11 [ops-certificates-number-download-link] В `frontend/index.html` внутренний `Реестр сертификатов` переведен на тот же паттерн скачивания, что и кабинет заявителя: отдельная action-кнопка `Скачать` убрана, а номер сертификата рендерится как `certificate-download-link`, по клику на который вызывается `GET /certificates/{id}/download`; остальные OPS/post-issuance действия в колонке `Действия` сохранены.
+- 2026-03-11 [registry-action-vertical-spacing] В `frontend/index.html` уточнен CSS для `.registry-action` внутри таблиц: action-кнопки получили вертикальные внешние отступы, чтобы пары `Приостановить` / `Прекратить` и другие stacked/wrapped действия в колонках не выглядели слипшимися.
+- 2026-03-11 [certificate-pdf-text-color-fix] В `services/runtime/app/services/certificate_service.py` устранен дефект пустого сертификата: после отрисовки белого фонового прямоугольника generator теперь явно возвращает `fillColor` к `black` и повторно задает его в helper-ах текстового рендера, чтобы заголовки и body-текст PDF не оставались белыми на белом фоне.
+- 2026-03-11 [certificate-pdf-overflow-layout-fix] В `services/runtime/app/services/certificate_service.py` переработан flow рендера текстовых секций сертификата: добавлен helper `draw_section` с wrapping для длинных заголовков и body-блоков, основной текст уплотнен по размерам/leading, а нижний signature-block переделан в более узкие колонки с меньшими QR, чтобы PDF не выезжал за правую границу и не давал overlap секций с подписями.
+- 2026-03-11 [certificate-pdf-footer-overlap-fix] В `services/runtime/app/services/certificate_service.py` дополнительно переразложен нижний footer сертификата: блоки ролей/ФИО уменьшены по размеру и подняты выше, QR-подписи уменьшены, а legal-note перенесена ближе к нижнему полю страницы с компактным кеглем, чтобы убрать наложение текста внизу PDF.
+- 2026-03-11 [certificate-pdf-remove-graphics] В `services/runtime/app/services/certificate_service.py` из сгенерированного сертификата удалены все декоративные графические элементы: верхние логотипы/эмблемы и QR-коды в header/footer; PDF оставлен как чистый текстовый документ с тем же content-layout и данными.
+- 2026-03-11 [certificate-pdf-main-block-upshift] В `services/runtime/app/services/certificate_service.py` весь основной текстовый блок сертификата сдвинут выше, начиная с заголовка `СЕРТИФИКАТ СООТВЕТСТВИЯ`: служебные строки и стартовая точка основного контента подняты вверх, чтобы использовать освободившееся после удаления графики место и снизить риск overlap в footer.
 - `frontend/Dockerfile` — nginx-based frontend image.
   - public surface / key exports:
     - копирует html и startup script `frontend/nginx/10-generate-runtime-config.sh` в `/docker-entrypoint.d/`.

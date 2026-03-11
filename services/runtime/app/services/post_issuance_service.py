@@ -125,6 +125,26 @@ class PostIssuanceService:
         self._repository.commit()
         return self._serialize_application(application)
 
+    def delete_draft(self, application_id: int, current_user: CurrentUser) -> dict[str, Any]:
+        application = self._require_application(application_id)
+        self._assert_owner_or_ops(application, current_user)
+        if application.status not in EDITABLE_STATUSES:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Only DRAFT or REVISION_REQUESTED post-issuance applications can be deleted",
+            )
+        previous = application.status
+        self._repository.update_status(application, "ARCHIVED")
+        self._repository.add_history(
+            application_id=application.id,
+            from_status=previous,
+            to_status="ARCHIVED",
+            changed_by_subject=current_user.subject,
+            comment="Post-issuance draft deleted by user action",
+        )
+        self._repository.commit()
+        return self._serialize_application(application)
+
     def submit(self, application_id: int, current_user: CurrentUser) -> dict[str, Any]:
         application = self._require_application(application_id)
         self._assert_owner_or_ops(application, current_user)

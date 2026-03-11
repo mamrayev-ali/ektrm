@@ -60,7 +60,7 @@ class ApplicationStateEngineTests(unittest.TestCase):
             )
         self.assertEqual(context.exception.status_code, 409)
 
-    def test_full_order3_transition_chain_is_supported(self) -> None:
+    def test_revision_and_resubmit_flow_is_supported(self) -> None:
         payload = {
             "applicant_name": "ТОО Тест",
             "applicant_bin": "123456789012",
@@ -75,23 +75,19 @@ class ApplicationStateEngineTests(unittest.TestCase):
             to_status="SUBMITTED",
             current_user=self._user,
         )
+        app = self._service.transition(
+            application_id=app["id"],
+            to_status="REVISION_REQUESTED",
+            current_user=self._ops_user,
+            comment="Нужно уточнить комплект документов",
+        )
+        app = self._service.transition(
+            application_id=app["id"],
+            to_status="SUBMITTED",
+            current_user=self._user,
+        )
 
-        for status in [
-            "REGISTERED",
-            "IN_REVIEW",
-            "REVISION_REQUESTED",
-            "IN_REVIEW",
-            "PROTOCOL_ATTACHED",
-            "APPROVED",
-            "COMPLETED",
-        ]:
-            app = self._service.transition(
-                application_id=app["id"],
-                to_status=status,
-                current_user=self._ops_user,
-            )
-
-        self.assertEqual(app["status"], "COMPLETED")
+        self.assertEqual(app["status"], "SUBMITTED")
 
     def test_submit_requires_required_fields(self) -> None:
         draft = self._service.create_draft(payload={}, current_user=self._user)
@@ -122,12 +118,13 @@ class ApplicationStateEngineTests(unittest.TestCase):
         with self.assertRaises(HTTPException) as context:
             self._service.transition(
                 application_id=app["id"],
-                to_status="REGISTERED",
+                to_status="REVISION_REQUESTED",
                 current_user=self._user,
+                comment="forbidden",
             )
         self.assertEqual(context.exception.status_code, 403)
 
-    def test_attach_protocol_updates_payload_and_status(self) -> None:
+    def test_revision_requested_requires_comment(self) -> None:
         payload = {
             "applicant_name": "ТОО Тест",
             "applicant_bin": "123456789012",
@@ -138,13 +135,33 @@ class ApplicationStateEngineTests(unittest.TestCase):
         }
         app = self._service.create_draft(payload=payload, current_user=self._user)
         app = self._service.transition(application_id=app["id"], to_status="SUBMITTED", current_user=self._user)
-        app = self._service.transition(application_id=app["id"], to_status="REGISTERED", current_user=self._ops_user)
-        app = self._service.transition(application_id=app["id"], to_status="IN_REVIEW", current_user=self._ops_user)
 
-        attached = self._service.attach_protocol(
+        with self.assertRaises(HTTPException) as context:
+            self._service.transition(
+                application_id=app["id"],
+                to_status="REVISION_REQUESTED",
+                current_user=self._ops_user,
+                comment="",
+            )
+        self.assertEqual(context.exception.status_code, 422)
+
+    def test_apply_ops_decision_attaches_protocol_and_returns_approved(self) -> None:
+        payload = {
+            "applicant_name": "ТОО Тест",
+            "applicant_bin": "123456789012",
+            "applicant_address": "г. Алматы",
+            "ops_code": "OPS-KZ-001",
+            "cert_scheme_code": "SCHEME-1",
+            "products": [{"name": "Провод"}],
+        }
+        app = self._service.create_draft(payload=payload, current_user=self._user)
+        app = self._service.transition(application_id=app["id"], to_status="SUBMITTED", current_user=self._user)
+
+        approved = self._service.apply_ops_decision(
             application_id=app["id"],
+            decision_status="APPROVED",
             current_user=self._ops_user,
-            metadata={
+            protocol_metadata={
                 "slot": "protocol_test_report",
                 "object_key": f"applications/{app['id']}/protocol_test_report/test.pdf",
                 "file_name": "protocol.pdf",
@@ -152,14 +169,16 @@ class ApplicationStateEngineTests(unittest.TestCase):
                 "size_bytes": 128,
                 "etag": "etag-1",
             },
+            comment="Протокол подтверждает соответствие",
         )
-        self.assertEqual(attached["status"], "PROTOCOL_ATTACHED")
+        self.assertEqual(approved["status"], "APPROVED")
         self.assertEqual(
-            attached["payload"]["file_slots"]["protocol_test_report"]["file_name"],
+            approved["payload"]["file_slots"]["protocol_test_report"]["file_name"],
             "protocol.pdf",
         )
+        self.assertIn("certificate", approved)
 
-    def test_rejected_application_is_auto_archived_with_notification_history(self) -> None:
+    def test_rejected_application_remains_rejected(self) -> None:
         payload = {
             "applicant_name": "ТОО Тест",
             "applicant_bin": "123456789012",
@@ -170,20 +189,25 @@ class ApplicationStateEngineTests(unittest.TestCase):
         }
         app = self._service.create_draft(payload=payload, current_user=self._user)
         app = self._service.transition(application_id=app["id"], to_status="SUBMITTED", current_user=self._user)
-        app = self._service.transition(application_id=app["id"], to_status="REGISTERED", current_user=self._ops_user)
-        app = self._service.transition(application_id=app["id"], to_status="IN_REVIEW", current_user=self._ops_user)
-        app = self._service.transition(application_id=app["id"], to_status="PROTOCOL_ATTACHED", current_user=self._ops_user)
-        rejected = self._service.transition(
+        rejected = self._service.apply_ops_decision(
             application_id=app["id"],
-            to_status="REJECTED",
+            decision_status="REJECTED",
             current_user=self._ops_user,
+            protocol_metadata={
+                "slot": "protocol_test_report",
+                "object_key": f"applications/{app['id']}/protocol_test_report/reject.pdf",
+                "file_name": "reject.pdf",
+                "content_type": "application/pdf",
+                "size_bytes": 96,
+                "etag": "etag-2",
+            },
             comment="Отказ по результатам проверки",
         )
-        self.assertEqual(rejected["status"], "ARCHIVED")
+        self.assertEqual(rejected["status"], "REJECTED")
 
         history = self._service.get_history(application_id=app["id"], current_user=self._ops_user)
         self.assertTrue(any(row["to_status"] == "REJECTED" for row in history["items"]))
-        self.assertTrue(any(row["to_status"] == "ARCHIVED" for row in history["items"]))
+        self.assertFalse(any(row["to_status"] == "ARCHIVED" for row in history["items"]))
 
 
 if __name__ == "__main__":

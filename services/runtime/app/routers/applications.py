@@ -30,6 +30,12 @@ class ProtocolAttachRequest(BaseModel):
     etag: str | None = Field(default=None, max_length=128)
 
 
+class OpsDecisionRequest(BaseModel):
+    decision_status: str = Field(min_length=2, max_length=32)
+    comment: str | None = Field(default=None, max_length=2000)
+    protocol: ProtocolAttachRequest
+
+
 def _get_service(session: Session = Depends(get_session)) -> ApplicationStateService:
     certificate_service = CertificateService(CertificateRepository(session))
     return ApplicationStateService(
@@ -106,6 +112,22 @@ def attach_protocol(
         application_id=application_id,
         current_user=current_user,
         metadata=request.model_dump(),
+    )
+
+
+@router.post("/{application_id}/ops-decision")
+def apply_ops_decision(
+    application_id: int,
+    request: OpsDecisionRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    service: ApplicationStateService = Depends(_get_service),
+) -> dict[str, Any]:
+    return service.apply_ops_decision(
+        application_id=application_id,
+        decision_status=request.decision_status,
+        current_user=current_user,
+        protocol_metadata=request.protocol.model_dump(),
+        comment=request.comment,
     )
 
 

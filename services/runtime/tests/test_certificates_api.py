@@ -100,16 +100,18 @@ class CertificatesApiTests(unittest.TestCase):
         self.assertEqual(submitted.status_code, 200)
 
         self._set_auth_user(self._ops_user())
-        for to_status in ("REGISTERED", "IN_REVIEW", "PROTOCOL_ATTACHED"):
-            response = self._client.post(
-                f"/applications/{app_id}/transitions",
-                json={"to_status": to_status},
-            )
-            self.assertEqual(response.status_code, 200)
-
         approved = self._client.post(
-            f"/applications/{app_id}/transitions",
-            json={"to_status": "APPROVED"},
+            f"/applications/{app_id}/ops-decision",
+            json={
+                "decision_status": "APPROVED",
+                "protocol": {
+                    "slot": "protocol_test_report",
+                    "object_key": f"applications/{app_id}/protocol_test_report/protocol.pdf",
+                    "file_name": "protocol.pdf",
+                    "content_type": "application/pdf",
+                    "size_bytes": 2048,
+                },
+            },
         )
         self.assertEqual(approved.status_code, 200)
         certificate_id = approved.json()["certificate"]["id"]
@@ -132,6 +134,18 @@ class CertificatesApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["id"], certificate_id)
         self.assertEqual(response.json()["status"], "GENERATED")
+
+    def test_download_certificate_pdf_happy_path(self) -> None:
+        _, certificate_id = self._create_approved_application()
+        self._set_auth_user(self._ops_user())
+
+        response = self._client.get(f"/certificates/{certificate_id}/download")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["content-type"], "application/pdf")
+        self.assertIn("attachment;", response.headers["content-disposition"])
+        self.assertTrue(response.content.startswith(b"%PDF-1.4"))
+        self.assertIn(".pdf", response.headers["content-disposition"])
+        self.assertGreater(len(response.content), 5000)
 
     def test_applicant_cannot_read_foreign_certificate(self) -> None:
         _, certificate_id = self._create_approved_application()

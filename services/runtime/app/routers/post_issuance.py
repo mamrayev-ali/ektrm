@@ -66,6 +66,15 @@ def update_draft(
     return service.update_draft(application_id=application_id, payload=payload, current_user=current_user)
 
 
+@router.delete("/{application_id}/draft")
+def delete_draft(
+    application_id: int,
+    current_user: CurrentUser = Depends(get_current_user),
+    service: PostIssuanceService = Depends(_get_service),
+) -> dict[str, Any]:
+    return service.delete_draft(application_id=application_id, current_user=current_user)
+
+
 @router.post("/{application_id}/submit")
 def submit_application(
     application_id: int,

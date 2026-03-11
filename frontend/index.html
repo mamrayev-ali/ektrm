@@ -31,6 +31,12 @@
         --font-secondary-weight: 400;
         --font-small-size: 12px;
         --font-small-weight: 400;
+        --text-page-title: 28px;
+        --text-section-title: 22px;
+        --text-card-title: 18px;
+        --text-body: 16px;
+        --text-label: 14px;
+        --text-small: 12px;
       }
 
       * {
@@ -81,7 +87,13 @@
       .menu {
         display: flex;
         gap: 10px;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+
+      .menu::-webkit-scrollbar {
+        display: none;
       }
 
       .menu-item {
@@ -91,6 +103,8 @@
         font-size: var(--font-secondary-size);
         color: var(--text-muted);
         background: #fff;
+        white-space: nowrap;
+        flex: 0 0 auto;
       }
 
       .menu-item.active {
@@ -148,6 +162,7 @@
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.9);
         box-shadow: 0 10px 24px rgba(15, 54, 37, 0.08);
+        position: relative;
       }
 
       .header-account-meta {
@@ -195,6 +210,11 @@
         border-color: var(--brand);
       }
 
+      .header-avatar-btn:focus-visible {
+        outline: 2px solid rgba(0, 113, 227, 0.28);
+        outline-offset: 2px;
+      }
+
       .header-avatar-icon,
       .cabinet-avatar-icon {
         font-size: 20px;
@@ -205,6 +225,88 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
+      }
+
+      .header-account-menu {
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        min-width: 220px;
+        padding: 10px 0;
+        border: 1px solid rgba(22, 77, 53, 0.14);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 24px 54px rgba(10, 10, 11, 0.14);
+        opacity: 0;
+        transform: translateY(8px);
+        pointer-events: none;
+        transition:
+          opacity 160ms ease,
+          transform 160ms ease;
+        z-index: 30;
+      }
+
+      .header-account-menu::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 100%;
+        height: 12px;
+      }
+
+      .header-account:hover .header-account-menu,
+      .header-account:focus-within .header-account-menu,
+      .header-account.is-open .header-account-menu {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+
+      .header-account-divider {
+        height: 1px;
+        margin: 8px 14px;
+        background: rgba(28, 28, 30, 0.08);
+      }
+
+      .header-account-menu-item {
+        width: calc(100% - 20px);
+        margin: 0 10px;
+        padding: 12px 14px;
+        border: none;
+        border-radius: 14px;
+        background: transparent;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: left;
+        transition:
+          background 160ms ease,
+          color 160ms ease,
+          transform 160ms ease;
+      }
+
+      .header-account-menu-item:hover,
+      .header-account-menu-item:focus-visible {
+        background: var(--brand-soft);
+        color: var(--brand);
+        outline: none;
+        transform: translateX(2px);
+      }
+
+      .header-account-menu-item.logout {
+        color: var(--danger);
+      }
+
+      .header-account-menu-item.logout:hover,
+      .header-account-menu-item.logout:focus-visible {
+        background: var(--danger-soft);
+        color: var(--danger);
       }
 
       .shell {
@@ -220,14 +322,16 @@
         grid-template-columns: 1fr;
       }
 
-      .card {
+      .card,
+      #sidebarPanel,
+      #mainPanel {
         background: var(--surface);
         border: 1px solid var(--line);
         border-radius: 18px;
         box-shadow: 0 12px 28px rgba(24, 40, 31, 0.08);
       }
 
-      .sidebar {
+      #sidebarPanel {
         padding: 16px;
         align-self: start;
         position: sticky;
@@ -322,18 +426,18 @@
         color: #fff;
       }
 
-      .main {
+      #mainPanel {
         padding: 16px;
       }
 
-      .main.auth-only {
+      #mainPanel.auth-only {
         min-height: 640px;
         display: flex;
         flex-direction: column;
         justify-content: center;
       }
 
-      .main.auth-only .page-head {
+      #mainPanel.auth-only .page-head {
         display: none;
       }
 
@@ -341,9 +445,38 @@
         margin-bottom: 14px;
       }
 
+      .shell.form-shell > #mainPanel .page-head {
+        margin-bottom: 28px;
+      }
+
+      .shell.form-shell > #sidebarPanel,
+      .shell.form-shell > #mainPanel {
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        border-radius: 0;
+      }
+
+      .shell.form-shell > #sidebarPanel {
+        padding: 0;
+      }
+
+      .shell.form-shell > #mainPanel {
+        padding: 0;
+      }
+
       .page-eyebrow {
         color: var(--text-muted);
         font-size: var(--font-secondary-size);
+      }
+
+      .shell.form-shell > #mainPanel .page-eyebrow {
+        margin-bottom: 6px;
+        color: #0071e3;
+        font-size: var(--text-small);
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
       }
 
       .page-breadcrumb {
@@ -355,6 +488,16 @@
       h1 {
         margin: 4px 0 0;
         font-size: var(--font-page-title-size);
+      }
+
+      .shell.form-shell > #mainPanel h1 {
+        margin-top: 0;
+        color: #0a0a0b;
+        font-family: "Cormorant Garamond", "Georgia", serif;
+        font-size: var(--text-page-title);
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1.05;
       }
 
       .process {
@@ -396,6 +539,62 @@
       .process-step.done {
         border-color: #9fb8a5;
         background: #f3f8f4;
+      }
+
+      .shell.form-shell > #mainPanel .process {
+        margin-bottom: 24px;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0;
+        border: 1px solid #e5e5ea;
+        border-radius: 12px;
+        background: #fff;
+        overflow: hidden;
+      }
+
+      .shell.form-shell > #mainPanel .process-step {
+        border: 0;
+        border-right: 1px solid #e5e5ea;
+        border-radius: 0;
+        min-height: 126px;
+        padding: 16px 18px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+      }
+
+      .shell.form-shell > #mainPanel .process-step:last-child {
+        border-right: 0;
+      }
+
+      .shell.form-shell > #mainPanel .process-step .n {
+        color: #aeaeb2;
+        font-size: var(--text-small);
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .shell.form-shell > #mainPanel .process-step .name {
+        margin-top: 12px;
+        color: #0a0a0b;
+        font-size: var(--text-card-title);
+        font-weight: 700;
+        line-height: 1.1;
+      }
+
+      .shell.form-shell > #mainPanel .process-step .who {
+        margin-top: 10px;
+        color: #6c6c70;
+        font-size: var(--text-body);
+        line-height: 1.25;
+      }
+
+      .shell.form-shell > #mainPanel .process-step.active {
+        background: #edf2f8;
+      }
+
+      .shell.form-shell > #mainPanel .process-step.done {
+        background: #f7f9fc;
       }
 
       .section {
@@ -610,6 +809,55 @@
         padding: 12px;
       }
 
+      .shell.form-shell > #mainPanel .section {
+        margin-bottom: 16px;
+        border: 1px solid #e5e5ea;
+        border-radius: 12px;
+        box-shadow: none;
+        overflow: hidden;
+      }
+
+      .shell.form-shell > #mainPanel .section-head {
+        padding: 16px 24px;
+        border-bottom-color: #e5e5ea;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .shell.form-shell > #mainPanel .section-title {
+        color: #0a0a0b;
+        font-size: var(--text-label);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        text-transform: none;
+      }
+
+      .shell.form-shell > #mainPanel .section-sub {
+        margin-top: 0;
+        color: #aeaeb2;
+        font-size: var(--text-small);
+      }
+
+      .shell.form-shell > #mainPanel .section-body {
+        padding: 24px;
+      }
+
+      .shell.form-shell > #mainPanel .grid-2,
+      .shell.form-shell > #mainPanel .grid-3,
+      .shell.form-shell > #mainPanel .doc-grid {
+        gap: 20px;
+      }
+
+      .shell.form-shell > #mainPanel .grid-2 + .grid-2,
+      .shell.form-shell > #mainPanel .grid-2 + .grid-3,
+      .shell.form-shell > #mainPanel .grid-3 + .grid-2,
+      .shell.form-shell > #mainPanel .grid-3 + .grid-3 {
+        margin-top: 20px;
+      }
+
       .grid-2,
       .grid-3 {
         display: grid;
@@ -656,6 +904,123 @@
       .field textarea {
         min-height: 96px;
         resize: vertical;
+      }
+
+      .shell.form-shell > #mainPanel .field {
+        gap: 8px;
+      }
+
+      .shell.form-shell > #mainPanel .field label {
+        color: #6c6c70;
+        font-size: var(--text-label);
+        font-weight: 600;
+      }
+
+      .shell.form-shell > #mainPanel .field input,
+      .shell.form-shell > #mainPanel .field select,
+      .shell.form-shell > #mainPanel .field textarea {
+        border-color: #e5e5ea;
+        border-radius: 8px;
+        padding: 9px 13px;
+        background: #f9f9fb;
+        font-size: var(--text-body);
+      }
+
+      .shell.form-shell > #mainPanel .field input:focus,
+      .shell.form-shell > #mainPanel .field select:focus,
+      .shell.form-shell > #mainPanel .field textarea:focus {
+        outline: none;
+        border-color: #0071e3;
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.07);
+      }
+
+      .shell.form-shell > #mainPanel .field textarea {
+        min-height: 120px;
+      }
+
+      .shell.form-shell > #mainPanel .field .hint {
+        color: #aeaeb2;
+        font-size: var(--text-small);
+      }
+
+      .shell.form-shell > #mainPanel .obligation {
+        margin-top: 20px;
+        padding: 16px 18px;
+        border-color: #fedd99;
+        border-radius: 8px;
+        background: #fff8f0;
+        color: #7c4a00;
+        font-size: var(--text-small);
+        line-height: 1.7;
+      }
+
+      .shell.form-shell > #mainPanel .checks {
+        margin-top: 14px;
+        gap: 10px;
+        font-size: var(--text-body);
+      }
+
+      .shell.form-shell > #mainPanel .checks label {
+        gap: 10px;
+      }
+
+      .shell.form-shell > #mainPanel .doc-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .shell.form-shell > #mainPanel .doc-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 0;
+        border: 0;
+        border-bottom: 1px solid #e5e5ea;
+        border-radius: 0;
+        background: transparent;
+      }
+
+      .shell.form-shell > #mainPanel .doc-item:last-child {
+        border-bottom: 0;
+      }
+
+      .shell.form-shell > #mainPanel .doc-item label {
+        margin-bottom: 0;
+        color: #2c2c2e;
+        font-size: var(--text-label);
+        font-weight: 500;
+        line-height: 1.45;
+      }
+
+      .shell.form-shell > #mainPanel .doc-item input[type="file"] {
+        width: auto;
+        min-width: 220px;
+        background: transparent;
+        border: none;
+        padding: 0;
+      }
+
+      .shell.form-shell > #mainPanel .doc-item input[type="file"]::file-selector-button {
+        border: 1px solid #e5e5ea;
+        border-radius: 6px;
+        padding: 6px 14px;
+        background: #f9f9fb;
+        color: #6c6c70;
+        font: inherit;
+        font-size: var(--text-small);
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          border-color 0.15s ease,
+          background 0.15s ease,
+          color 0.15s ease;
+      }
+
+      .shell.form-shell > #mainPanel .doc-item input[type="file"]::file-selector-button:hover {
+        border-color: #0071e3;
+        background: #f0f7ff;
+        color: #0071e3;
       }
 
       .field .hint {
@@ -724,6 +1089,73 @@
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
+      }
+
+      .shell.form-shell > #mainPanel .action-bar {
+        margin-top: 20px;
+        align-items: center;
+        padding-top: 20px;
+        gap: 10px;
+      }
+
+      .shell.form-shell > #mainPanel .action-bar-group {
+        gap: 10px;
+      }
+
+      .shell.form-shell > #mainPanel .action-bar .action-bar-group:last-child {
+        margin-left: auto;
+      }
+
+      .shell.form-shell > #mainPanel .btn-primary,
+      .shell.form-shell > #mainPanel .btn-secondary,
+      .shell.form-shell > #mainPanel .btn-danger {
+        min-height: 0;
+        border-radius: 8px;
+        padding: 10px 20px;
+        box-shadow: none;
+        transform: none;
+        font-size: var(--text-label);
+      }
+
+      .shell.form-shell > #mainPanel .btn-primary {
+        background: #0071e3;
+      }
+
+      .shell.form-shell > #mainPanel .btn-primary:hover:not(:disabled) {
+        background: #0062c6;
+      }
+
+      .shell.form-shell > #mainPanel .btn-secondary {
+        border-color: #e5e5ea;
+        background: #fff;
+        color: #2c2c2e;
+      }
+
+      .shell.form-shell > #mainPanel .btn-secondary:hover:not(:disabled) {
+        border-color: #cfd3db;
+        background: #f9f9fb;
+        color: #2c2c2e;
+      }
+
+      .shell.form-shell > #mainPanel .btn-danger {
+        border-color: #ffc9c7;
+        background: #fff;
+        color: #ff3b30;
+      }
+
+      .certificate-download-link {
+        border: none;
+        background: transparent;
+        padding: 0;
+        color: #0071e3;
+        font: inherit;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .certificate-download-link:hover {
+        color: #0062c6;
       }
 
       .registry-action {
@@ -883,7 +1315,7 @@
           grid-template-columns: 1fr;
         }
 
-        .sidebar {
+        #sidebarPanel {
           position: static;
         }
 
@@ -1093,13 +1525,19 @@
         gap: 20px;
       }
 
+      .shell.form-shell {
+        max-width: 1540px;
+        grid-template-columns: 300px minmax(0, 1fr);
+        gap: 28px;
+      }
+
       .card {
         border-color: var(--line);
         border-radius: 24px;
         box-shadow: var(--shadow-soft);
       }
 
-      .sidebar {
+      #sidebarPanel {
         top: 88px;
         padding: 18px;
         background:
@@ -1130,14 +1568,27 @@
         padding: 0 12px;
         border: 1px solid transparent;
         font-size: var(--font-small-size);
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        text-transform: none;
       }
 
-      .chip.warning {
+      .chip.neutral {
+        border-color: rgba(108, 108, 112, 0.18);
+        background: #f3f4f6;
+        color: #5d6268;
+      }
+
+      .chip.info {
         border-color: rgba(0, 113, 227, 0.18);
         background: var(--brand-soft);
         color: var(--brand);
+      }
+
+      .chip.warning {
+        border-color: rgba(255, 149, 0, 0.22);
+        background: rgba(255, 248, 240, 0.96);
+        color: #b86a00;
       }
 
       .chip.success {
@@ -1147,6 +1598,50 @@
       }
 
       .chip.danger {
+        border-color: rgba(208, 65, 65, 0.2);
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .status-tag {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-size: var(--font-small-size);
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        text-transform: none;
+        white-space: nowrap;
+      }
+
+      .status-tag.neutral {
+        border-color: rgba(108, 108, 112, 0.18);
+        background: #f3f4f6;
+        color: #5d6268;
+      }
+
+      .status-tag.info {
+        border-color: rgba(0, 113, 227, 0.18);
+        background: var(--brand-soft);
+        color: var(--brand);
+      }
+
+      .status-tag.warning {
+        border-color: rgba(255, 149, 0, 0.22);
+        background: rgba(255, 248, 240, 0.96);
+        color: #b86a00;
+      }
+
+      .status-tag.success {
+        border-color: rgba(48, 209, 88, 0.28);
+        background: var(--success-soft);
+        color: var(--success-dark);
+      }
+
+      .status-tag.danger {
         border-color: rgba(208, 65, 65, 0.2);
         background: var(--danger-soft);
         color: var(--danger);
@@ -1192,23 +1687,92 @@
         color: var(--success-dark);
       }
 
-      .main {
+      #mainPanel {
         min-width: 0;
         padding: 28px;
       }
 
-      .main.auth-only {
+      #mainPanel.auth-only {
         min-height: 720px;
         align-items: center;
       }
 
       .page-head {
         margin-bottom: 24px;
-        gap: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
       }
 
       .page-head.is-hidden {
         display: none;
+      }
+
+      .page-head-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .page-head-copy {
+        min-width: 0;
+      }
+
+      .page-head-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .content-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        width: fit-content;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: var(--font-secondary-size);
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        transition:
+          color 160ms ease,
+          transform 160ms ease;
+      }
+
+      .content-back:hover:not(:disabled) {
+        color: var(--brand);
+        transform: translateX(-2px);
+      }
+
+      .content-back:focus-visible {
+        outline: none;
+        color: var(--brand);
+      }
+
+      .content-back::before {
+        content: "\2190";
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: rgba(0, 113, 227, 0.08);
+        color: inherit;
+        font-size: 16px;
+        line-height: 1;
+        transition:
+          background 160ms ease,
+          color 160ms ease;
+      }
+
+      .content-back:hover:not(:disabled)::before,
+      .content-back:focus-visible::before {
+        background: rgba(0, 113, 227, 0.14);
       }
 
       .page-eyebrow,
@@ -1224,6 +1788,41 @@
       .page-breadcrumb {
         color: var(--text-muted);
         font-size: var(--font-secondary-size);
+      }
+
+      .page-breadcrumb-list {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .page-breadcrumb-separator {
+        color: var(--text-subtle);
+      }
+
+      .page-breadcrumb-link,
+      .page-breadcrumb-current {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+      }
+
+      .page-breadcrumb-link {
+        border: 1px solid rgba(0, 113, 227, 0.14);
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--brand);
+      }
+
+      .page-breadcrumb-link:hover {
+        border-color: rgba(0, 113, 227, 0.22);
+        background: var(--brand-soft);
+      }
+
+      .page-breadcrumb-current {
+        color: var(--text-muted);
       }
 
       h1 {
@@ -1295,6 +1894,16 @@
         gap: 18px;
       }
 
+      .registry-head.compact-header {
+        align-items: center;
+      }
+
+      .registry-note {
+        color: var(--text-muted);
+        font-size: var(--font-secondary-size);
+        line-height: 1.65;
+      }
+
       .registry-title,
       .section-title {
         color: var(--black);
@@ -1349,43 +1958,14 @@
         gap: 18px;
       }
 
-      .cabinet-summary {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 18px;
-        padding: 20px 22px;
-        border: 1px solid rgba(22, 77, 53, 0.12);
-        border-radius: 24px;
-        background:
-          radial-gradient(circle at right top, rgba(31, 107, 75, 0.14), transparent 34%),
-          linear-gradient(135deg, #fbfdfb 0%, #f0f7f2 100%);
-      }
-
-      .cabinet-summary-title {
-        font-size: var(--font-page-title-size);
-        font-weight: 700;
-        color: var(--text-main);
-      }
-
-      .cabinet-summary-sub {
-        margin-top: 6px;
-        color: var(--text-muted);
-      }
-
-      .cabinet-summary-meta {
-        margin-top: 14px;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-
       .cabinet-chip {
         display: inline-flex;
         align-items: center;
         border-radius: 999px;
         padding: 7px 12px;
-        background: rgba(31, 107, 75, 0.08);
-        color: var(--brand);
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--text-main);
         font-weight: 700;
       }
 
@@ -1432,6 +2012,17 @@
 
       .cabinet-panel-head {
         margin-bottom: 18px;
+      }
+
+      .cabinet-panel-head.with-avatar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .cabinet-panel-copy {
+        min-width: 0;
       }
 
       .cabinet-panel-title {
@@ -1597,54 +2188,148 @@
 
       .action-bar {
         margin-top: 16px;
-        gap: 10px;
-      }
-
-      .process {
-        margin-bottom: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
         gap: 12px;
       }
 
-      .process-step {
-        padding: 14px;
-        border-color: var(--line);
+      .action-bar-group {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .applicant-comment-panel {
+        margin-bottom: 18px;
+      }
+
+      .ops-status-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 18px;
+        padding: 16px 18px;
+        border: 1px solid rgba(0, 113, 227, 0.14);
         border-radius: 18px;
+        background:
+          linear-gradient(180deg, rgba(240, 247, 255, 0.72), rgba(255, 255, 255, 0.96)),
+          var(--surface);
+      }
+
+      .ops-status-banner-copy {
+        display: grid;
+        gap: 6px;
+      }
+
+      .ops-status-banner-title {
+        color: var(--black);
+        font-size: var(--font-body-size);
+        font-weight: 700;
+      }
+
+      .ops-status-banner-sub {
+        color: var(--text-muted);
+        font-size: var(--font-secondary-size);
+        line-height: 1.55;
+      }
+
+      .certificates-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .certificates-tab {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 10px 16px;
+        background: #fff;
+        color: var(--text-muted);
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .certificates-tab.active {
+        border-color: var(--brand);
+        background: var(--brand);
+        color: #fff;
+      }
+
+      .registry-table td .registry-action {
+        display: inline-flex;
+        margin-top: 4px;
+        margin-bottom: 4px;
+      }
+
+      .registry-table td .registry-action + .registry-action {
+        margin-left: 8px;
+      }
+
+      .process {
+        margin-bottom: 20px;
+        gap: 0;
+        border: 1px solid rgba(28, 28, 30, 0.12);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.96);
+        overflow: hidden;
+      }
+
+      .process-step {
+        min-height: 126px;
+        padding: 16px 18px;
+        border: 0;
+        border-right: 1px solid rgba(28, 28, 30, 0.12);
+        border-radius: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+      }
+
+      .process-step:last-child {
+        border-right: 0;
       }
 
       .process-step .n {
-        color: var(--text-subtle);
-        font-size: var(--font-small-size);
+        color: #adb3bc;
+        font-size: var(--text-small);
         font-weight: 700;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
       }
 
       .process-step .name {
-        margin-top: 8px;
+        margin-top: 12px;
         color: var(--black);
-        font-size: var(--font-body-size);
+        font-size: var(--text-card-title);
+        font-weight: 700;
+        line-height: 1.1;
       }
 
       .process-step .who {
-        margin-top: 6px;
+        margin-top: 10px;
         color: var(--text-muted);
-        font-size: var(--font-secondary-size);
+        font-size: var(--text-body);
+        line-height: 1.25;
       }
 
       .process-step.active {
-        border-color: rgba(0, 113, 227, 0.24);
-        background: var(--brand-soft);
+        background: #edf2f8;
       }
 
       .process-step.done {
-        border-color: rgba(48, 209, 88, 0.24);
-        background: var(--success-soft);
+        background: #f7f9fc;
       }
 
       button,
       .btn-primary,
       .btn-secondary,
-      .btn-danger {
+      .btn-danger,
+      .btn-success {
         min-height: 44px;
         padding: 11px 18px;
         border-radius: 12px;
@@ -1692,10 +2377,23 @@
         color: var(--danger);
       }
 
+      .btn-success {
+        border-color: rgba(48, 209, 88, 0.22);
+        background: var(--success);
+        color: var(--surface);
+        box-shadow: 0 14px 28px rgba(48, 209, 88, 0.18);
+      }
+
+      .btn-success:hover:not(:disabled) {
+        background: var(--success-dark);
+        transform: translateY(-1px);
+      }
+
       button:disabled,
       .btn-primary:disabled,
       .btn-secondary:disabled,
-      .btn-danger:disabled {
+      .btn-danger:disabled,
+      .btn-success:disabled {
         border-color: var(--line);
         background: #f2f3f5;
         color: var(--text-subtle);
@@ -1721,6 +2419,323 @@
         border-bottom-color: var(--line);
         font-size: var(--font-secondary-size);
         line-height: 1.55;
+      }
+
+      .tech-panel-section {
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+      }
+
+      .tech-panel-title {
+        margin-bottom: 8px;
+        color: var(--black);
+        font-size: var(--font-secondary-size);
+        font-weight: 700;
+      }
+
+      .ops-review-banner {
+        margin-bottom: 18px;
+        padding: 16px 18px;
+        border: 1px solid rgba(0, 113, 227, 0.14);
+        border-radius: 18px;
+        background:
+          linear-gradient(180deg, rgba(240, 247, 255, 0.92), rgba(255, 255, 255, 0.98)),
+          var(--surface);
+      }
+
+      .ops-review-banner-title {
+        color: var(--black);
+        font-size: var(--font-section-title-size);
+        font-weight: var(--font-section-title-weight);
+      }
+
+      .ops-review-banner-sub {
+        margin-top: 6px;
+        color: var(--text-muted);
+        font-size: var(--font-secondary-size);
+        line-height: 1.5;
+      }
+
+      .ops-review-mode .section[data-step] {
+        display: block !important;
+      }
+
+      .ops-review-mode .section[data-step].hidden {
+        display: block !important;
+      }
+
+      .ops-review-mode .section-head {
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .modal-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 220;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(10, 10, 11, 0.38);
+        backdrop-filter: blur(6px);
+      }
+
+      .modal-shell.is-hidden {
+        display: none;
+      }
+
+      .modal-dialog {
+        width: min(760px, 100%);
+        max-height: calc(100vh - 48px);
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(249, 249, 251, 0.98)),
+          var(--surface);
+        box-shadow: 0 28px 80px rgba(10, 10, 11, 0.22);
+      }
+
+      .modal-dialog-narrow {
+        width: min(560px, 100%);
+      }
+
+      .modal-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 24px 24px 18px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .modal-title {
+        color: var(--black);
+        font-family: "Cormorant Garamond", "Georgia", serif;
+        font-size: var(--font-page-title-size);
+        line-height: 1.02;
+      }
+
+      .modal-sub {
+        margin-top: 8px;
+        color: var(--text-muted);
+        font-size: var(--font-secondary-size);
+        line-height: 1.55;
+      }
+
+      .modal-close {
+        min-width: 44px;
+        padding: 0;
+        border-color: var(--line);
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--text-muted);
+      }
+
+      .modal-body {
+        padding: 22px 24px 24px;
+      }
+
+      .modal-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .modal-grid-stacked {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-section {
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface-soft);
+      }
+
+      .modal-section-title {
+        color: var(--black);
+        font-size: var(--font-body-size);
+        font-weight: 700;
+      }
+
+      .modal-section-sub {
+        margin-top: 6px;
+        color: var(--text-muted);
+        font-size: var(--font-secondary-size);
+        line-height: 1.5;
+      }
+
+      .modal-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .modal-actions-end {
+        justify-content: flex-end;
+      }
+
+      .modal-actions-split {
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .ops-decision-steps {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .ops-decision-step {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--surface-soft);
+        color: var(--text-muted);
+      }
+
+      .ops-decision-step.is-active,
+      .ops-decision-step.is-complete {
+        border-color: rgba(0, 113, 227, 0.16);
+        background: var(--brand-soft);
+        color: var(--brand);
+      }
+
+      .ops-decision-step.is-complete {
+        border-color: rgba(48, 209, 88, 0.22);
+        background: rgba(240, 255, 244, 0.98);
+        color: var(--success-dark);
+      }
+
+      .ops-decision-step-index {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: rgba(0, 113, 227, 0.12);
+        font-weight: 700;
+      }
+
+      .ops-decision-step.is-complete .ops-decision-step-index {
+        background: rgba(48, 209, 88, 0.16);
+      }
+
+      .ops-decision-step-line {
+        flex: 1;
+        min-width: 24px;
+        height: 1px;
+        background: var(--line);
+      }
+
+      .ops-upload-card {
+        margin-top: 14px;
+        min-height: 168px;
+        padding: 22px;
+        border: 1px dashed rgba(0, 113, 227, 0.26);
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(240, 247, 255, 0.78), rgba(255, 255, 255, 0.96)),
+          var(--surface);
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 10px;
+        cursor: pointer;
+        transition:
+          border-color 160ms ease,
+          box-shadow 160ms ease,
+          transform 160ms ease;
+      }
+
+      .ops-upload-card:hover {
+        border-color: rgba(0, 113, 227, 0.4);
+        box-shadow: 0 18px 38px rgba(0, 113, 227, 0.08);
+        transform: translateY(-1px);
+      }
+
+      .ops-upload-card.is-ready {
+        border-style: solid;
+        border-color: rgba(48, 209, 88, 0.24);
+        background:
+          linear-gradient(180deg, rgba(240, 255, 244, 0.9), rgba(255, 255, 255, 0.98)),
+          var(--surface);
+      }
+
+      .ops-upload-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        background: rgba(0, 113, 227, 0.1);
+        color: var(--brand);
+        font-size: 24px;
+      }
+
+      .ops-upload-card.is-ready .ops-upload-icon {
+        background: rgba(48, 209, 88, 0.16);
+        color: var(--success-dark);
+      }
+
+      .ops-upload-title {
+        color: var(--black);
+        font-size: var(--font-section-title-size);
+        font-weight: 700;
+      }
+
+      .ops-upload-sub {
+        color: var(--text-muted);
+        font-size: var(--font-secondary-size);
+        line-height: 1.5;
+      }
+
+      .ops-comment-box {
+        margin-bottom: 14px;
+        padding: 16px 18px;
+        border: 1px solid rgba(0, 113, 227, 0.14);
+        border-radius: 18px;
+        background:
+          linear-gradient(180deg, rgba(240, 247, 255, 0.72), rgba(255, 255, 255, 0.96)),
+          var(--surface);
+      }
+
+      .ops-comment-title {
+        color: var(--black);
+        font-size: var(--font-secondary-size);
+        font-weight: 700;
+      }
+
+      .ops-comment-meta {
+        margin-top: 6px;
+        color: var(--text-muted);
+        font-size: var(--font-small-size);
+      }
+
+      .ops-comment-text {
+        margin-top: 10px;
+        color: var(--text-main);
+        font-size: var(--font-body-size);
+        line-height: 1.6;
+        white-space: pre-wrap;
+      }
+
+      .post-issuance-window-note {
+        padding: 16px 18px;
+        border: 1px dashed var(--line);
+        border-radius: 18px;
+        background: #fbfbfd;
+        color: var(--text-muted);
+        line-height: 1.65;
       }
 
       .session-dock {
@@ -2429,7 +3444,7 @@
           grid-template-columns: 1fr;
         }
 
-        .sidebar {
+        #sidebarPanel {
           position: static;
         }
 
@@ -2485,10 +3500,6 @@
           flex-direction: column;
         }
 
-        .cabinet-summary {
-          grid-template-columns: 1fr;
-        }
-
         .cabinet-form-grid {
           grid-template-columns: 1fr;
         }
@@ -2499,7 +3510,7 @@
           padding-right: 16px;
         }
 
-        .main,
+        #mainPanel,
         .auth-gate,
         .home-hero,
         .service-card-wrap {
@@ -2525,6 +3536,27 @@
           align-items: stretch;
         }
 
+        .page-head-top,
+        .page-head-actions,
+        .ops-status-banner,
+        .action-bar,
+        .action-bar-group,
+        .modal-grid {
+          flex-direction: column;
+          grid-template-columns: 1fr;
+          align-items: stretch;
+        }
+
+        .modal-shell {
+          padding: 12px;
+        }
+
+        .modal-head,
+        .modal-body {
+          padding-left: 18px;
+          padding-right: 18px;
+        }
+
         .hero-metrics {
           grid-template-columns: 1fr;
         }
@@ -2546,42 +3578,39 @@
     <header class="header" id="appHeader">
       <div class="header-inner">
         <div class="header-left">
-          <button class="header-back is-hidden" id="headerBackBtn" type="button">
-            <span class="header-back-icon">&#8592;</span>
-            <span id="headerBackText">Назад</span>
-          </button>
           <div class="brand"><em>e</em>-КТРМ</div>
         </div>
         <nav class="menu is-hidden" aria-label="Главное меню">
           <span class="menu-item" id="menuHome">Главная</span>
-          <span class="menu-item" id="menuApplications">Заявки</span>
-          <span class="menu-item" id="menuCertificates">Реестр сертификатов</span>
-          <span class="menu-item" id="menuDictionaries">Справочники</span>
+          <span class="menu-item" id="menuApplications">Аккредитация</span>
+          <span class="menu-item" id="menuCertificates">Государственный контроль</span>
+          <span class="menu-item" id="menuDictionaries">Метрология</span>
           <span class="menu-item is-hidden" id="menuConformity">Оценка соответствия</span>
           <span class="menu-item is-hidden" id="menuStandardization">Стандартизация</span>
         </nav>
         <div class="header-right">
-          <div class="header-status" id="headerStatus">
-            <span>Ордер 3</span>
-            <span id="authState">не авторизован</span>
-          </div>
           <button class="btn-primary header-login-btn" id="headerLoginBtn" type="button">Войти</button>
           <div class="header-account is-hidden" id="headerAccount">
             <div class="header-account-meta">
               <div class="header-account-name" id="headerAccountName">-</div>
               <div class="header-account-role" id="headerAccountRole">-</div>
             </div>
-            <button class="header-avatar-btn" id="headerAccountBtn" type="button" aria-label="Открыть личный кабинет">
+            <button class="header-avatar-btn" id="headerAccountBtn" type="button" aria-label="Меню пользователя" aria-haspopup="true" aria-expanded="false">
               <img class="header-avatar-image is-hidden" id="headerAvatarImage" alt="Аватар пользователя" />
               <span class="header-avatar-icon" id="headerAvatarIcon">&#128100;</span>
             </button>
+            <div class="header-account-menu" id="headerAccountMenu">
+              <button class="header-account-menu-item" id="headerCabinetLink" type="button">Личный кабинет</button>
+              <div class="header-account-divider" aria-hidden="true"></div>
+              <button class="header-account-menu-item logout" id="headerLogoutLink" type="button">Выйти</button>
+            </div>
           </div>
         </div>
       </div>
     </header>
 
     <div class="shell" id="shellContainer">
-      <aside class="card sidebar is-hidden" id="sidebarPanel">
+      <aside id="sidebarPanel">
         <div class="app-meta">
           <div class="meta-id" id="appNumber">Заявка: не создана</div>
           <div class="meta-sub" id="currentStepLabel">Шаг 1 из 8</div>
@@ -2590,10 +3619,19 @@
         <div class="steps" id="stepsNav"></div>
       </aside>
 
-      <main class="card main" id="mainPanel">
+      <main id="mainPanel">
         <div class="page-head" id="pageHead">
-          <div class="page-eyebrow" id="pageEyebrow">Раздел заявок</div>
-          <h1 id="pageTitle">Заявки</h1>
+          <button class="content-back is-hidden" id="contentBackBtn" type="button">Назад</button>
+          <div class="page-head-top">
+            <div class="page-head-copy">
+              <div class="page-eyebrow" id="pageEyebrow">Раздел заявок</div>
+              <h1 id="pageTitle">Заявки</h1>
+            </div>
+            <div class="page-head-actions">
+              <button class="btn-danger is-hidden" id="opsRevisionLaunchBtn" type="button">На доработку</button>
+              <button class="btn-primary is-hidden" id="opsDecisionLaunchBtn" type="button">Принять решение</button>
+            </div>
+          </div>
           <div class="page-breadcrumb is-hidden" id="pageBreadcrumb"></div>
         </div>
 
@@ -2915,26 +3953,6 @@
 
           <section class="registry-view is-hidden" id="cabinetView">
             <div class="cabinet-shell">
-              <section class="cabinet-summary">
-                <div>
-                  <div class="cabinet-summary-title">Личный кабинет</div>
-                  <div class="cabinet-summary-sub" id="cabinetSummarySub">
-                    Управление профилем, заявками и сертификатами текущего пользователя.
-                  </div>
-                  <div class="cabinet-summary-meta">
-                    <span class="cabinet-chip" id="cabinetSummaryRole">Роль: -</span>
-                    <span class="cabinet-chip" id="cabinetSummaryUsername">Аккаунт: -</span>
-                  </div>
-                </div>
-                <div class="cabinet-avatar">
-                  <div class="cabinet-avatar-preview">
-                    <img class="cabinet-avatar-image is-hidden" id="cabinetAvatarImage" alt="Аватар пользователя" />
-                    <span class="cabinet-avatar-icon" id="cabinetAvatarIcon">&#128100;</span>
-                  </div>
-                  <div class="landing-sub" id="cabinetAvatarCaption">Иконка профиля</div>
-                </div>
-              </section>
-
               <div class="cabinet-tabs" id="cabinetTabs">
                 <button class="cabinet-tab active" id="cabinetTabProfile" type="button" data-cabinet-tab="profile">
                   Профиль
@@ -2948,10 +3966,18 @@
               </div>
 
               <section class="cabinet-panel" id="cabinetPanelProfile">
-                <div class="cabinet-panel-head">
-                  <div class="cabinet-panel-title">Редактируемая информация</div>
-                  <div class="cabinet-panel-sub">
-                    Телефон, адреса и контактные сведения хранятся в локальном профиле пользователя.
+                <div class="cabinet-panel-head with-avatar">
+                  <div class="cabinet-panel-copy">
+                    <div class="cabinet-panel-title">Редактируемая информация</div>
+                    <div class="cabinet-panel-sub">
+                      Телефон, адреса и контактные сведения хранятся в локальном профиле пользователя.
+                    </div>
+                  </div>
+                  <div class="cabinet-avatar">
+                    <div class="cabinet-avatar-preview">
+                      <img class="cabinet-avatar-image is-hidden" id="cabinetAvatarImage" alt="Аватар пользователя" />
+                      <span class="cabinet-avatar-icon" id="cabinetAvatarIcon">&#128100;</span>
+                    </div>
                   </div>
                 </div>
                 <div class="cabinet-form-grid">
@@ -3057,12 +4083,9 @@
           </section>
 
           <section class="registry-view is-hidden" id="registryView">
-            <div class="registry-head">
-              <div>
-                <div class="registry-title" id="applicationsRegistryTitle">Реестр моих заявок</div>
-                <div class="registry-sub" id="applicationsRegistrySub">
-                  Список заявок текущего пользователя с переходом в просмотр или продолжение заполнения.
-                </div>
+            <div class="registry-head compact-header">
+              <div class="registry-note" id="applicationsRegistrySub">
+                Список заявок текущего пользователя с переходом в просмотр или продолжение заполнения.
               </div>
               <button class="btn-primary" id="createApplicationBtn">Подать новую заявку</button>
             </div>
@@ -3086,12 +4109,7 @@
           </section>
 
           <section class="registry-view is-hidden" id="opsRegistryView">
-            <div class="registry-head">
-              <div>
-                <div class="registry-title">Реестр заявок заявителей</div>
-                <div class="registry-sub">Список отправленных заявок для работы ОПС.</div>
-              </div>
-            </div>
+            <div class="registry-note">Список отправленных заявок для работы ОПС.</div>
             <div class="registry-table-wrap">
               <table class="registry-table" aria-label="Реестр заявок для ОПС">
                 <thead>
@@ -3113,173 +4131,214 @@
           </section>
 
           <section class="registry-view is-hidden" id="certificatesRegistryView">
-            <div class="registry-head">
-              <div>
-                <div class="registry-title">Реестр сертификатов</div>
-                <div class="registry-sub">
-                  Внутренний реестр сертификатов: OPS видит все записи, заявитель — только свои.
-                </div>
+            <div class="registry-head compact-header">
+              <div class="registry-note" id="certificatesRegistryNote">
+                Внутренний реестр сертификатов: OPS видит все записи, заявитель — только свои.
               </div>
-              <a class="btn-secondary" href="/public-registry.html" target="_blank" rel="noopener noreferrer">
-                Публичный реестр
-              </a>
+              <button class="btn-secondary" id="publicRegistryLinkBtn" type="button">Публичный реестр</button>
             </div>
-            <div class="registry-table-wrap">
-              <table class="registry-table" aria-label="Реестр сертификатов">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Номер сертификата</th>
-                    <th>Номер заявки</th>
-                    <th>Статус</th>
-                    <th>Подписан</th>
-                    <th>Опубликован</th>
-                    <th>Действия</th>
-                  </tr>
-                </thead>
-                <tbody id="certificatesRegistryBody"></tbody>
-              </table>
-              <div class="registry-empty is-hidden" id="certificatesRegistryEmpty">
-                Внутренний реестр сертификатов пока пуст.
-              </div>
+            <div class="certificates-tabs is-hidden" id="certificatesTabs">
+              <button class="certificates-tab active" id="certificatesTabRegistry" type="button" data-certificates-tab="registry">
+                Реестр сертификатов
+              </button>
+              <button
+                class="certificates-tab"
+                id="certificatesTabPostIssuance"
+                type="button"
+                data-certificates-tab="post-issuance"
+              >
+                Заявки на прекращение и приостановление
+              </button>
             </div>
-
-            <section class="section is-hidden" id="postIssuancePanel" style="margin-top: 12px">
-              <div class="section-head">
-                <div class="section-title">Ордер 5: Приостановление / прекращение</div>
-                <div class="section-sub" id="postIssuanceMeta">
-                  Выберите сертификат из реестра и создайте процесс post-issuance.
-                </div>
-              </div>
-              <div class="section-body">
-                <div class="grid-2">
-                  <div class="field">
-                    <label>Тип действия</label>
-                    <input id="pi_action_type_display" type="text" readonly />
-                  </div>
-                  <div class="field">
-                    <label>Подать заявку</label>
-                    <input id="pi_request_source" type="text" readonly />
-                  </div>
-                  <div class="field">
-                    <label>Номер сертификата</label>
-                    <input id="pi_source_certificate_number" type="text" readonly />
-                  </div>
-                  <div class="field">
-                    <label>Статус сертификата</label>
-                    <input id="pi_certificate_status" type="text" readonly />
-                  </div>
-                </div>
-
-                <div class="grid-2" style="margin-top: 10px">
-                  <div class="field" data-field="pi_suspension_reason_code">
-                    <label>Причина приостановления <span class="required">*</span></label>
-                    <select id="pi_suspension_reason_code">
-                      <option value="">Выберите причину</option>
-                    </select>
-                  </div>
-                  <div class="field" data-field="pi_termination_reason_code">
-                    <label>Причина прекращения <span class="required">*</span></label>
-                    <select id="pi_termination_reason_code">
-                      <option value="">Выберите причину</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="grid-2" style="margin-top: 10px">
-                  <div class="field">
-                    <label>Заявитель</label>
-                    <input id="pi_applicant_name" type="text" readonly />
-                  </div>
-                  <div class="field">
-                    <label>БИН</label>
-                    <input id="pi_applicant_bin" type="text" readonly />
-                  </div>
-                  <div class="field">
-                    <label>ОПС</label>
-                    <input id="pi_ops_code" type="text" readonly />
-                  </div>
-                  <div class="field">
-                    <label>Ответственный ОПС</label>
-                    <input id="pi_ops_manager" type="text" readonly />
-                  </div>
-                  <div class="field">
-                    <label>Продукция</label>
-                    <input id="pi_product_name" type="text" readonly />
-                  </div>
-                  <div class="field" data-field="pi_remediation_deadline">
-                    <label>Срок устранения <span class="required">*</span></label>
-                    <input id="pi_remediation_deadline" type="datetime-local" />
-                  </div>
-                </div>
-
-                <div class="grid-2" style="margin-top: 10px">
-                  <div class="field" data-field="pi_reason_detail">
-                    <label>Подробное описание причины <span class="required">*</span></label>
-                    <textarea id="pi_reason_detail"></textarea>
-                  </div>
-                  <div class="field" data-field="pi_note">
-                    <label>Примечание <span class="required">*</span></label>
-                    <textarea id="pi_note"></textarea>
-                  </div>
-                </div>
-
-                <div class="grid-2" style="margin-top: 10px">
-                  <div class="field" data-field="pi_basis_file">
-                    <label>Файл-основание <span class="required">*</span></label>
-                    <input id="pi_basis_file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" />
-                    <span class="hint" id="pi_basis_file_status">Файл еще не прикреплен.</span>
-                  </div>
-                  <div class="field">
-                    <label>Статус процесса</label>
-                    <input id="pi_application_status" type="text" readonly />
-                  </div>
-                </div>
-
-                <div class="action-bar">
-                  <button id="piSaveDraftBtn" type="button" class="btn-secondary">Сохранить черновик</button>
-                  <button id="piAttachBasisBtn" type="button" class="btn-secondary">Прикрепить основание</button>
-                  <button id="piSubmitBtn" type="button" class="btn-primary">Подать заявку</button>
-                  <button id="piCloseBtn" type="button" class="btn-danger">Закрыть форму</button>
+            <section id="certificatesRegistryTableSection">
+              <div class="registry-table-wrap">
+                <table class="registry-table" aria-label="Реестр сертификатов">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Номер сертификата</th>
+                      <th>Номер заявки</th>
+                      <th>Статус</th>
+                      <th>Подписан</th>
+                      <th>Опубликован</th>
+                      <th>Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody id="certificatesRegistryBody"></tbody>
+                </table>
+                <div class="registry-empty is-hidden" id="certificatesRegistryEmpty">
+                  Внутренний реестр сертификатов пока пуст.
                 </div>
               </div>
             </section>
 
-            <section class="section" id="postIssuanceRegistrySection" style="margin-top: 12px">
-              <div class="section-head">
-                <div class="section-title">Очередь post-issuance</div>
-                <div class="section-sub">
-                  Applicant видит свои процессы, OPS — рабочую очередь suspend / terminate.
-                </div>
-              </div>
-              <div class="section-body" style="padding-top: 0">
-                <div class="action-bar" style="padding-top: 12px">
-                  <button id="piRefreshQueueBtn" type="button" class="btn-secondary">Обновить очередь</button>
-                </div>
-                <div class="registry-table-wrap" style="margin-top: 10px">
-                  <table class="registry-table" aria-label="Очередь post-issuance">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Номер процесса</th>
-                        <th>Тип</th>
-                        <th>Сертификат</th>
-                        <th>Статус</th>
-                        <th>Обновлено</th>
-                        <th>Действия</th>
-                      </tr>
-                    </thead>
-                    <tbody id="postIssuanceRegistryBody"></tbody>
-                  </table>
-                  <div class="registry-empty" id="postIssuanceRegistryEmpty">
-                    Процессы post-issuance пока отсутствуют.
+            <section id="postIssuanceWorkspace">
+              <section class="section is-hidden" id="postIssuancePanel" style="margin-top: 12px">
+                <div class="section-head">
+                  <div class="section-title">Заявка на прекращение / приостановление</div>
+                  <div class="section-sub" id="postIssuanceMeta">
+                    Выберите сертификат из реестра и создайте процесс post-issuance.
                   </div>
                 </div>
-              </div>
+                <div class="section-body">
+                  <div class="grid-2">
+                    <div class="field">
+                      <label>Тип действия</label>
+                      <input id="pi_action_type_display" type="text" readonly />
+                    </div>
+                    <div class="field">
+                      <label>Подать заявку</label>
+                      <input id="pi_request_source" type="text" readonly />
+                    </div>
+                    <div class="field">
+                      <label>Номер сертификата</label>
+                      <input id="pi_source_certificate_number" type="text" readonly />
+                    </div>
+                    <div class="field">
+                      <label>Статус сертификата</label>
+                      <input id="pi_certificate_status" type="text" readonly />
+                    </div>
+                  </div>
+
+                  <div class="grid-2" style="margin-top: 10px">
+                    <div class="field" data-field="pi_suspension_reason_code">
+                      <label>Причина приостановления <span class="required">*</span></label>
+                      <select id="pi_suspension_reason_code">
+                        <option value="">Выберите причину</option>
+                      </select>
+                    </div>
+                    <div class="field" data-field="pi_termination_reason_code">
+                      <label>Причина прекращения <span class="required">*</span></label>
+                      <select id="pi_termination_reason_code">
+                        <option value="">Выберите причину</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="grid-2" style="margin-top: 10px">
+                    <div class="field">
+                      <label>Заявитель</label>
+                      <input id="pi_applicant_name" type="text" readonly />
+                    </div>
+                    <div class="field">
+                      <label>БИН</label>
+                      <input id="pi_applicant_bin" type="text" readonly />
+                    </div>
+                    <div class="field">
+                      <label>ОПС</label>
+                      <input id="pi_ops_code" type="text" readonly />
+                    </div>
+                    <div class="field">
+                      <label>Ответственный ОПС</label>
+                      <input id="pi_ops_manager" type="text" readonly />
+                    </div>
+                    <div class="field">
+                      <label>Продукция</label>
+                      <input id="pi_product_name" type="text" readonly />
+                    </div>
+                    <div class="field" data-field="pi_remediation_deadline">
+                      <label>Срок устранения <span class="required">*</span></label>
+                      <input id="pi_remediation_deadline" type="datetime-local" />
+                    </div>
+                  </div>
+
+                  <div class="grid-2" style="margin-top: 10px">
+                    <div class="field" data-field="pi_reason_detail">
+                      <label>Подробное описание причины <span class="required">*</span></label>
+                      <textarea id="pi_reason_detail"></textarea>
+                    </div>
+                    <div class="field" data-field="pi_note">
+                      <label>Примечание <span class="required">*</span></label>
+                      <textarea id="pi_note"></textarea>
+                    </div>
+                  </div>
+
+                  <div class="grid-2" style="margin-top: 10px">
+                    <div class="field" data-field="pi_basis_file">
+                      <label>Файл-основание <span class="required">*</span></label>
+                      <input id="pi_basis_file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" />
+                      <span class="hint" id="pi_basis_file_status">Файл еще не прикреплен.</span>
+                    </div>
+                    <div class="field">
+                      <label>Статус процесса</label>
+                      <input id="pi_application_status" type="text" readonly />
+                    </div>
+                  </div>
+
+                  <div class="action-bar">
+                    <div class="action-bar-group" id="piApplicantActionsBar">
+                      <button id="piSaveDraftBtn" type="button" class="btn-secondary">Сохранить черновик</button>
+                      <button id="piAttachBasisBtn" type="button" class="btn-secondary">Прикрепить основание</button>
+                      <button id="piSubmitBtn" type="button" class="btn-primary">Подать заявку</button>
+                    </div>
+                    <div class="action-bar-group is-hidden" id="piOpsActionsBar">
+                      <button id="piOpsTakeReviewBtn" type="button" class="btn-secondary">В работу</button>
+                      <button id="piOpsRevisionBtn" type="button" class="btn-secondary">На доработку</button>
+                      <button id="piOpsApproveBtn" type="button" class="btn-success">Одобрить</button>
+                      <button id="piOpsRejectBtn" type="button" class="btn-danger">Отказать</button>
+                    </div>
+                    <button id="piCloseBtn" type="button" class="btn-secondary">Назад к списку</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="section" id="postIssuanceRegistrySection" style="margin-top: 12px">
+                <div class="section-head">
+                  <div class="section-title">Заявки на прекращение и приостановление</div>
+                  <div class="section-sub" id="postIssuanceQueueSub">
+                    Applicant видит свои процессы, OPS — рабочую очередь suspend / terminate.
+                  </div>
+                </div>
+                <div class="section-body" style="padding-top: 0">
+                  <div class="action-bar" style="padding-top: 12px">
+                    <button id="piRefreshQueueBtn" type="button" class="btn-secondary">Обновить очередь</button>
+                  </div>
+                  <div class="post-issuance-window-note" style="margin-top: 12px">
+                    В списке доступны только переходы в детали. Все решения ОПС по процессу выполняются внутри карточки заявки.
+                  </div>
+                  <div class="registry-table-wrap" style="margin-top: 10px">
+                    <table class="registry-table" aria-label="Очередь post-issuance">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Номер процесса</th>
+                          <th>Тип</th>
+                          <th>Сертификат</th>
+                          <th>Статус</th>
+                          <th>Обновлено</th>
+                          <th>Действия</th>
+                        </tr>
+                      </thead>
+                      <tbody id="postIssuanceRegistryBody"></tbody>
+                    </table>
+                    <div class="registry-empty" id="postIssuanceRegistryEmpty">
+                      Процессы post-issuance пока отсутствуют.
+                    </div>
+                  </div>
+                </div>
+              </section>
             </section>
           </section>
 
           <div id="formView" class="is-hidden">
+        <section class="section applicant-comment-panel is-hidden" id="applicantCommentSection">
+          <div class="section-head">
+            <div class="section-title">Комментарий ОПС</div>
+            <div class="section-sub" id="applicantCommentMeta">-</div>
+          </div>
+          <div class="section-body">
+            <div class="ops-comment-text" id="applicantCommentText">-</div>
+          </div>
+        </section>
+        <section class="ops-status-banner is-hidden" id="opsStatusBanner">
+          <div class="ops-status-banner-copy">
+            <div class="ops-status-banner-title">Статус заявки</div>
+            <div class="ops-status-banner-sub" id="opsStatusBannerSub">
+              Заявка отображается в режиме чтения. Решение ОПС доступно только для отправленной заявки.
+            </div>
+          </div>
+          <div id="opsStatusBannerValue"></div>
+        </section>
         <section class="process" aria-label="Процесс Ордер 3" id="processSteps">
           <article class="process-step active" data-process-step="0">
             <div class="n">01 — Заявитель</div>
@@ -3540,68 +4599,110 @@
           </section>
         </div>
 
-        <div class="action-bar">
-          <button class="btn-secondary" id="backToRegistryBtn">К списку заявок</button>
-          <button class="btn-secondary" id="prevStepBtn">Назад</button>
-          <button class="btn-secondary" id="nextStepBtn">Сохранить и продолжить</button>
-          <button class="btn-secondary" id="saveDraftBtn">Сохранить черновик</button>
-          <button class="btn-primary" id="submitBtn">Подписать и отправить</button>
-          <button class="btn-danger" id="deleteDraftBtn">Удалить черновик</button>
+        <div class="action-bar" id="applicationActionBar">
+          <div class="action-bar-group">
+            <button class="btn-secondary" id="prevStepBtn">Назад</button>
+            <button class="btn-secondary" id="nextStepBtn">Сохранить и продолжить</button>
+          </div>
+          <div class="action-bar-group">
+            <button class="btn-secondary" id="saveDraftBtn">Сохранить черновик</button>
+            <button class="btn-primary" id="submitBtn">Подписать и отправить</button>
+          </div>
         </div>
-
-        <section class="section is-hidden" id="applicationProgressSection">
-          <div class="section-head">
-            <div class="section-title">Ход выполнения</div>
-            <div class="section-sub">Статус заявки и история переходов по текущей записи</div>
-          </div>
-          <div class="section-body">
-            <div class="ops-status-row">
-              Текущий статус: <strong id="applicationProgressStatusValue">-</strong>
-            </div>
-            <div class="ops-history" id="applicationHistoryList"></div>
-          </div>
-        </section>
-
-        <section class="section ops-actions is-hidden" id="opsActionsSection">
-          <div class="section-head">
-            <div class="section-title">ОПС: Проверка и решение</div>
-            <div class="section-sub">Действия по заявке на этапах проверки и решения</div>
-          </div>
-          <div class="section-body">
-            <div class="ops-status-row">
-              Текущий статус: <strong id="opsStatusValue">-</strong>
-            </div>
-            <div class="grid-3">
-              <div class="field">
-                <label>Решение</label>
-                <select id="opsDecisionSelect">
-                  <option value="APPROVED">Одобрить</option>
-                  <option value="REJECTED">Отказать</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Файл протокола</label>
-                <input id="opsProtocolFile" type="file" />
-              </div>
-              <div class="field">
-                <label>Комментарий ОПС</label>
-                <textarea id="opsComment" placeholder="Комментарий к действию"></textarea>
-              </div>
-            </div>
-            <div class="action-bar">
-              <button class="btn-secondary" id="opsAcceptBtn">Принять</button>
-              <button class="btn-secondary" id="opsRevisionBtn">На доработку</button>
-              <button class="btn-secondary" id="opsAttachProtocolBtn">Прикрепить протокол</button>
-              <button class="btn-primary" id="opsDecisionBtn">Принять решение</button>
-              <button class="btn-secondary" id="opsCompleteBtn">Завершить</button>
-            </div>
-            <div class="ops-history" id="opsHistoryList"></div>
-          </div>
-        </section>
           </div>
         </div>
 
       </main>
+    </div>
+
+    <div class="modal-shell is-hidden" id="opsRevisionModal" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-narrow" role="dialog" aria-modal="true" aria-labelledby="opsRevisionModalTitle">
+        <div class="modal-head">
+          <div>
+            <div class="page-eyebrow">Действия ОПС</div>
+            <div class="modal-title" id="opsRevisionModalTitle">Вернуть заявку на доработку</div>
+            <div class="modal-sub">
+              Укажите замечание для заявителя. Без комментария отправка на доработку недоступна.
+            </div>
+          </div>
+          <button class="btn-secondary modal-close" id="opsRevisionModalClose" type="button" aria-label="Закрыть окно">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="field">
+            <label for="opsRevisionComment">Комментарий ОПС</label>
+            <textarea id="opsRevisionComment" placeholder="Опишите, что нужно исправить заявителю"></textarea>
+          </div>
+          <div class="modal-actions modal-actions-end">
+            <button class="btn-secondary" id="opsRevisionCancelBtn" type="button">Отмена</button>
+            <button class="btn-danger" id="opsRevisionSubmitBtn" type="button">На доработку</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-shell is-hidden" id="opsDecisionModal" aria-hidden="true">
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="opsDecisionModalTitle">
+        <div class="modal-head">
+          <div>
+            <div class="page-eyebrow">Действия ОПС</div>
+            <div class="modal-title" id="opsDecisionModalTitle">Принять решение по заявке</div>
+            <div class="modal-sub" id="opsDecisionModalSub">
+              Выберите протокол, при необходимости добавьте комментарий и затем примите итоговое решение по заявке.
+            </div>
+          </div>
+          <button class="btn-secondary modal-close" id="opsDecisionModalClose" type="button" aria-label="Закрыть окно">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="ops-decision-steps">
+            <div class="ops-decision-step is-active">
+              <span class="ops-decision-step-index">1</span>
+              <span class="ops-decision-step-label">Протокол</span>
+            </div>
+            <div class="ops-decision-step-line"></div>
+            <div class="ops-decision-step" id="opsDecisionStepFinal">
+              <span class="ops-decision-step-index">2</span>
+              <span class="ops-decision-step-label">Решение</span>
+            </div>
+          </div>
+          <div class="modal-grid modal-grid-stacked" style="margin-top: 18px">
+            <section class="modal-section">
+              <div class="modal-section-title">Текущий статус</div>
+              <div class="modal-section-sub">Решение будет доступно только после выбора файла протокола.</div>
+              <div class="field" style="margin-top: 14px">
+                <div id="opsStatusValue" class="ops-status-row">-</div>
+              </div>
+            </section>
+            <section class="modal-section">
+              <div class="modal-section-title">Протокол испытаний</div>
+              <div class="modal-section-sub">Файл не загружается, пока вы не нажмете `Одобрить` или `Отказать`.</div>
+              <input class="is-hidden" id="opsProtocolFile" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" />
+              <label class="ops-upload-card" id="opsProtocolUploadCard" for="opsProtocolFile">
+                <span class="ops-upload-icon">&#8682;</span>
+                <span class="ops-upload-title" id="opsProtocolTitle">Выберите протокол</span>
+                <span class="ops-upload-sub" id="opsProtocolMeta">PDF, DOC, DOCX, PNG, JPG. Загрузка начнется только после финального решения.</span>
+              </label>
+            </section>
+            <section class="modal-section">
+              <div class="modal-section-title">Комментарий к решению</div>
+              <div class="modal-section-sub">Необязательно. Если заполните, заявитель увидит комментарий в карточке заявки.</div>
+              <div class="field" style="margin-top: 14px">
+                <textarea id="opsDecisionComment" placeholder="Комментарий к итоговому решению"></textarea>
+              </div>
+            </section>
+          </div>
+          <div class="modal-actions modal-actions-split">
+            <button class="btn-secondary" id="opsDecisionCloseBtn" type="button">Закрыть</button>
+            <div class="modal-actions">
+              <button class="btn-danger" id="opsRejectBtn" type="button">Отказать</button>
+              <button class="btn-success" id="opsApproveBtn" type="button">Одобрить</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="session-dock is-hidden" id="sessionDock">
@@ -3630,6 +4731,22 @@
           <div class="session-meta">
             API base: <code id="apiBaseLabel">http://localhost:8180</code>
           </div>
+          <section class="tech-panel-section is-hidden" id="applicationProgressSection">
+            <div class="tech-panel-title">Ход выполнения</div>
+            <div class="ops-comment-box is-hidden" id="opsApplicantCommentSection">
+              <div class="ops-comment-title">Комментарий ОПС</div>
+              <div class="ops-comment-meta" id="opsApplicantCommentMeta">-</div>
+              <div class="ops-comment-text" id="opsApplicantCommentText">-</div>
+            </div>
+            <div class="ops-status-row">
+              Текущий статус: <strong id="applicationProgressStatusValue">-</strong>
+            </div>
+            <div class="ops-history" id="applicationHistoryList"></div>
+          </section>
+          <section class="tech-panel-section is-hidden" id="opsHistorySection">
+            <div class="tech-panel-title">История переходов ОПС</div>
+            <div class="ops-history" id="opsHistoryList"></div>
+          </section>
           <pre class="api-output" id="output">Ожидание действий пользователя...</pre>
         </section>
       </div>
@@ -3821,24 +4938,29 @@
       const output = document.getElementById("output");
       const appHeader = document.getElementById("appHeader");
       const shellContainer = document.getElementById("shellContainer");
-      const headerStatus = document.getElementById("headerStatus");
       const headerLoginBtn = document.getElementById("headerLoginBtn");
       const headerAccount = document.getElementById("headerAccount");
       const headerAccountName = document.getElementById("headerAccountName");
       const headerAccountRole = document.getElementById("headerAccountRole");
       const headerAccountBtn = document.getElementById("headerAccountBtn");
+      const headerAccountMenu = document.getElementById("headerAccountMenu");
+      const headerCabinetLink = document.getElementById("headerCabinetLink");
+      const headerLogoutLink = document.getElementById("headerLogoutLink");
       const headerAvatarImage = document.getElementById("headerAvatarImage");
       const headerAvatarIcon = document.getElementById("headerAvatarIcon");
-      const authState = document.getElementById("authState");
       const pageHead = document.getElementById("pageHead");
       const pageEyebrow = document.getElementById("pageEyebrow");
       const pageTitle = document.getElementById("pageTitle");
       const pageBreadcrumb = document.getElementById("pageBreadcrumb");
+      const contentBackBtn = document.getElementById("contentBackBtn");
+      const opsRevisionLaunchBtn = document.getElementById("opsRevisionLaunchBtn");
+      const opsDecisionLaunchBtn = document.getElementById("opsDecisionLaunchBtn");
       const username = document.getElementById("username");
       const roles = document.getElementById("roles");
       const appNumber = document.getElementById("appNumber");
       const currentStepLabel = document.getElementById("currentStepLabel");
       const statusChip = document.getElementById("statusChip");
+      const applicationActionBar = document.getElementById("applicationActionBar");
       const apiBaseLabel = document.getElementById("apiBaseLabel");
       const mainPanel = document.getElementById("mainPanel");
       const sidebarPanel = document.getElementById("sidebarPanel");
@@ -3854,12 +4976,8 @@
       const applicantHomeSections = Array.from(applicantHomeView.querySelectorAll(".landing-section"));
       const applicantModuleCards = document.getElementById("applicantModuleCards");
       const cabinetView = document.getElementById("cabinetView");
-      const cabinetSummarySub = document.getElementById("cabinetSummarySub");
-      const cabinetSummaryRole = document.getElementById("cabinetSummaryRole");
-      const cabinetSummaryUsername = document.getElementById("cabinetSummaryUsername");
       const cabinetAvatarImage = document.getElementById("cabinetAvatarImage");
       const cabinetAvatarIcon = document.getElementById("cabinetAvatarIcon");
-      const cabinetAvatarCaption = document.getElementById("cabinetAvatarCaption");
       const cabinetTabs = document.getElementById("cabinetTabs");
       const cabinetTabButtons = Array.from(document.querySelectorAll("[data-cabinet-tab]"));
       const cabinetPanelProfile = document.getElementById("cabinetPanelProfile");
@@ -3885,17 +5003,36 @@
       const opsRegistryView = document.getElementById("opsRegistryView");
       const certificatesRegistryView = document.getElementById("certificatesRegistryView");
       const formView = document.getElementById("formView");
-      const applicationsRegistryTitle = document.getElementById("applicationsRegistryTitle");
       const applicationsRegistrySub = document.getElementById("applicationsRegistrySub");
       const applicationsRegistryBody = document.getElementById("applicationsRegistryBody");
       const applicationsRegistryEmpty = document.getElementById("applicationsRegistryEmpty");
+      const applicantCommentSection = document.getElementById("applicantCommentSection");
+      const applicantCommentMeta = document.getElementById("applicantCommentMeta");
+      const applicantCommentText = document.getElementById("applicantCommentText");
+      const opsStatusBanner = document.getElementById("opsStatusBanner");
+      const opsStatusBannerSub = document.getElementById("opsStatusBannerSub");
+      const opsStatusBannerValue = document.getElementById("opsStatusBannerValue");
       const applicationProgressSection = document.getElementById("applicationProgressSection");
       const applicationProgressStatusValue = document.getElementById("applicationProgressStatusValue");
       const applicationHistoryList = document.getElementById("applicationHistoryList");
+      const opsApplicantCommentSection = document.getElementById("opsApplicantCommentSection");
+      const opsApplicantCommentMeta = document.getElementById("opsApplicantCommentMeta");
+      const opsApplicantCommentText = document.getElementById("opsApplicantCommentText");
+      const opsHistorySection = document.getElementById("opsHistorySection");
+      const opsHistoryList = document.getElementById("opsHistoryList");
       const opsRegistryBody = document.getElementById("opsRegistryBody");
       const opsRegistryEmpty = document.getElementById("opsRegistryEmpty");
       const certificatesRegistryBody = document.getElementById("certificatesRegistryBody");
       const certificatesRegistryEmpty = document.getElementById("certificatesRegistryEmpty");
+      const certificatesRegistryNote = document.getElementById("certificatesRegistryNote");
+      const certificatesTabs = document.getElementById("certificatesTabs");
+      const certificatesTabRegistry = document.getElementById("certificatesTabRegistry");
+      const certificatesTabPostIssuance = document.getElementById("certificatesTabPostIssuance");
+      const certificatesTabButtons = Array.from(document.querySelectorAll("[data-certificates-tab]"));
+      const certificatesRegistryTableSection = document.getElementById("certificatesRegistryTableSection");
+      const postIssuanceWorkspace = document.getElementById("postIssuanceWorkspace");
+      const postIssuanceRegistrySection = document.getElementById("postIssuanceRegistrySection");
+      const postIssuanceQueueSub = document.getElementById("postIssuanceQueueSub");
       const postIssuancePanel = document.getElementById("postIssuancePanel");
       const postIssuanceMeta = document.getElementById("postIssuanceMeta");
       const postIssuanceRegistryBody = document.getElementById("postIssuanceRegistryBody");
@@ -3917,9 +5054,15 @@
       const piBasisFile = document.getElementById("pi_basis_file");
       const piBasisFileStatus = document.getElementById("pi_basis_file_status");
       const piApplicationStatus = document.getElementById("pi_application_status");
+      const piApplicantActionsBar = document.getElementById("piApplicantActionsBar");
+      const piOpsActionsBar = document.getElementById("piOpsActionsBar");
       const piSaveDraftBtn = document.getElementById("piSaveDraftBtn");
       const piAttachBasisBtn = document.getElementById("piAttachBasisBtn");
       const piSubmitBtn = document.getElementById("piSubmitBtn");
+      const piOpsTakeReviewBtn = document.getElementById("piOpsTakeReviewBtn");
+      const piOpsRevisionBtn = document.getElementById("piOpsRevisionBtn");
+      const piOpsApproveBtn = document.getElementById("piOpsApproveBtn");
+      const piOpsRejectBtn = document.getElementById("piOpsRejectBtn");
       const piCloseBtn = document.getElementById("piCloseBtn");
       const piRefreshQueueBtn = document.getElementById("piRefreshQueueBtn");
       const mainMenu = document.querySelector("nav.menu");
@@ -3934,10 +5077,10 @@
       const authGateText = document.getElementById("authGateText");
       const authGateMeta = document.getElementById("authGateMeta");
       const authGateLoginBtn = document.getElementById("authGateLoginBtn");
-      const headerBackBtn = document.getElementById("headerBackBtn");
-      const headerBackText = document.getElementById("headerBackText");
       const homeStartBtn = document.getElementById("homeStartBtn");
       const homeRegistryBtn = document.getElementById("homeRegistryBtn");
+      const publicRegistryLinkBtn = document.getElementById("publicRegistryLinkBtn");
+      const processFlow = document.getElementById("processSteps");
       const processSteps = Array.from(document.querySelectorAll("[data-process-step]"));
       const processStepIndex = new Map([
         ["DRAFT", 0],
@@ -3951,14 +5094,55 @@
         ["ARCHIVED", 3],
         ["COMPLETED", 4],
       ]);
+      const APPLICATION_STATUS_META = {
+        DRAFT: { label: "Черновик", tone: "neutral" },
+        SUBMITTED: { label: "Подана", tone: "info" },
+        REGISTERED: { label: "Зарегистрирована", tone: "info" },
+        IN_REVIEW: { label: "На рассмотрении", tone: "warning" },
+        REVISION_REQUESTED: { label: "На доработке", tone: "warning" },
+        PROTOCOL_ATTACHED: { label: "Протокол приложен", tone: "warning" },
+        APPROVED: { label: "Одобрена", tone: "success" },
+        REJECTED: { label: "Отказано", tone: "danger" },
+        ARCHIVED: { label: "Архивирована", tone: "neutral" },
+        COMPLETED: { label: "Завершена", tone: "success" },
+      };
+      const CERTIFICATE_STATUS_META = {
+        GENERATED: { label: "Сформирован", tone: "info" },
+        SIGNED: { label: "Подписан", tone: "info" },
+        PUBLISHED: { label: "Опубликован", tone: "warning" },
+        ACTIVE: { label: "Действующий", tone: "success" },
+        REISSUED: { label: "Переоформлен", tone: "info" },
+        SUSPENDED: { label: "Приостановлен", tone: "warning" },
+        TERMINATED: { label: "Прекращен", tone: "danger" },
+      };
+      const POST_ISSUANCE_STATUS_META = {
+        DRAFT: { label: "Черновик", tone: "neutral" },
+        REGISTERED: { label: "Зарегистрирована", tone: "info" },
+        IN_REVIEW: { label: "На рассмотрении", tone: "warning" },
+        REVISION_REQUESTED: { label: "На доработке", tone: "warning" },
+        APPROVED: { label: "Одобрена", tone: "success" },
+        REJECTED: { label: "Отказано", tone: "danger" },
+        REGISTRY_UPDATED: { label: "Реестр обновлен", tone: "info" },
+        COMPLETED: { label: "Завершена", tone: "success" },
+        ARCHIVED: { label: "Архивирована", tone: "neutral" },
+      };
       const phoneInput = document.getElementById("phone");
       const applicantBinInput = document.getElementById("applicant_bin");
-      const opsActionsSection = document.getElementById("opsActionsSection");
       const opsStatusValue = document.getElementById("opsStatusValue");
-      const opsHistoryList = document.getElementById("opsHistoryList");
-      const opsDecisionSelect = document.getElementById("opsDecisionSelect");
       const opsProtocolFile = document.getElementById("opsProtocolFile");
-      const opsComment = document.getElementById("opsComment");
+      const opsProtocolUploadCard = document.getElementById("opsProtocolUploadCard");
+      const opsProtocolTitle = document.getElementById("opsProtocolTitle");
+      const opsProtocolMeta = document.getElementById("opsProtocolMeta");
+      const opsDecisionComment = document.getElementById("opsDecisionComment");
+      const opsDecisionStepFinal = document.getElementById("opsDecisionStepFinal");
+      const opsRevisionModal = document.getElementById("opsRevisionModal");
+      const opsRevisionModalClose = document.getElementById("opsRevisionModalClose");
+      const opsRevisionCancelBtn = document.getElementById("opsRevisionCancelBtn");
+      const opsRevisionSubmitBtn = document.getElementById("opsRevisionSubmitBtn");
+      const opsRevisionComment = document.getElementById("opsRevisionComment");
+      const opsDecisionModal = document.getElementById("opsDecisionModal");
+      const opsDecisionModalClose = document.getElementById("opsDecisionModalClose");
+      const opsDecisionCloseBtn = document.getElementById("opsDecisionCloseBtn");
       apiBaseLabel.textContent = config.apiBase;
 
       const sections = Array.from(document.querySelectorAll("#sectionsWrap .section[data-step]"));
@@ -3969,17 +5153,12 @@
         next: document.getElementById("nextStepBtn"),
         save: document.getElementById("saveDraftBtn"),
         submit: document.getElementById("submitBtn"),
-        deleteDraft: document.getElementById("deleteDraftBtn"),
         createApplication: document.getElementById("createApplicationBtn"),
-        backToRegistry: document.getElementById("backToRegistryBtn"),
         login: document.getElementById("loginBtn"),
         logout: document.getElementById("logoutBtn"),
         refresh: document.getElementById("refreshBtn"),
-        opsAccept: document.getElementById("opsAcceptBtn"),
-        opsRevision: document.getElementById("opsRevisionBtn"),
-        opsAttachProtocol: document.getElementById("opsAttachProtocolBtn"),
-        opsDecision: document.getElementById("opsDecisionBtn"),
-        opsComplete: document.getElementById("opsCompleteBtn"),
+        opsApprove: document.getElementById("opsApproveBtn"),
+        opsReject: document.getElementById("opsRejectBtn"),
       };
 
       let oidcSession = {
@@ -3992,14 +5171,21 @@
       };
       let currentStep = 0;
       let currentApplicationId = null;
+      let currentApplicationStatus = "DRAFT";
+      let currentApplicationHistory = [];
+      let currentApplicationApplicantSubject = null;
       let currentPostIssuanceId = null;
       let currentPostIssuanceApplication = null;
+      let currentPostIssuanceOriginTab = "post-issuance";
+      let currentPostIssuanceCancelOnClose = false;
       let currentView = "public-home";
       let currentFormMode = "applicant";
       let currentOpsApplication = null;
+      let selectedOpsProtocolFile = null;
       let currentApplicantCanEdit = true;
       let currentApplicantModule = "home";
       let currentApplicantService = null;
+      let currentCertificatesTab = "registry";
       let currentProfile = null;
       let currentCabinetTab = "profile";
       let sessionExpanded = false;
@@ -4042,17 +5228,11 @@
       }
 
       function setStatusChip(status) {
-        statusChip.textContent = status;
-        statusChip.className = "chip";
-        if (status === "ARCHIVED" || status === "REJECTED") {
-          statusChip.classList.add("danger");
-          return;
-        }
-        if (status === "SUBMITTED" || status === "APPROVED" || status === "COMPLETED") {
-          statusChip.classList.add("success");
-          return;
-        }
-        statusChip.classList.add("warning");
+        currentApplicationStatus = normalizeStatus(status) || "DRAFT";
+        const meta = getStatusMeta(status, "application");
+        statusChip.textContent = meta.label;
+        statusChip.className = `chip ${meta.tone}`;
+        statusChip.title = currentApplicationStatus || meta.label;
       }
 
       function renderProcessByStatus(status) {
@@ -4080,34 +5260,262 @@
         formView.classList.toggle("form-readonly", readOnly);
       }
 
+      function getApplicantActionButtons() {
+        return [buttons.save, buttons.submit].filter(Boolean);
+      }
+
       function setApplicantActionsVisible(visible) {
-        [buttons.save, buttons.submit, buttons.deleteDraft].forEach((button) => {
+        getApplicantActionButtons().forEach((button) => {
           button.classList.toggle("is-hidden", !visible);
         });
       }
 
       function setApplicantActionButtonsEnabled(enabled) {
-        [buttons.save, buttons.submit, buttons.deleteDraft].forEach((button) => {
+        getApplicantActionButtons().forEach((button) => {
           button.disabled = !enabled;
         });
       }
 
       function setOpsActionsVisible(visible) {
-        opsActionsSection.classList.toggle("is-hidden", !visible);
+        if (opsRevisionLaunchBtn) {
+          opsRevisionLaunchBtn.classList.toggle("is-hidden", !visible);
+        }
+        if (opsDecisionLaunchBtn) {
+          opsDecisionLaunchBtn.classList.toggle("is-hidden", !visible);
+        }
+        if (!visible) {
+          closeOpsRevisionModal();
+          closeOpsDecisionModal();
+        }
       }
 
       function setApplicationProgressVisible(visible) {
         applicationProgressSection.classList.toggle("is-hidden", !visible);
       }
 
+      function setApplicantCommentVisible(visible) {
+        if (applicantCommentSection) {
+          applicantCommentSection.classList.toggle("is-hidden", !visible);
+        }
+      }
+
+      function setOpsStatusBannerVisible(visible) {
+        if (opsStatusBanner) {
+          opsStatusBanner.classList.toggle("is-hidden", !visible);
+        }
+      }
+
+      function setOpsHistoryVisible(visible) {
+        if (opsHistorySection) {
+          opsHistorySection.classList.toggle("is-hidden", !visible);
+        }
+      }
+
+      function getStatusMeta(status, kind = "application") {
+        const normalized = normalizeStatus(status);
+        const source =
+          kind === "certificate"
+            ? CERTIFICATE_STATUS_META
+            : kind === "post-issuance"
+              ? POST_ISSUANCE_STATUS_META
+              : APPLICATION_STATUS_META;
+        return source[normalized] || { label: normalized || "-", tone: "neutral" };
+      }
+
+      function createStatusBadge(status, kind = "application") {
+        const meta = getStatusMeta(status, kind);
+        const badge = document.createElement("span");
+        badge.className = `status-tag ${meta.tone}`;
+        badge.textContent = meta.label;
+        badge.title = normalizeStatus(status) || meta.label;
+        return badge;
+      }
+
+      function setStatusText(target, status, kind = "application") {
+        if (!target) {
+          return;
+        }
+        const meta = getStatusMeta(status, kind);
+        target.textContent = meta.label;
+      }
+
       function setBreadcrumb(items) {
         if (!Array.isArray(items) || items.length === 0) {
-          pageBreadcrumb.textContent = "";
+          pageBreadcrumb.innerHTML = "";
           pageBreadcrumb.classList.add("is-hidden");
           return;
         }
-        pageBreadcrumb.textContent = items.join(" / ");
+        pageBreadcrumb.innerHTML = "";
+        const list = document.createElement("div");
+        list.className = "page-breadcrumb-list";
+        items.forEach((item, index) => {
+          const crumb = typeof item === "string" ? { label: item } : item;
+          const label = crumb && crumb.label ? crumb.label : "—";
+          const isCurrent = index === items.length - 1 || !crumb.action;
+          const element = document.createElement(isCurrent ? "span" : "button");
+          element.className = isCurrent ? "page-breadcrumb-current" : "page-breadcrumb-link";
+          element.textContent = label;
+          if (!isCurrent) {
+            element.type = "button";
+            element.addEventListener("click", () => {
+              Promise.resolve(crumb.action()).catch((error) => {
+                writeOutput("Ошибка breadcrumb-навигации", {
+                  message: error instanceof Error ? error.message : String(error),
+                  label,
+                });
+              });
+            });
+          }
+          list.appendChild(element);
+          if (index < items.length - 1) {
+            const separator = document.createElement("span");
+            separator.className = "page-breadcrumb-separator";
+            separator.textContent = "/";
+            list.appendChild(separator);
+          }
+        });
+        pageBreadcrumb.appendChild(list);
         pageBreadcrumb.classList.remove("is-hidden");
+      }
+
+      function setApplicantOpsComment(commentEntry) {
+        const targets = [
+          { section: opsApplicantCommentSection, meta: opsApplicantCommentMeta, text: opsApplicantCommentText },
+          { section: applicantCommentSection, meta: applicantCommentMeta, text: applicantCommentText },
+        ];
+        if (!commentEntry) {
+          targets.forEach(({ section, meta, text }) => {
+            if (!section || !meta || !text) {
+              return;
+            }
+            section.classList.add("is-hidden");
+            meta.textContent = "-";
+            text.textContent = "-";
+          });
+          return;
+        }
+        const statusLabel = getStatusMeta(commentEntry.to_status, "application").label;
+        targets.forEach(({ section, meta, text }) => {
+          if (!section || !meta || !text) {
+            return;
+          }
+          meta.textContent = `${formatDateTime(commentEntry.changed_at)} | ${statusLabel}`;
+          text.textContent = commentEntry.comment || "-";
+          const shouldShow = section === applicantCommentSection ? currentFormMode === "applicant" : true;
+          section.classList.toggle("is-hidden", !shouldShow);
+        });
+      }
+
+      function showCertificatesTab(tabKey = "registry") {
+        currentCertificatesTab = tabKey === "post-issuance" ? "post-issuance" : "registry";
+        certificatesTabButtons.forEach((button) => {
+          button.classList.toggle("active", (button.dataset.certificatesTab || "registry") === currentCertificatesTab);
+        });
+        syncCertificatesWorkspaceVisibility();
+      }
+
+      function syncCertificatesWorkspaceVisibility() {
+        const detailVisible = Boolean(postIssuancePanel) && !postIssuancePanel.classList.contains("is-hidden");
+        if (certificatesRegistryTableSection) {
+          certificatesRegistryTableSection.classList.toggle("is-hidden", detailVisible || currentCertificatesTab !== "registry");
+        }
+        if (postIssuanceRegistrySection) {
+          postIssuanceRegistrySection.classList.toggle("is-hidden", detailVisible || currentCertificatesTab !== "post-issuance");
+        }
+        if (certificatesTabs) {
+          certificatesTabs.classList.toggle("is-hidden", detailVisible);
+        }
+      }
+
+      function resolveLatestOpsComment(historyItems) {
+        if (!Array.isArray(historyItems)) {
+          return null;
+        }
+        return (
+          historyItems
+            .slice()
+            .reverse()
+            .find((item) => {
+              const normalized = normalizeStatus(item.to_status);
+              return ["REVISION_REQUESTED", "APPROVED", "REJECTED"].includes(normalized) && Boolean((item.comment || "").trim());
+            }) || null
+        );
+      }
+
+      function updateOpsDecisionUploadState() {
+        const hasFile = Boolean(selectedOpsProtocolFile);
+        if (opsProtocolUploadCard) {
+          opsProtocolUploadCard.classList.toggle("is-ready", hasFile);
+        }
+        if (opsProtocolTitle) {
+          opsProtocolTitle.textContent = hasFile ? selectedOpsProtocolFile.name : "Выберите протокол";
+        }
+        if (opsProtocolMeta) {
+          opsProtocolMeta.textContent = hasFile
+            ? `${selectedOpsProtocolFile.type || "Файл"} | ${Math.max(1, Math.round(selectedOpsProtocolFile.size / 1024))} КБ`
+            : "PDF, DOC, DOCX, PNG, JPG. Загрузка начнется только после финального решения.";
+        }
+        if (opsDecisionStepFinal) {
+          opsDecisionStepFinal.classList.toggle("is-active", hasFile);
+          opsDecisionStepFinal.classList.toggle("is-complete", hasFile);
+        }
+        if (buttons.opsApprove) {
+          buttons.opsApprove.disabled = !hasFile;
+        }
+        if (buttons.opsReject) {
+          buttons.opsReject.disabled = !hasFile;
+        }
+      }
+
+      function resetOpsDecisionDraft() {
+        selectedOpsProtocolFile = null;
+        if (opsProtocolFile) {
+          opsProtocolFile.value = "";
+        }
+        if (opsDecisionComment) {
+          opsDecisionComment.value = "";
+        }
+        updateOpsDecisionUploadState();
+      }
+
+      function openOpsRevisionModal() {
+        if (!opsRevisionModal || normalizeStatus(currentApplicationStatus) !== "SUBMITTED") {
+          return;
+        }
+        if (opsRevisionComment) {
+          opsRevisionComment.value = "";
+        }
+        opsRevisionModal.classList.remove("is-hidden");
+        opsRevisionModal.setAttribute("aria-hidden", "false");
+      }
+
+      function closeOpsRevisionModal() {
+        if (!opsRevisionModal) {
+          return;
+        }
+        opsRevisionModal.classList.add("is-hidden");
+        opsRevisionModal.setAttribute("aria-hidden", "true");
+        if (opsRevisionComment) {
+          opsRevisionComment.value = "";
+        }
+      }
+
+      function openOpsDecisionModal() {
+        if (!opsDecisionModal || normalizeStatus(currentApplicationStatus) !== "SUBMITTED") {
+          return;
+        }
+        resetOpsDecisionDraft();
+        opsDecisionModal.classList.remove("is-hidden");
+        opsDecisionModal.setAttribute("aria-hidden", "false");
+      }
+
+      function closeOpsDecisionModal() {
+        if (!opsDecisionModal) {
+          return;
+        }
+        opsDecisionModal.classList.add("is-hidden");
+        opsDecisionModal.setAttribute("aria-hidden", "true");
+        resetOpsDecisionDraft();
       }
 
       function setSessionExpanded(expanded) {
@@ -4153,8 +5561,9 @@
         const authenticated = oidcSession.authenticated && (isApplicantUser() || isOpsUser());
         headerLoginBtn.classList.toggle("is-hidden", authenticated);
         headerAccount.classList.toggle("is-hidden", !authenticated);
-        if (headerStatus) {
-          headerStatus.classList.toggle("is-hidden", authenticated && currentView === "cabinet");
+        headerAccount.classList.remove("is-open");
+        if (headerAccountBtn) {
+          headerAccountBtn.setAttribute("aria-expanded", "false");
         }
         if (!authenticated) {
           headerAccountName.textContent = "-";
@@ -4167,6 +5576,16 @@
         renderAvatar(headerAvatarImage, headerAvatarIcon, currentProfile && currentProfile.avatar_data_url);
       }
 
+      function setHeaderAccountMenuOpen(isOpen) {
+        if (!headerAccount || headerAccount.classList.contains("is-hidden")) {
+          return;
+        }
+        headerAccount.classList.toggle("is-open", isOpen);
+        if (headerAccountBtn) {
+          headerAccountBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        }
+      }
+
       function populateCabinetProfile() {
         const profile = currentProfile || {};
         cabinetFullNameInput.value = profile.full_name || "";
@@ -4175,12 +5594,6 @@
         cabinetUsernameInput.value = profile.username || (oidcSession.tokenParsed && oidcSession.tokenParsed.preferred_username) || "";
         cabinetAddressInput.value = profile.address || "";
         cabinetActualAddressInput.value = profile.actual_address || "";
-        cabinetSummaryRole.textContent = `Роль: ${profile.role_label || resolvePrimaryRoleLabel()}`;
-        cabinetSummaryUsername.textContent = `Аккаунт: ${profile.username || "-"}`;
-        cabinetSummarySub.textContent = isOpsUser()
-          ? "Для роли ОПС в кабинете доступно редактирование профиля."
-          : "Профиль, история заявок и сертификаты текущего заявителя.";
-        cabinetAvatarCaption.textContent = profile.display_name || resolveDisplayName();
         renderAvatar(cabinetAvatarImage, cabinetAvatarIcon, profile.avatar_data_url);
         renderHeaderAccountState();
       }
@@ -4196,7 +5609,7 @@
           const numberCell = document.createElement("td");
           numberCell.textContent = application.application_number || "-";
           const statusCell = document.createElement("td");
-          statusCell.textContent = application.status || "-";
+          statusCell.appendChild(createStatusBadge(application.status || "-", "application"));
           const updatedCell = document.createElement("td");
           updatedCell.textContent = formatDateTime(application.updated_at);
           const actionCell = document.createElement("td");
@@ -4229,11 +5642,29 @@
           const idCell = document.createElement("td");
           idCell.textContent = String(certificate.id ?? "-");
           const numberCell = document.createElement("td");
-          numberCell.textContent = certificate.certificate_number || "-";
+          if (certificate.certificate_number) {
+            const numberLink = document.createElement("button");
+            numberLink.type = "button";
+            numberLink.className = "certificate-download-link";
+            numberLink.textContent = certificate.certificate_number;
+            numberLink.addEventListener("click", async () => {
+              try {
+                await downloadCertificateFile(certificate.id);
+              } catch (error) {
+                writeOutput("Ошибка скачивания сертификата", {
+                  message: error instanceof Error ? error.message : String(error),
+                  certificate_id: certificate.id,
+                });
+              }
+            });
+            numberCell.appendChild(numberLink);
+          } else {
+            numberCell.textContent = "-";
+          }
           const appCell = document.createElement("td");
           appCell.textContent = certificate.source_application_number || "-";
           const statusCell = document.createElement("td");
-          statusCell.textContent = certificate.status || "-";
+          statusCell.appendChild(createStatusBadge(certificate.status || "-", "certificate"));
           const publishedCell = document.createElement("td");
           publishedCell.textContent = formatDateTime(certificate.published_at);
           row.append(idCell, numberCell, appCell, statusCell, publishedCell);
@@ -4290,7 +5721,7 @@
         currentApplicationId = null;
         currentOpsApplication = null;
         resetPostIssuanceForm();
-        setActiveMenu("home");
+        setActiveMenu(isOpsUser() ? "" : "home");
         pageEyebrow.textContent = "Рабочее пространство";
         pageTitle.textContent = "Личный кабинет";
         setBreadcrumb([]);
@@ -4307,6 +5738,7 @@
         setApplicantActionButtonsEnabled(false);
         setOpsActionsVisible(false);
         setApplicationProgressVisible(false);
+        setOpsHistoryVisible(false);
         setOpsButtonsEnabled(false);
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = true;
@@ -4344,12 +5776,17 @@
       }
 
       function renderStep() {
+        const showAllSections = currentFormMode === "ops";
         sections.forEach((section, index) => {
-          section.classList.toggle("hidden", index !== currentStep);
+          section.classList.toggle("hidden", !showAllSections && index !== currentStep);
         });
-        buttons.prev.disabled = currentStep === 0;
-        buttons.next.disabled = currentStep >= STEP_TITLES.length - 1;
+        buttons.prev.disabled = showAllSections || currentStep === 0;
+        buttons.next.disabled = showAllSections || currentStep >= STEP_TITLES.length - 1;
         updateHeaderMeta();
+        if (showAllSections) {
+          stepsNav.innerHTML = "";
+          return;
+        }
         renderStepsNav();
       }
 
@@ -4371,17 +5808,15 @@
           return [
             { key: "home", label: "Главная", element: menuHome, enabled: true },
             { key: "accreditation", label: "Аккредитация", element: menuApplications, enabled: false },
-            { key: "state-control", label: "Государственный контроль", element: menuCertificates, enabled: false },
+          { key: "state-control", label: "Гос контроль", element: menuCertificates, enabled: false },
             { key: "metrology", label: "Метрология", element: menuDictionaries, enabled: false },
             { key: "conformity", label: "Оценка соответствия", element: menuConformity, enabled: true },
             { key: "standardization", label: "Стандартизация", element: menuStandardization, enabled: false },
           ];
         }
         return [
-          { key: "home", label: "Главная", element: menuHome, enabled: true },
           { key: "applications", label: "Заявки", element: menuApplications, enabled: true },
           { key: "certificates", label: "Реестр сертификатов", element: menuCertificates, enabled: true },
-          { key: "dictionaries", label: "Справочники", element: menuDictionaries, enabled: true },
         ];
       }
 
@@ -4389,7 +5824,7 @@
         const menuMode = getMenuMode();
         appHeader.classList.toggle("applicant-mode", menuMode === "applicant");
         if (mainMenu) {
-          mainMenu.classList.toggle("is-hidden", menuMode !== "ops");
+          mainMenu.classList.toggle("is-hidden", menuMode === "public");
         }
         const entries = getMenuEntries();
         [menuHome, menuApplications, menuCertificates, menuDictionaries, menuConformity, menuStandardization].forEach(
@@ -4424,7 +5859,7 @@
       }
 
       function getBackButtonLabel() {
-        if (currentView === "conformity" || currentView === "cert-registry") {
+        if (currentView === "cabinet" || currentView === "conformity" || currentView === "cert-registry") {
           return "На главную";
         }
         if (currentView === "registry") {
@@ -4439,16 +5874,28 @@
       function updatePageChrome() {
         const hasWorkspace = oidcSession.authenticated && (isApplicantUser() || isOpsUser());
         const isApplicantHome = ["public-home", "applicant-home", "applicant-services"].includes(currentView);
-        const showBackButton = hasWorkspace && ["conformity", "registry", "form", "ops-form", "cert-registry"].includes(currentView);
+        const showBackButton =
+          hasWorkspace &&
+          (["conformity", "registry", "form", "ops-form"].includes(currentView) ||
+            (currentView === "cert-registry" && isApplicantUser()) ||
+            (currentView === "cabinet" && isApplicantUser()));
+        const showOpsActions = hasWorkspace && currentView === "ops-form" && normalizeStatus(currentApplicationStatus) === "SUBMITTED";
 
         if (pageHead) {
           pageHead.classList.toggle("is-hidden", !hasWorkspace || isApplicantHome);
         }
-        if (headerBackBtn) {
-          headerBackBtn.classList.toggle("is-hidden", !showBackButton);
+        if (shellContainer) {
+          shellContainer.classList.toggle("form-shell", currentView === "form" && currentFormMode === "applicant");
         }
-        if (headerBackText) {
-          headerBackText.textContent = getBackButtonLabel();
+        if (contentBackBtn) {
+          contentBackBtn.classList.toggle("is-hidden", !showBackButton);
+          contentBackBtn.textContent = getBackButtonLabel();
+        }
+        if (opsRevisionLaunchBtn) {
+          opsRevisionLaunchBtn.classList.toggle("is-hidden", !showOpsActions);
+        }
+        if (opsDecisionLaunchBtn) {
+          opsDecisionLaunchBtn.classList.toggle("is-hidden", !showOpsActions);
         }
         renderHeaderAccountState();
       }
@@ -4470,6 +5917,11 @@
           await loadOpsRegistry();
           showOpsRegistryView();
           writeOutput("Реестр ОПС", "Открыта очередь заявок заявителей.");
+          return;
+        }
+        if (currentView === "cabinet" && isApplicantUser()) {
+          showApplicantHomeView();
+          writeOutput("Главная", "Открыта главная страница.");
           return;
         }
         if (currentView === "registry") {
@@ -4587,18 +6039,20 @@
       function setFormButtonsEnabled(enabled) {
         buttons.prev.disabled = !enabled || currentStep === 0;
         buttons.next.disabled = !enabled || currentStep >= STEP_TITLES.length - 1;
-        buttons.backToRegistry.disabled = !enabled;
         buttons.save.disabled = !enabled;
         buttons.submit.disabled = !enabled;
-        buttons.deleteDraft.disabled = !enabled;
       }
 
       function setOpsButtonsEnabled(enabled) {
-        buttons.opsAccept.disabled = !enabled;
-        buttons.opsRevision.disabled = !enabled;
-        buttons.opsAttachProtocol.disabled = !enabled;
-        buttons.opsDecision.disabled = !enabled;
-        buttons.opsComplete.disabled = !enabled;
+        if (buttons.opsApprove) {
+          buttons.opsApprove.disabled = !enabled || !selectedOpsProtocolFile;
+        }
+        if (buttons.opsReject) {
+          buttons.opsReject.disabled = !enabled || !selectedOpsProtocolFile;
+        }
+        if (opsRevisionSubmitBtn) {
+          opsRevisionSubmitBtn.disabled = !enabled;
+        }
       }
 
       function setFormDirty(nextValue) {
@@ -4631,7 +6085,7 @@
           const numberCell = document.createElement("td");
           numberCell.textContent = application.application_number || "-";
           const statusCell = document.createElement("td");
-          statusCell.textContent = application.status || "-";
+          statusCell.appendChild(createStatusBadge(application.status || "-", "application"));
           const updatedCell = document.createElement("td");
           updatedCell.textContent = formatDateTime(application.updated_at);
           const actionCell = document.createElement("td");
@@ -4649,6 +6103,23 @@
             }
           });
           actionCell.appendChild(openButton);
+          if (normalizeStatus(application.status) === "DRAFT") {
+            const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
+            deleteButton.className = "btn-danger registry-action";
+            deleteButton.textContent = "Удалить";
+            deleteButton.addEventListener("click", async () => {
+              try {
+                await deleteDraftById(Number(application.id));
+              } catch (error) {
+                writeOutput("Ошибка удаления черновика", {
+                  message: error instanceof Error ? error.message : String(error),
+                  application_id: application.id,
+                });
+              }
+            });
+            actionCell.appendChild(deleteButton);
+          }
           row.append(idCell, numberCell, statusCell, updatedCell, actionCell);
           applicationsRegistryBody.appendChild(row);
         });
@@ -4668,7 +6139,7 @@
           const numberCell = document.createElement("td");
           numberCell.textContent = application.application_number || "-";
           const statusCell = document.createElement("td");
-          statusCell.textContent = application.status || "-";
+          statusCell.appendChild(createStatusBadge(application.status || "-", "application"));
           const applicantCell = document.createElement("td");
           applicantCell.textContent = application.applicant_username || application.applicant_subject || "-";
           const updatedCell = document.createElement("td");
@@ -4706,11 +6177,29 @@
           const idCell = document.createElement("td");
           idCell.textContent = String(certificate.id ?? "-");
           const numberCell = document.createElement("td");
-          numberCell.textContent = certificate.certificate_number || "-";
+          if (certificate.certificate_number) {
+            const numberLink = document.createElement("button");
+            numberLink.type = "button";
+            numberLink.className = "certificate-download-link";
+            numberLink.textContent = certificate.certificate_number;
+            numberLink.addEventListener("click", async () => {
+              try {
+                await downloadCertificateFile(certificate.id);
+              } catch (error) {
+                writeOutput("Ошибка скачивания сертификата", {
+                  message: error instanceof Error ? error.message : String(error),
+                  certificate_id: certificate.id,
+                });
+              }
+            });
+            numberCell.appendChild(numberLink);
+          } else {
+            numberCell.textContent = "-";
+          }
           const appNumberCell = document.createElement("td");
           appNumberCell.textContent = certificate.source_application_number || "-";
           const statusCell = document.createElement("td");
-          statusCell.textContent = certificate.status || "-";
+          statusCell.appendChild(createStatusBadge(certificate.status || "-", "certificate"));
           const signedAtCell = document.createElement("td");
           signedAtCell.textContent = formatDateTime(certificate.signed_at);
           const publishedAtCell = document.createElement("td");
@@ -4750,7 +6239,7 @@
               suspendButton.textContent = "Приостановить";
               suspendButton.addEventListener("click", async () => {
                 try {
-                  await openPostIssuanceDraft(certificate, "SUSPEND");
+                  await openPostIssuanceDraftDetail(certificate, "SUSPEND");
                 } catch (error) {
                   writeOutput("Ошибка создания процесса приостановления", {
                     message: error instanceof Error ? error.message : String(error),
@@ -4768,7 +6257,7 @@
             terminateButton.textContent = "Прекратить";
             terminateButton.addEventListener("click", async () => {
               try {
-                await openPostIssuanceDraft(certificate, "TERMINATE");
+                await openPostIssuanceDraftDetail(certificate, "TERMINATE");
               } catch (error) {
                 writeOutput("Ошибка создания процесса прекращения", {
                   message: error instanceof Error ? error.message : String(error),
@@ -4827,9 +6316,38 @@
         syncPostIssuanceReasonAvailability();
       }
 
+      function syncPostIssuanceActionButtons(application = currentPostIssuanceApplication) {
+        const normalizedStatus = normalizeStatus(application?.status);
+        const showApplicantActions = isApplicantUser() && isPostIssuanceEditableStatus(normalizedStatus);
+        const showOpsActions = isOpsUser() && (normalizedStatus === "REGISTERED" || normalizedStatus === "IN_REVIEW");
+
+        if (piApplicantActionsBar) {
+          piApplicantActionsBar.classList.toggle("is-hidden", !showApplicantActions);
+        }
+        if (piOpsActionsBar) {
+          piOpsActionsBar.classList.toggle("is-hidden", !showOpsActions);
+        }
+        if (piOpsTakeReviewBtn) {
+          piOpsTakeReviewBtn.disabled = normalizedStatus !== "REGISTERED";
+        }
+        if (piOpsRevisionBtn) {
+          piOpsRevisionBtn.disabled = normalizedStatus !== "IN_REVIEW";
+        }
+        if (piOpsApproveBtn) {
+          piOpsApproveBtn.disabled = !(normalizedStatus === "REGISTERED" || normalizedStatus === "IN_REVIEW");
+        }
+        if (piOpsRejectBtn) {
+          piOpsRejectBtn.disabled = !(normalizedStatus === "REGISTERED" || normalizedStatus === "IN_REVIEW");
+        }
+        if (piCloseBtn) {
+          piCloseBtn.textContent = currentPostIssuanceCancelOnClose ? "Назад и отменить" : "Назад к списку";
+        }
+      }
+
       function resetPostIssuanceForm() {
         currentPostIssuanceId = null;
         currentPostIssuanceApplication = null;
+        currentPostIssuanceCancelOnClose = false;
         if (postIssuancePanel) {
           postIssuancePanel.classList.add("is-hidden");
         }
@@ -4868,6 +6386,8 @@
           piBasisFileStatus.textContent = "Файл еще не прикреплен.";
         }
         setPostIssuanceFormEnabled(false);
+        syncPostIssuanceActionButtons(null);
+        syncCertificatesWorkspaceVisibility();
       }
 
       async function ensurePostIssuanceDictionariesLoaded() {
@@ -5030,6 +6550,8 @@
           `Процесс ${application.application_number || "-"} для сертификата ${application.source_certificate_number || "-"} (${application.status || "-"})`;
         postIssuancePanel.classList.remove("is-hidden");
         setPostIssuanceFormEnabled(canEditCurrentPostIssuance(application));
+        syncPostIssuanceActionButtons(application);
+        syncCertificatesWorkspaceVisibility();
       }
 
       function renderPostIssuanceRegistry(items) {
@@ -5051,7 +6573,7 @@
           const certificateCell = document.createElement("td");
           certificateCell.textContent = application.source_certificate_number || "-";
           const statusCell = document.createElement("td");
-          statusCell.textContent = application.status || "-";
+          statusCell.appendChild(createStatusBadge(application.status || "-", "post-issuance"));
           const updatedCell = document.createElement("td");
           updatedCell.textContent = formatDateTime(application.updated_at);
           const actionsCell = document.createElement("td");
@@ -5071,73 +6593,6 @@
             }
           });
           actionsCell.appendChild(openButton);
-
-          const status = normalizeStatus(application.status);
-          if (isOpsUser() && status === "REGISTERED") {
-            const reviewButton = document.createElement("button");
-            reviewButton.type = "button";
-            reviewButton.className = "btn-secondary registry-action";
-            reviewButton.textContent = "В работу";
-            reviewButton.addEventListener("click", async () => {
-              try {
-                await transitionPostIssuance(application.id, "IN_REVIEW", "Заявка принята в работу ОПС");
-              } catch (error) {
-                writeOutput("Ошибка перевода post-issuance в работу", {
-                  message: error instanceof Error ? error.message : String(error),
-                });
-              }
-            });
-            actionsCell.appendChild(reviewButton);
-          }
-
-          if (isOpsUser() && (status === "REGISTERED" || status === "IN_REVIEW")) {
-            const approveButton = document.createElement("button");
-            approveButton.type = "button";
-            approveButton.className = "btn-primary registry-action";
-            approveButton.textContent = "Одобрить";
-            approveButton.addEventListener("click", async () => {
-              try {
-                await transitionPostIssuance(application.id, "APPROVED", "Решение ОПС принято");
-              } catch (error) {
-                writeOutput("Ошибка одобрения post-issuance", {
-                  message: error instanceof Error ? error.message : String(error),
-                });
-              }
-            });
-            actionsCell.appendChild(approveButton);
-
-            const rejectButton = document.createElement("button");
-            rejectButton.type = "button";
-            rejectButton.className = "btn-danger registry-action";
-            rejectButton.textContent = "Отказать";
-            rejectButton.addEventListener("click", async () => {
-              try {
-                await transitionPostIssuance(application.id, "REJECTED", "Основания не подтверждены");
-              } catch (error) {
-                writeOutput("Ошибка отказа post-issuance", {
-                  message: error instanceof Error ? error.message : String(error),
-                });
-              }
-            });
-            actionsCell.appendChild(rejectButton);
-          }
-
-          if (isOpsUser() && status === "IN_REVIEW") {
-            const revisionButton = document.createElement("button");
-            revisionButton.type = "button";
-            revisionButton.className = "btn-secondary registry-action";
-            revisionButton.textContent = "На доработку";
-            revisionButton.addEventListener("click", async () => {
-              try {
-                await transitionPostIssuance(application.id, "REVISION_REQUESTED", "Требуется уточнение оснований");
-              } catch (error) {
-                writeOutput("Ошибка возврата post-issuance на доработку", {
-                  message: error instanceof Error ? error.message : String(error),
-                });
-              }
-            });
-            actionsCell.appendChild(revisionButton);
-          }
 
           row.append(idCell, numberCell, actionCell, certificateCell, statusCell, updatedCell, actionsCell);
           postIssuanceRegistryBody.appendChild(row);
@@ -5165,8 +6620,11 @@
         await loadPostIssuanceRegistry();
       }
 
-      async function openPostIssuanceDraft(certificate, actionType) {
+      async function openPostIssuanceDraftDetail(certificate, actionType) {
         await ensurePostIssuanceDictionariesLoaded();
+        currentCertificatesTab = "registry";
+        currentPostIssuanceOriginTab = "registry";
+        currentPostIssuanceCancelOnClose = true;
         const created = await callApi("POST", "/post-issuance/drafts", {
           source_certificate_id: certificate.id,
           action_type: actionType,
@@ -5178,6 +6636,9 @@
 
       async function openPostIssuanceApplication(applicationId) {
         await ensurePostIssuanceDictionariesLoaded();
+        currentCertificatesTab = "post-issuance";
+        currentPostIssuanceOriginTab = "post-issuance";
+        currentPostIssuanceCancelOnClose = false;
         const application = await callApi("GET", `/post-issuance/${applicationId}`);
         applyPostIssuanceApplication(application);
         writeOutput("Открыт процесс post-issuance", application);
@@ -5252,6 +6713,21 @@
         return updated;
       }
 
+      async function closeCurrentPostIssuanceDetail() {
+        if (!currentPostIssuanceApplication) {
+          currentCertificatesTab = currentPostIssuanceOriginTab;
+          resetPostIssuanceForm();
+          return;
+        }
+        const isDraft = normalizeStatus(currentPostIssuanceApplication.status) === "DRAFT";
+        if (currentPostIssuanceCancelOnClose && isDraft) {
+          await callApi("DELETE", `/post-issuance/${currentPostIssuanceId}/draft`);
+          await refreshCertificatesWorkspace();
+        }
+        currentCertificatesTab = currentPostIssuanceOriginTab;
+        resetPostIssuanceForm();
+      }
+
       async function loadApplicationsRegistry() {
         ensureApplicantAccess();
         const response = await callApi("GET", "/applications/mine?limit=200");
@@ -5264,14 +6740,10 @@
         ensureOpsAccess();
         const statuses = [
           "SUBMITTED",
-          "REGISTERED",
-          "IN_REVIEW",
           "REVISION_REQUESTED",
-          "PROTOCOL_ATTACHED",
           "APPROVED",
           "REJECTED",
           "ARCHIVED",
-          "COMPLETED",
         ].join(",");
         const response = await callApi("GET", `/applications/ops/queue?limit=200&statuses=${encodeURIComponent(statuses)}`);
         const items = Array.isArray(response.items) ? response.items : [];
@@ -5316,8 +6788,8 @@
           .forEach((item) => {
             const row = document.createElement("div");
             row.className = "ops-history-item";
-            const fromStatus = item.from_status || "—";
-            const toStatus = item.to_status || "—";
+            const fromStatus = item.from_status ? getStatusMeta(item.from_status, "application").label : "—";
+            const toStatus = item.to_status ? getStatusMeta(item.to_status, "application").label : "—";
             const changedAt = formatDateTime(item.changed_at);
             const commentText = item.comment ? ` | ${item.comment}` : "";
             row.textContent = `${changedAt}: ${fromStatus} -> ${toStatus}${commentText}`;
@@ -5331,17 +6803,24 @@
 
       function applyOpsActionAvailability(status) {
         const normalized = normalizeStatus(status);
-        const canAccept = ["SUBMITTED", "REGISTERED", "REVISION_REQUESTED"].includes(normalized);
-        const canRequestRevision = normalized === "IN_REVIEW";
-        const canAttachProtocol = normalized === "IN_REVIEW";
-        const canDecide = normalized === "PROTOCOL_ATTACHED";
-        const canComplete = normalized === "APPROVED";
+        const canProcess = normalized === "SUBMITTED";
 
-        buttons.opsAccept.disabled = !canAccept;
-        buttons.opsRevision.disabled = !canRequestRevision;
-        buttons.opsAttachProtocol.disabled = !canAttachProtocol;
-        buttons.opsDecision.disabled = !canDecide;
-        buttons.opsComplete.disabled = !canComplete;
+        if (opsRevisionLaunchBtn) {
+          opsRevisionLaunchBtn.disabled = !canProcess;
+        }
+        if (opsDecisionLaunchBtn) {
+          opsDecisionLaunchBtn.disabled = !canProcess;
+        }
+        if (!canProcess) {
+          closeOpsRevisionModal();
+          closeOpsDecisionModal();
+        }
+        if (opsStatusBannerSub) {
+          opsStatusBannerSub.textContent = canProcess
+            ? "Заявка доступна для решения ОПС. Можно вернуть на доработку или принять итоговое решение."
+            : "Заявка уже обработана. Просмотр доступен в режиме чтения.";
+        }
+        updatePageChrome();
       }
 
       async function fetchApplicationHistory(applicationId) {
@@ -5356,18 +6835,29 @@
         setApplicantActionsVisible(currentFormMode === "applicant" && currentApplicantCanEdit);
         setApplicantActionButtonsEnabled(currentFormMode === "applicant" && currentApplicantCanEdit);
         setApplicationProgressVisible(currentFormMode === "applicant" && Boolean(currentApplicationId));
+        setApplicantCommentVisible(currentFormMode === "applicant" && !applicantCommentSection?.classList.contains("is-hidden"));
+        setOpsStatusBannerVisible(currentFormMode === "ops" && Boolean(currentApplicationId));
+        setOpsHistoryVisible(currentFormMode === "ops" && Boolean(currentApplicationId));
         if (currentFormMode === "applicant") {
           buttons.next.textContent = currentApplicantCanEdit ? "Сохранить и продолжить" : "Следующий шаг";
-          applicationProgressStatusValue.textContent = status || "-";
+          setStatusText(applicationProgressStatusValue, status, "application");
         }
       }
 
       function applyApplicationToForm(application) {
         currentApplicationId = Number(application.id);
+        currentApplicationApplicantSubject = application.applicant_subject || null;
         applyPayload(application.payload || {});
         setStatusChip(application.status || "DRAFT");
         renderProcessByStatus(application.status || "DRAFT");
-        opsStatusValue.textContent = application.status || "-";
+        if (opsStatusValue) {
+          opsStatusValue.innerHTML = "";
+          opsStatusValue.appendChild(createStatusBadge(application.status || "DRAFT", "application"));
+        }
+        if (opsStatusBannerValue) {
+          opsStatusBannerValue.innerHTML = "";
+          opsStatusBannerValue.appendChild(createStatusBadge(application.status || "DRAFT", "application"));
+        }
         updateHeaderMeta();
       }
 
@@ -5376,9 +6866,11 @@
         const application = await callApi("GET", `/applications/${applicationId}`);
         const historyItems = await fetchApplicationHistory(applicationId);
         currentOpsApplication = null;
+        currentApplicationHistory = historyItems;
         currentStep = 0;
         applyApplicationToForm(application);
         renderHistoryList(applicationHistoryList, historyItems, "История переходов пока отсутствует.");
+        setApplicantOpsComment(resolveLatestOpsComment(historyItems));
         applyApplicantFormAccess(application.status || "DRAFT");
         if (currentApplicantCanEdit) {
           localStorage.setItem(config.draftStorageKey, String(application.id));
@@ -5400,6 +6892,7 @@
         currentOpsApplication = application;
         applyApplicationToForm(application);
         const historyItems = await fetchApplicationHistory(applicationId);
+        currentApplicationHistory = historyItems;
         renderOpsHistory(historyItems);
         applyOpsActionAvailability(application.status);
         setFormDirty(false);
@@ -5415,7 +6908,9 @@
         currentOpsApplication = response;
         applyApplicationToForm(response);
         const historyItems = await fetchApplicationHistory(currentApplicationId);
+        currentApplicationHistory = historyItems;
         renderOpsHistory(historyItems);
+        setApplicantOpsComment(resolveLatestOpsComment(historyItems));
         applyOpsActionAvailability(response.status);
         await loadOpsRegistry();
         return response;
@@ -5434,11 +6929,12 @@
         });
       }
 
-      async function attachProtocolForCurrentApplication() {
-        if (!opsProtocolFile.files || !opsProtocolFile.files[0]) {
-          throw new Error("Выберите файл протокола перед прикреплением");
+      async function applyOpsDecision(decisionStatus) {
+        requireCurrentOpsApplication();
+        if (!selectedOpsProtocolFile) {
+          throw new Error("Сначала выберите файл протокола");
         }
-        const file = opsProtocolFile.files[0];
+        const file = selectedOpsProtocolFile;
         const contentBase64 = await fileToBase64(file);
         const uploadMeta = await callApi("POST", "/files/slots/upload", {
           application_id: currentApplicationId,
@@ -5447,21 +6943,28 @@
           content_base64: contentBase64,
           content_type: file.type || "application/octet-stream",
         });
-        const attached = await callApi("POST", `/applications/${currentApplicationId}/protocol/attach`, {
-          slot: uploadMeta.slot,
-          object_key: uploadMeta.object_key,
-          file_name: uploadMeta.file_name,
-          content_type: uploadMeta.content_type,
-          size_bytes: uploadMeta.size_bytes,
-          etag: uploadMeta.etag || null,
+        const updated = await callApi("POST", `/applications/${currentApplicationId}/ops-decision`, {
+          decision_status: decisionStatus,
+          comment: getValue("opsDecisionComment") || null,
+          protocol: {
+            slot: uploadMeta.slot,
+            object_key: uploadMeta.object_key,
+            file_name: uploadMeta.file_name,
+            content_type: uploadMeta.content_type,
+            size_bytes: uploadMeta.size_bytes,
+            etag: uploadMeta.etag || null,
+          },
         });
-        currentOpsApplication = attached;
-        applyApplicationToForm(attached);
+        currentOpsApplication = updated;
+        applyApplicationToForm(updated);
         const historyItems = await fetchApplicationHistory(currentApplicationId);
+        currentApplicationHistory = historyItems;
         renderOpsHistory(historyItems);
-        applyOpsActionAvailability(attached.status);
+        setApplicantOpsComment(resolveLatestOpsComment(historyItems));
+        applyOpsActionAvailability(updated.status);
         await loadOpsRegistry();
-        writeOutput("Протокол прикреплен", attached);
+        closeOpsDecisionModal();
+        writeOutput(decisionStatus === "APPROVED" ? "Решение ОПС: Одобрено" : "Решение ОПС: Отказ", updated);
       }
 
       function resetWizardForm() {
@@ -5491,11 +6994,24 @@
         currentStep = 0;
         setFormDirty(false);
         renderProcessByStatus("DRAFT");
-        opsStatusValue.textContent = "-";
+        currentApplicationHistory = [];
+        currentApplicationApplicantSubject = null;
+        setApplicantOpsComment(null);
+        setApplicantCommentVisible(false);
+        setOpsStatusBannerVisible(false);
+        if (opsStatusValue) {
+          opsStatusValue.textContent = "-";
+        }
+        if (opsStatusBannerValue) {
+          opsStatusBannerValue.textContent = "-";
+        }
         opsHistoryList.textContent = "";
         applicationProgressStatusValue.textContent = "-";
         applicationHistoryList.textContent = "";
         currentOpsApplication = null;
+        resetOpsDecisionDraft();
+        closeOpsRevisionModal();
+        closeOpsDecisionModal();
         currentApplicantCanEdit = true;
         renderStep();
       }
@@ -5526,6 +7042,7 @@
         setApplicantActionButtonsEnabled(false);
         setOpsActionsVisible(false);
         setApplicationProgressVisible(false);
+        setOpsHistoryVisible(false);
         setOpsButtonsEnabled(false);
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = true;
@@ -5543,8 +7060,8 @@
         resetPostIssuanceForm();
         setApplicantHomePresentation("services");
         setActiveMenu("home");
-        pageEyebrow.textContent = "Сервисы заявителя";
-        pageTitle.textContent = "Государственные услуги онлайн";
+        pageEyebrow.textContent = "Раздел модулей";
+        pageTitle.textContent = "Модули";
         setBreadcrumb([]);
         shellContainer.classList.add("single-column");
         sidebarPanel.classList.add("is-hidden");
@@ -5559,6 +7076,7 @@
         setApplicantActionButtonsEnabled(false);
         setOpsActionsVisible(false);
         setApplicationProgressVisible(false);
+        setOpsHistoryVisible(false);
         setOpsButtonsEnabled(false);
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = true;
@@ -5592,6 +7110,7 @@
         setApplicantActionButtonsEnabled(false);
         setOpsActionsVisible(false);
         setApplicationProgressVisible(false);
+        setOpsHistoryVisible(false);
         setOpsButtonsEnabled(false);
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = true;
@@ -5643,8 +7162,11 @@
           setActiveMenu("conformity");
           pageEyebrow.textContent = "Модуль заявителя";
           pageTitle.textContent = APPLICANT_CONFORMITY_TITLE;
-          setBreadcrumb([APPLICANT_CONFORMITY_TITLE, service ? service.title : "Сервис"]);
-          applicationsRegistryTitle.textContent = service ? service.title : "Реестр моих заявок";
+          setBreadcrumb([
+            { label: "Главная", action: () => showApplicantHomeView() },
+            { label: APPLICANT_CONFORMITY_TITLE, action: () => showConformityModuleView() },
+            { label: service ? service.title : "Сервис" },
+          ]);
           applicationsRegistrySub.textContent =
             "Текущий реализованный список ваших заявок по выбранному сервису оценки соответствия.";
         } else {
@@ -5652,7 +7174,6 @@
           pageEyebrow.textContent = "Раздел заявок";
           pageTitle.textContent = "Заявки";
           setBreadcrumb([]);
-          applicationsRegistryTitle.textContent = "Реестр моих заявок";
           applicationsRegistrySub.textContent =
             "Список заявок текущего пользователя с переходом в просмотр или продолжение заполнения.";
         }
@@ -5669,6 +7190,7 @@
         setApplicantActionButtonsEnabled(false);
         setOpsActionsVisible(false);
         setApplicationProgressVisible(false);
+        setOpsHistoryVisible(false);
         setOpsButtonsEnabled(false);
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = false;
@@ -5683,7 +7205,7 @@
         currentApplicationId = null;
         resetPostIssuanceForm();
         setActiveMenu("applications");
-        pageEyebrow.textContent = "Раздел заявок ОПС";
+        pageEyebrow.textContent = "Раздел заявок";
         pageTitle.textContent = "Реестр заявок заявителей";
         setBreadcrumb([]);
         shellContainer.classList.add("single-column");
@@ -5698,6 +7220,7 @@
         setApplicantActionButtonsEnabled(false);
         setOpsActionsVisible(false);
         setApplicationProgressVisible(false);
+        setOpsHistoryVisible(false);
         setOpsButtonsEnabled(false);
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = true;
@@ -5707,7 +7230,7 @@
 
       function showCertificatesRegistryView() {
         currentView = "cert-registry";
-        currentFormMode = "applicant";
+        currentFormMode = isOpsUser() ? "ops" : "applicant";
         currentOpsApplication = null;
         currentApplicationId = null;
         setActiveMenu("certificates");
@@ -5726,12 +7249,35 @@
         setApplicantActionButtonsEnabled(false);
         setOpsActionsVisible(false);
         setApplicationProgressVisible(false);
+        setOpsHistoryVisible(false);
         setOpsButtonsEnabled(false);
         setFormButtonsEnabled(false);
         buttons.createApplication.disabled = true;
         if (!currentPostIssuanceApplication) {
           resetPostIssuanceForm();
         }
+        if (certificatesRegistryNote) {
+          certificatesRegistryNote.textContent = isOpsUser()
+            ? "Внутренний реестр сертификатов и очередь заявок на прекращение или приостановление сертификатов."
+            : "Внутренний реестр сертификатов и ваши заявки на прекращение или приостановление сертификатов.";
+        }
+        if (postIssuanceQueueSub) {
+          postIssuanceQueueSub.textContent = isOpsUser()
+            ? "Рабочая очередь ОПС по прекращению и приостановлению сертификатов."
+            : "Ваши заявки на прекращение и приостановление сертификатов.";
+        }
+        if (certificatesTabs) {
+          certificatesTabs.classList.remove("is-hidden");
+        }
+        if (certificatesTabPostIssuance) {
+          certificatesTabPostIssuance.textContent = isOpsUser()
+            ? "Заявки на прекращение и приостановление"
+            : "Мои заявки на прекращение и приостановление";
+        }
+        if (certificatesTabRegistry) {
+          certificatesTabRegistry.textContent = "Реестр сертификатов";
+        }
+        showCertificatesTab(currentCertificatesTab);
         updateHeaderMeta();
         updatePageChrome();
       }
@@ -5742,9 +7288,12 @@
         resetPostIssuanceForm();
         if (currentFormMode === "ops") {
           setActiveMenu("applications");
-          pageEyebrow.textContent = "Раздел заявок ОПС";
-          pageTitle.textContent = "Проверка и решение по заявке";
-          setBreadcrumb([]);
+          pageEyebrow.textContent = "Раздел заявок";
+          pageTitle.textContent = "Реестр заявок заявителей";
+          setBreadcrumb([
+            { label: "Заявки", action: () => handleBackNavigation() },
+            { label: "Заявка" },
+          ]);
           buttons.next.textContent = "Следующий шаг";
         } else {
           ensureApplicantServiceContext();
@@ -5752,24 +7301,52 @@
           setActiveMenu("conformity");
           pageEyebrow.textContent = "Модуль заявителя";
           pageTitle.textContent = APPLICANT_CONFORMITY_TITLE;
-          setBreadcrumb([APPLICANT_CONFORMITY_TITLE, service ? service.title : "Сервис"]);
+          setBreadcrumb([
+            { label: "Главная", action: () => {
+              if (!discardUnsavedApplicantDraftIfNeeded()) {
+                return;
+              }
+              showApplicantHomeView();
+            } },
+            { label: APPLICANT_CONFORMITY_TITLE, action: () => {
+              if (!discardUnsavedApplicantDraftIfNeeded()) {
+                return;
+              }
+              showConformityModuleView();
+            } },
+            { label: service ? service.title : "Сервис", action: () => handleBackNavigation() },
+            { label: currentApplicationId ? "Заявка" : "Новая заявка" },
+          ]);
           buttons.next.textContent = "Сохранить и продолжить";
         }
-        shellContainer.classList.remove("single-column");
-        sidebarPanel.classList.remove("is-hidden");
+        shellContainer.classList.toggle("single-column", currentFormMode === "ops");
+        shellContainer.classList.toggle("form-shell", currentFormMode === "applicant");
+        sidebarPanel.classList.toggle("is-hidden", currentFormMode === "ops");
+        if (processFlow) {
+          processFlow.classList.toggle("is-hidden", currentFormMode === "ops");
+        }
+        formView.classList.toggle("ops-review-mode", currentFormMode === "ops");
+        if (applicationActionBar) {
+          applicationActionBar.classList.toggle("is-hidden", currentFormMode === "ops");
+        }
         resetApplicantModuleViews();
         cabinetView.classList.add("is-hidden");
         registryView.classList.add("is-hidden");
         opsRegistryView.classList.add("is-hidden");
         certificatesRegistryView.classList.add("is-hidden");
         formView.classList.remove("is-hidden");
-        setOpsActionsVisible(currentFormMode === "ops");
+        setOpsActionsVisible(currentFormMode === "ops" && normalizeStatus(currentApplicationStatus) === "SUBMITTED");
         setFormButtonsEnabled(true);
         setOpsButtonsEnabled(currentFormMode === "ops");
-        applyApplicantFormAccess(statusChip.textContent || "DRAFT");
+        applyApplicantFormAccess(currentApplicationStatus || "DRAFT");
         if (currentFormMode === "ops" && currentOpsApplication) {
           applyOpsActionAvailability(currentOpsApplication.status);
-          opsStatusValue.textContent = currentOpsApplication.status || "-";
+          opsStatusValue.innerHTML = "";
+          opsStatusValue.appendChild(createStatusBadge(currentOpsApplication.status || "-", "application"));
+          if (opsStatusBannerValue) {
+            opsStatusBannerValue.innerHTML = "";
+            opsStatusBannerValue.appendChild(createStatusBadge(currentOpsApplication.status || "-", "application"));
+          }
         }
         buttons.createApplication.disabled = true;
         renderStep();
@@ -6532,6 +8109,25 @@
         await loginWithOidc();
       }
 
+      function humanizeApiErrorDetail(detail) {
+        const raw =
+          typeof detail === "string"
+            ? detail
+            : detail && typeof detail === "object" && typeof detail.message === "string"
+              ? detail.message
+              : "";
+        if (raw.includes("There is already an active post-issuance process for this certificate")) {
+          return "Для этого сертификата уже есть активная заявка на прекращение или приостановление. Откройте ее в списке заявок ниже.";
+        }
+        if (raw.includes("Certificate was not found")) {
+          return "Сертификат не найден.";
+        }
+        if (raw.includes("Access denied for this certificate")) {
+          return "Нет доступа к этому сертификату.";
+        }
+        return raw;
+      }
+
       async function callApi(method, path, body) {
         if (!oidcSession.authenticated || !oidcSession.token) {
           throw new Error("Сначала выполните вход через Keycloak");
@@ -6553,10 +8149,47 @@
 
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
-          const message = payload && payload.detail ? JSON.stringify(payload.detail) : response.statusText;
+          const humanized = payload && payload.detail ? humanizeApiErrorDetail(payload.detail) : "";
+          const message = humanized || (payload && payload.detail ? JSON.stringify(payload.detail) : response.statusText);
           throw new Error(`${response.status} ${message}`);
         }
         return payload;
+      }
+
+      async function downloadCertificateFile(certificateId) {
+        if (!oidcSession.authenticated || !oidcSession.token) {
+          throw new Error("Сначала выполните вход через Keycloak");
+        }
+        await refreshAccessToken(30);
+        if (!oidcSession.token) {
+          throw new Error("Сессия истекла. Выполните вход повторно.");
+        }
+        const response = await fetch(`${config.apiBase}/certificates/${certificateId}/download`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${oidcSession.token}`,
+            Accept: "application/pdf",
+          },
+        });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          const humanized = payload && payload.detail ? humanizeApiErrorDetail(payload.detail) : "";
+          const message = humanized || (payload && payload.detail ? JSON.stringify(payload.detail) : response.statusText);
+          throw new Error(`${response.status} ${message}`);
+        }
+        const blob = await response.blob();
+        const objectUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const disposition = response.headers.get("Content-Disposition") || "";
+        const fileNameMatch = disposition.match(/filename=\"?([^\";]+)\"?/i);
+        link.href = objectUrl;
+        link.download = fileNameMatch && fileNameMatch[1] ? fileNameMatch[1] : `certificate-${certificateId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => {
+          window.URL.revokeObjectURL(objectUrl);
+        }, 1000);
       }
 
       async function saveCabinetProfile() {
@@ -6662,25 +8295,26 @@
         showRegistryView();
       }
 
-      async function deleteDraft() {
-        ensureApplicantEditable();
-        if (!currentApplicationId) {
-          writeOutput("Удаление черновика", "Черновик еще не создан.");
-          return;
+      async function deleteDraftById(applicationId) {
+        ensureApplicantAccess();
+        if (!applicationId) {
+          throw new Error("Не удалось определить черновик для удаления");
         }
-        const confirmDelete = window.confirm("Удалить текущий черновик? Заявка перейдет в ARCHIVED.");
+        const confirmDelete = window.confirm("Удалить выбранный черновик? Заявка перейдет в ARCHIVED.");
         if (!confirmDelete) {
           return;
         }
-        const deleted = await callApi("DELETE", `/applications/${currentApplicationId}/draft`);
-        setStatusChip(deleted.status || "ARCHIVED");
-        renderProcessByStatus(deleted.status || "ARCHIVED");
-        setFormDirty(false);
-        currentApplicationId = null;
-        localStorage.removeItem(config.draftStorageKey);
-        writeOutput("Черновик удален", deleted);
+        const deleted = await callApi("DELETE", `/applications/${applicationId}/draft`);
+        if (currentApplicationId === applicationId) {
+          setStatusChip(deleted.status || "ARCHIVED");
+          renderProcessByStatus(deleted.status || "ARCHIVED");
+          setFormDirty(false);
+          currentApplicationId = null;
+          localStorage.removeItem(config.draftStorageKey);
+        }
         await loadApplicationsRegistry();
         showRegistryView();
+        writeOutput("Черновик удален", deleted);
       }
 
       function requireCurrentOpsApplication() {
@@ -6689,57 +8323,16 @@
         }
       }
 
-      async function opsAcceptForReview() {
-        ensureOpsAccess();
-        requireCurrentOpsApplication();
-        const comment = getValue("opsComment");
-        const status = normalizeStatus(currentOpsApplication.status);
-        if (status === "SUBMITTED") {
-          await transitionCurrentApplication("REGISTERED", comment || "Заявка зарегистрирована");
-        }
-        const nextStatus = normalizeStatus(currentOpsApplication.status);
-        if (nextStatus === "REGISTERED" || nextStatus === "REVISION_REQUESTED") {
-          const updated = await transitionCurrentApplication("IN_REVIEW", comment || "Заявка принята в проверку");
-          writeOutput("Проверка ОПС", updated);
-          return;
-        }
-        throw new Error(`Действие 'Принять' недоступно для статуса ${currentOpsApplication.status}`);
-      }
-
       async function opsReturnForRevision() {
         ensureOpsAccess();
         requireCurrentOpsApplication();
-        const comment = getValue("opsComment");
-        const updated = await transitionCurrentApplication("REVISION_REQUESTED", comment || "Возврат на доработку");
+        const comment = getValue("opsRevisionComment").trim();
+        if (!comment) {
+          throw new Error("Комментарий ОПС обязателен для возврата на доработку");
+        }
+        const updated = await transitionCurrentApplication("REVISION_REQUESTED", comment);
+        closeOpsRevisionModal();
         writeOutput("Проверка ОПС", updated);
-      }
-
-      async function opsTakeDecision() {
-        ensureOpsAccess();
-        requireCurrentOpsApplication();
-        const toStatus = normalizeStatus(opsDecisionSelect.value);
-        if (toStatus !== "APPROVED" && toStatus !== "REJECTED") {
-          throw new Error("Выберите корректное решение: APPROVED или REJECTED");
-        }
-        const comment = getValue("opsComment");
-        const updated = await transitionCurrentApplication(toStatus, comment || null);
-        if (toStatus === "APPROVED") {
-          let certificate = updated.certificate || null;
-          if (!certificate) {
-            certificate = await callApi("GET", `/certificates/by-application/${currentApplicationId}`);
-          }
-          writeOutput("Решение ОПС: Одобрено", { application: updated, certificate });
-          return;
-        }
-        writeOutput("Решение ОПС: Отказ", updated);
-      }
-
-      async function opsCompleteApplication() {
-        ensureOpsAccess();
-        requireCurrentOpsApplication();
-        const comment = getValue("opsComment");
-        const updated = await transitionCurrentApplication("COMPLETED", comment || "Заявка завершена ОПС");
-        writeOutput("Заявка завершена", updated);
       }
 
       async function loadExistingDraftFromStorage() {
@@ -6771,7 +8364,6 @@
 
       function renderAuthState() {
         if (!authReady) {
-          authState.textContent = "проверка сессии";
           currentProfile = null;
           username.textContent = "-";
           roles.textContent = "-";
@@ -6786,7 +8378,6 @@
         }
 
         if (!oidcSession.authenticated || !oidcSession.tokenParsed) {
-          authState.textContent = "не авторизован";
           currentProfile = null;
           username.textContent = "-";
           roles.textContent = "-";
@@ -6802,7 +8393,6 @@
 
         const parsed = oidcSession.tokenParsed || {};
         const realmRoles = getCurrentRealmRoles();
-        authState.textContent = "авторизован";
         username.textContent = parsed.preferred_username || parsed.sub || "-";
         roles.textContent = realmRoles.length ? realmRoles.join(", ") : "-";
         buttons.login.disabled = true;
@@ -6942,9 +8532,7 @@
         if (oidcSession.authenticated && isOpsUser()) {
           try {
             await loadCurrentProfile();
-            if (parsedIntent.type === postLoginDestinations.cabinet) {
-              showCabinetView("profile");
-            } else if (parsedIntent.type === postLoginDestinations.certificates) {
+            if (parsedIntent.type === postLoginDestinations.certificates) {
               await refreshCertificatesWorkspace();
               showCertificatesRegistryView();
             } else {
@@ -6971,12 +8559,6 @@
           await navigateApplicantModule(target);
           return;
         }
-
-        if (target === "home") {
-          await refreshCabinetWorkspace();
-          showCabinetView("profile");
-          return;
-        }
         if (target === "applications") {
           await loadOpsRegistry();
           showOpsRegistryView();
@@ -6985,10 +8567,6 @@
         if (target === "certificates") {
           await refreshCertificatesWorkspace();
           showCertificatesRegistryView();
-          return;
-        }
-        if (target === "dictionaries") {
-          writeOutput("Справочники", "CRUD-экран справочников не входит в MVP текущего этапа.");
           return;
         }
         throw new Error("Недостаточно прав для выбранного раздела");
@@ -7044,101 +8622,47 @@
         }
       });
 
-      buttons.backToRegistry.addEventListener("click", async () => {
-        try {
-          if (currentFormMode === "ops") {
-            await loadOpsRegistry();
-            showOpsRegistryView();
-            writeOutput("Реестр заявок ОПС", "Открыт список заявок для обработки ОПС.");
-            return;
+      if (opsRevisionSubmitBtn) {
+        opsRevisionSubmitBtn.addEventListener("click", async () => {
+          try {
+            await opsReturnForRevision();
+          } catch (error) {
+            writeOutput("Ошибка действия 'На доработку'", {
+              message: error instanceof Error ? error.message : String(error),
+            });
           }
-          if (!currentApplicationId && formDirty) {
-            const confirmed = window.confirm(
-              "Заявка еще не сохранена. При возврате в реестр введенные данные будут потеряны. Продолжить?",
-            );
-            if (!confirmed) {
-              return;
-            }
-            resetWizardForm();
-            setStatusChip("DRAFT");
-            currentApplicationId = null;
-            localStorage.removeItem(config.draftStorageKey);
+        });
+      }
+
+      if (buttons.opsApprove) {
+        buttons.opsApprove.addEventListener("click", async () => {
+          try {
+            await applyOpsDecision("APPROVED");
+          } catch (error) {
+            writeOutput("Ошибка принятия решения", {
+              message: error instanceof Error ? error.message : String(error),
+            });
           }
-          await loadApplicationsRegistry();
-          showRegistryView();
-          writeOutput("Реестр заявок", "Открыт список заявок текущего пользователя.");
-        } catch (error) {
-          writeOutput("Ошибка загрузки реестра", {
-            message: error instanceof Error ? error.message : String(error),
-          });
-        }
-      });
+        });
+      }
 
-      buttons.opsAccept.addEventListener("click", async () => {
-        try {
-          await opsAcceptForReview();
-        } catch (error) {
-          writeOutput("Ошибка действия 'Принять'", {
-            message: error instanceof Error ? error.message : String(error),
-          });
-        }
-      });
-
-      buttons.opsRevision.addEventListener("click", async () => {
-        try {
-          await opsReturnForRevision();
-        } catch (error) {
-          writeOutput("Ошибка действия 'На доработку'", {
-            message: error instanceof Error ? error.message : String(error),
-          });
-        }
-      });
-
-      buttons.opsAttachProtocol.addEventListener("click", async () => {
-        try {
-          await attachProtocolForCurrentApplication();
-        } catch (error) {
-          writeOutput("Ошибка прикрепления протокола", {
-            message: error instanceof Error ? error.message : String(error),
-          });
-        }
-      });
-
-      buttons.opsDecision.addEventListener("click", async () => {
-        try {
-          await opsTakeDecision();
-        } catch (error) {
-          writeOutput("Ошибка принятия решения", {
-            message: error instanceof Error ? error.message : String(error),
-          });
-        }
-      });
-
-      buttons.opsComplete.addEventListener("click", async () => {
-        try {
-          await opsCompleteApplication();
-        } catch (error) {
-          writeOutput("Ошибка завершения заявки", {
-            message: error instanceof Error ? error.message : String(error),
-          });
-        }
-      });
+      if (buttons.opsReject) {
+        buttons.opsReject.addEventListener("click", async () => {
+          try {
+            await applyOpsDecision("REJECTED");
+          } catch (error) {
+            writeOutput("Ошибка отказа по заявке", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        });
+      }
 
       buttons.submit.addEventListener("click", async () => {
         try {
           await submitApplication();
         } catch (error) {
           writeOutput("Ошибка отправки заявки", {
-            message: error instanceof Error ? error.message : String(error),
-          });
-        }
-      });
-
-      buttons.deleteDraft.addEventListener("click", async () => {
-        try {
-          await deleteDraft();
-        } catch (error) {
-          writeOutput("Ошибка удаления черновика", {
             message: error instanceof Error ? error.message : String(error),
           });
         }
@@ -7159,8 +8683,38 @@
       }
 
       if (headerAccountBtn) {
-        headerAccountBtn.addEventListener("click", async () => {
+        headerAccountBtn.addEventListener("click", (event) => {
+          event.preventDefault();
+          const nextState = !headerAccount.classList.contains("is-open");
+          setHeaderAccountMenuOpen(nextState);
+        });
+      }
+
+      if (headerAccount) {
+        headerAccount.addEventListener("mouseenter", () => {
+          setHeaderAccountMenuOpen(true);
+        });
+
+        headerAccount.addEventListener("mouseleave", () => {
+          setHeaderAccountMenuOpen(false);
+        });
+
+        headerAccount.addEventListener("focusin", () => {
+          setHeaderAccountMenuOpen(true);
+        });
+
+        headerAccount.addEventListener("focusout", (event) => {
+          if (headerAccount.contains(event.relatedTarget)) {
+            return;
+          }
+          setHeaderAccountMenuOpen(false);
+        });
+      }
+
+      if (headerCabinetLink) {
+        headerCabinetLink.addEventListener("click", async () => {
           try {
+            setHeaderAccountMenuOpen(false);
             await refreshCabinetWorkspace();
             showCabinetView("profile");
           } catch (error) {
@@ -7171,8 +8725,21 @@
         });
       }
 
-      if (headerBackBtn) {
-        headerBackBtn.addEventListener("click", async () => {
+      if (headerLogoutLink) {
+        headerLogoutLink.addEventListener("click", async () => {
+          if (!oidcSession.authenticated) {
+            return;
+          }
+          setHeaderAccountMenuOpen(false);
+          currentProfile = null;
+          currentView = "public-home";
+          resetPostIssuanceForm();
+          await logoutFromOidc();
+        });
+      }
+
+      if (contentBackBtn) {
+        contentBackBtn.addEventListener("click", async () => {
           try {
             await handleBackNavigation();
           } catch (error) {
@@ -7180,6 +8747,71 @@
               message: error instanceof Error ? error.message : String(error),
             });
           }
+        });
+      }
+
+      if (opsRevisionLaunchBtn) {
+        opsRevisionLaunchBtn.addEventListener("click", () => {
+          openOpsRevisionModal();
+        });
+      }
+
+      if (opsDecisionLaunchBtn) {
+        opsDecisionLaunchBtn.addEventListener("click", () => {
+          openOpsDecisionModal();
+        });
+      }
+
+      if (opsRevisionModalClose) {
+        opsRevisionModalClose.addEventListener("click", () => {
+          closeOpsRevisionModal();
+        });
+      }
+
+      if (opsRevisionCancelBtn) {
+        opsRevisionCancelBtn.addEventListener("click", () => {
+          closeOpsRevisionModal();
+        });
+      }
+
+      if (opsRevisionModal) {
+        opsRevisionModal.addEventListener("click", (event) => {
+          if (event.target === opsRevisionModal) {
+            closeOpsRevisionModal();
+          }
+        });
+      }
+
+      if (opsDecisionModalClose) {
+        opsDecisionModalClose.addEventListener("click", () => {
+          closeOpsDecisionModal();
+        });
+      }
+
+      if (opsDecisionCloseBtn) {
+        opsDecisionCloseBtn.addEventListener("click", () => {
+          closeOpsDecisionModal();
+        });
+      }
+
+      if (opsDecisionModal) {
+        opsDecisionModal.addEventListener("click", (event) => {
+          if (event.target === opsDecisionModal) {
+            closeOpsDecisionModal();
+          }
+        });
+      }
+
+      if (opsProtocolFile) {
+        opsProtocolFile.addEventListener("change", () => {
+          selectedOpsProtocolFile = opsProtocolFile.files && opsProtocolFile.files[0] ? opsProtocolFile.files[0] : null;
+          updateOpsDecisionUploadState();
+        });
+      }
+
+      if (publicRegistryLinkBtn) {
+        publicRegistryLinkBtn.addEventListener("click", () => {
+          window.location.assign("/public-registry.html");
         });
       }
 
@@ -7200,16 +8832,9 @@
       }
 
       if (homeRegistryBtn) {
-        homeRegistryBtn.addEventListener("click", async () => {
+        homeRegistryBtn.addEventListener("click", () => {
           try {
-            if (!oidcSession.authenticated) {
-              await beginLoginJourney(postLoginDestinations.certificates);
-              return;
-            }
-            await loadInternalCertificatesRegistry();
-            await loadPostIssuanceRegistry();
-            showCertificatesRegistryView();
-            writeOutput("Реестр сертификатов", "Открыт внутренний реестр сертификатов.");
+            window.location.assign("/public-registry.html");
           } catch (error) {
             writeOutput("Ошибка открытия реестра сертификатов", {
               message: error instanceof Error ? error.message : String(error),
@@ -7221,6 +8846,12 @@
       cabinetTabButtons.forEach((button) => {
         button.addEventListener("click", () => {
           showCabinetTab(button.dataset.cabinetTab || "profile");
+        });
+      });
+
+      certificatesTabButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          showCertificatesTab(button.dataset.certificatesTab || "registry");
         });
       });
 
@@ -7360,8 +8991,16 @@
       });
 
       piCloseBtn.addEventListener("click", () => {
-        resetPostIssuanceForm();
-        writeOutput("Post-issuance", "Форма приостановления / прекращения закрыта.");
+        closeCurrentPostIssuanceDetail().then(
+          () => {
+            writeOutput("Post-issuance", "Детали процесса закрыты.");
+          },
+          (error) => {
+            writeOutput("Ошибка закрытия post-issuance", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          },
+        );
       });
 
       piRefreshQueueBtn.addEventListener("click", async () => {
@@ -7374,6 +9013,54 @@
           });
         }
       });
+
+      if (piOpsTakeReviewBtn) {
+        piOpsTakeReviewBtn.addEventListener("click", async () => {
+          try {
+            await transitionPostIssuance(currentPostIssuanceId, "IN_REVIEW", "Заявка принята в работу ОПС");
+          } catch (error) {
+            writeOutput("Ошибка перевода post-issuance в работу", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        });
+      }
+
+      if (piOpsRevisionBtn) {
+        piOpsRevisionBtn.addEventListener("click", async () => {
+          try {
+            await transitionPostIssuance(currentPostIssuanceId, "REVISION_REQUESTED", "Требуется уточнение оснований");
+          } catch (error) {
+            writeOutput("Ошибка возврата post-issuance на доработку", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        });
+      }
+
+      if (piOpsApproveBtn) {
+        piOpsApproveBtn.addEventListener("click", async () => {
+          try {
+            await transitionPostIssuance(currentPostIssuanceId, "APPROVED", "Решение ОПС принято");
+          } catch (error) {
+            writeOutput("Ошибка одобрения post-issuance", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        });
+      }
+
+      if (piOpsRejectBtn) {
+        piOpsRejectBtn.addEventListener("click", async () => {
+          try {
+            await transitionPostIssuance(currentPostIssuanceId, "REJECTED", "Основания не подтверждены");
+          } catch (error) {
+            writeOutput("Ошибка отказа post-issuance", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        });
+      }
 
       const formInputs = Array.from(document.querySelectorAll("#sectionsWrap input, #sectionsWrap select, #sectionsWrap textarea"));
       formInputs.forEach((element) => {

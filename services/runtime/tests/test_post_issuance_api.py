@@ -365,6 +365,53 @@ class PostIssuanceApiTests(unittest.TestCase):
         )
         self.assertEqual(second.status_code, 409)
 
+    def test_delete_draft_archives_editable_post_issuance(self) -> None:
+        certificate_id = self._create_active_certificate()
+        created = self._client.post(
+            "/post-issuance/drafts",
+            json={"source_certificate_id": certificate_id, "action_type": "SUSPEND"},
+        )
+        self.assertEqual(created.status_code, 200)
+        application_id = created.json()["id"]
+
+        deleted = self._client.delete(f"/post-issuance/{application_id}/draft")
+        self.assertEqual(deleted.status_code, 200)
+        self.assertEqual(deleted.json()["status"], "ARCHIVED")
+
+        mine = self._client.get("/post-issuance/mine")
+        self.assertEqual(mine.status_code, 200)
+        archived = next(item for item in mine.json()["items"] if item["id"] == application_id)
+        self.assertEqual(archived["status"], "ARCHIVED")
+
+    def test_delete_submitted_post_issuance_returns_409(self) -> None:
+        certificate_id = self._create_active_certificate()
+        created = self._client.post(
+            "/post-issuance/drafts",
+            json={"source_certificate_id": certificate_id, "action_type": "SUSPEND"},
+        )
+        self.assertEqual(created.status_code, 200)
+        application_id = created.json()["id"]
+
+        self._client.put(
+            f"/post-issuance/{application_id}/draft",
+            json=self._prepare_payload(created.json()["payload"], "SUSPEND"),
+        )
+        self._client.post(
+            f"/post-issuance/{application_id}/basis/attach",
+            json={
+                "slot": "post_issuance_basis",
+                "object_key": f"post-issuance/{application_id}/post_issuance_basis/basis.pdf",
+                "file_name": "basis.pdf",
+                "content_type": "application/pdf",
+                "size_bytes": 1024,
+            },
+        )
+        submitted = self._client.post(f"/post-issuance/{application_id}/submit")
+        self.assertEqual(submitted.status_code, 200)
+
+        deleted = self._client.delete(f"/post-issuance/{application_id}/draft")
+        self.assertEqual(deleted.status_code, 409)
+
     def test_applicant_cannot_approve_post_issuance(self) -> None:
         certificate_id = self._create_active_certificate()
         created = self._client.post(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -36,6 +36,20 @@ def get_certificate(
     service: CertificateService = Depends(_get_service),
 ) -> dict[str, object]:
     return service.get_certificate(certificate_id=certificate_id, current_user=current_user)
+
+
+@router.get("/{certificate_id}/download")
+def download_certificate(
+    certificate_id: int,
+    current_user: CurrentUser = Depends(get_current_user),
+    service: CertificateService = Depends(_get_service),
+) -> Response:
+    pdf_bytes, file_name = service.download_certificate_pdf(certificate_id=certificate_id, current_user=current_user)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
+    )
 
 
 @router.post("/{certificate_id}/sign")

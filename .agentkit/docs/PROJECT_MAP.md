@@ -13,7 +13,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Репозиторий хранит процессный каркас AgentKit и базовую runtime-платформу e-КТРМ (MVP Phase 1) с приоритетом Ордер 3 -> Ордер 4 -> Ордер 5 (без возобновления).
 - Key user flows:
   - Applicant создает/отправляет заявку, OPS проверяет/возвращает/принимает решение, система формирует сертификат, OPS mock-подписывает, сертификат публикуется в реестр, далее доступны post-issuance действия.
-  - Публичный пользователь может открыть главный landing без авторизации, но переход в applicant-сервисы и внутренний реестр всегда проходит через OIDC login; после свежей авторизации Applicant открывается services hub с модульными карточками.
+  - Публичный пользователь может открыть главный landing без авторизации, но внутренние applicant/OPS сценарии всегда проходят через OIDC login; header CTA `Войти` ведет в личный кабинет, а intent от public CTA сохраняется: клик по модулю после login открывает сервисы модуля, клик по реестру открывает реестр сертификатов.
 - Tech stack:
   - Целевой: Angular SPA, Python/FastAPI микросервисы, PostgreSQL + SQLAlchemy/Alembic, Redis + Celery, MinIO, Keycloak, WebSocket, Docker Compose.
   - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`) + OPS review/protocol attachment API (`T6`) + baseline генерации сертификата/snapshot (`T7`) + mock-sign/publish и внутренний/публичный реестры (`T8`) + post-issuance suspend/terminate workflow и UI-очередь (`T9`).
@@ -71,6 +71,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Для T8 добавлены certificate/registry endpoint-ы: `POST /certificates/{id}/sign` (OPS mock-sign + auto publish), `GET /registry/internal` (role-aware visibility), `GET /registry/public` (read-only без авторизации).
   - Для T9 добавлены post-issuance endpoint-ы: `POST /post-issuance/drafts`, `PUT /post-issuance/{id}/draft`, `POST /post-issuance/{id}/submit`, `POST /post-issuance/{id}/transitions`, `POST /post-issuance/{id}/basis/attach`, `GET /post-issuance/mine`, `GET /post-issuance/ops/queue`.
   - Для T9 расширен files endpoint `/files/slots/upload`: поддерживается slot `post_issuance_basis` с таргетом `entity_kind=post_issuance`, при сохранении обратной совместимости для `application_id`.
+  - Для кабинета добавлены profile endpoint-ы: `GET /profile/me`, `PUT /profile/me`, `PUT /profile/me/avatar`, `DELETE /profile/me/avatar`.
 - Error handling strategy:
   - Frontend: пользовательские сообщения + field-level validation state.
   - Backend: структурированные ошибки с доменными кодами и без утечки чувствительных данных.
@@ -124,6 +125,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Реализован migration `20260305_0003` для baseline Ордер 4: `certificate`, `certificate_status_history`.
   - Реализован migration `20260305_0004` для T8: поля подписи/публикации сертификата + `certificate_registry_publication`.
   - Реализован migration `20260306_0005` для T9: таблицы `post_issuance_application`, `post_issuance_status_history` и системный флаг `certificate.is_dangerous_product`.
+  - Реализован migration `20260311_0006` для кабинета: таблица `user_profile` с локальными редактируемыми полями пользователя и avatar data URL для MVP.
   - После миграций bootstrap дополнительно запускает idempotent sync `python -m app.seed.reference_data_sync`, чтобы обновленные seed-справочники применялись к уже существующей локальной БД без отдельной migration.
   - Любые изменения схемы через отдельные migration tickets.
 - Rollback approach:
@@ -133,6 +135,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Applications: `cert_application`, `cert_application_status_history`.
   - Certificates: `certificate`, `certificate_status_history`, `certificate_registry_publication` (T8 baseline), `certificate_version` (planned in T10).
   - Post-issuance: `post_issuance_application`, `post_issuance_status_history`.
+  - User profile: `user_profile`.
   - Reference: `ref_*`, `ops_registry`, `accreditation_attestat`.
   - Infra/domain cross-cutting: `stored_file`, `notification`, `audit_log`, `field_audit_log`.
 
@@ -253,6 +256,17 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - PyJWT + Keycloak JWKS endpoint.
   - tests:
     - `services/runtime/tests/test_auth.py`.
+- `services/runtime/app/models/user_profile.py`, `repositories/user_profile_repository.py`, `services/user_profile_service.py`, `routers/profile.py` — локальный кабинет пользователя.
+  - public surface / key exports:
+    - `user_profile` хранит редактируемые contact/profile поля по `subject`, не меняя Keycloak claims;
+    - `GET /profile/me`, `PUT /profile/me`, `PUT /profile/me/avatar`, `DELETE /profile/me/avatar`.
+  - invariants / assumptions:
+    - identity/roles остаются в Keycloak/JWT, а кабинет хранит только локальные editable fields;
+    - avatar для MVP хранится как validated data URL в профиле, без отдельного object-download контракта.
+  - dependencies:
+    - `services/runtime/app/auth.py`, `services/runtime/app/db.py`.
+  - tests:
+    - `services/runtime/tests/test_profile_api.py`.
 - `services/runtime/alembic.ini` + `services/runtime/alembic/*` — миграции и seed-контракт reference-data слоя.
   - public surface / key exports:
     - revision `20260305_0001` (T3) создает таблицы `reference_dictionaries`, `reference_dictionary_items`, `ops_registry`, `accreditation_attestats`.
@@ -260,6 +274,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - revision `20260305_0003` (T7) создает таблицы `certificate` и `certificate_status_history` с инвариантом «одна `APPROVED` заявка -> один baseline сертификат».
     - revision `20260305_0004` (T8) добавляет `signed_by_subject`/`signed_at`/`published_at` в `certificate` и таблицу `certificate_registry_publication`.
     - revision `20260306_0005` (T9) добавляет `post_issuance_application`, `post_issuance_status_history` и флаг `certificate.is_dangerous_product`.
+    - revision `20260311_0006` добавляет `user_profile` для личного кабинета заявителя/ОПС.
   - invariants / assumptions:
     - первичный baseline seed остается в Alembic migration, а последующая синхронизация seed-данных для локальных окружений выполняется через `app.seed.reference_data_sync`.
   - dependencies:
@@ -422,6 +437,9 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - frontend runtime config больше не завязан на `localhost`: `authority` и `apiBase` берутся из env-generated `runtime-config.js`, а при необходимости могут быть явно переопределены через query/localStorage (`oidc_authority`, `api_base`, `oidc_client_id`) без правки HTML.
     - приоритет runtime config: `window.__EKTRM_RUNTIME_CONFIG__` (из env контейнера) -> query/localStorage override -> вычисление по host.
     - applicant default-экран: `Главная` с карточками модулей `Аккредитация`, `Государственный контроль`, `Метрология`, `Оценка соответствия`, `Стандартизация`; активен модуль `Оценка соответствия`, `Стандартизация` и остальные неподтвержденные модули отображаются disabled.
+    - header публичного landing теперь содержит явный CTA `Войти`; после авторизации вместо него показывается account block с display name, role label и круглой avatar-кнопкой, ведущей в личный кабинет.
+    - login intent стал явным: header login ведет в `Личный кабинет`, CTA модулей сохраняют `module/service` intent и после login открывают соответствующий applicant-контур, а CTA реестра открывает `Реестр сертификатов`.
+    - applicant/ops cabinet добавлен как отдельный view-state: для `Applicant` доступны вкладки `Профиль`, `История заявок`, `Сертификаты`, для `OPS` — только `Профиль`.
     - header для внутренних экранов переведен в single-entry navigation: верхнее меню скрыто, переходы выполняются из `Главная`, а на applicant/form/certificate view показывается кнопка `Назад` в верхнем левом углу; footer не затрагивается.
     - applicant shell для `Оценка соответствия`: root-экран с витриной сервисов, карточками в новом стиле и breadcrumb-навигацией `ОЦЕНКА СООТВЕТСТВИЯ / <сервис>`; из сервисов активен только `Сертификат соответствия продукции РК`.
     - сервис `Сертификат соответствия продукции РК`: полноширинный реестр заявок текущего пользователя с action `Открыть`/`Продолжить` и кнопкой `Подать новую заявку`; это тот же рабочий контур, ранее ошибочно размещенный под модулем `Стандартизация`.
@@ -590,6 +608,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-11 [applicant-cabinet-and-header-login] В `frontend/index.html` и runtime backend добавлен отдельный личный кабинет с profile API и `user_profile` migration: header CTA `Войти` теперь ведет в кабинет, account block в правом верхнем углу показывает display name/role/avatar, Applicant получает вкладки `Профиль`, `История заявок`, `Сертификаты`, OPS — только `Профиль`, а public login intents для модулей и реестра сохраняют post-login маршрут вместо безусловного перехода в общий services hub.
 - 2026-03-10 [font-size-system-normalization] В `frontend/index.html`, `frontend/public-registry.html` и `PROJECT_MAP.md` введен обязательный типографический контракт: все runtime `font-size` сведены к токенам `28 / 22 / 18 / 16 / 14 / 12 px`, а размеры `section/card/label/body/small` перераспределены по семантическим CSS-классам без изменения JS-связок и view-структуры.
 - 2026-03-10 [ops-menu-visibility-fix] В `frontend/index.html` исправлена навигация для роли `OPS`: header menu больше не остается скрытым целиком после входа и показывается только для `OPS`, тогда как applicant/public сценарии по-прежнему работают без верхнего меню.
 - 2026-03-10 [services-card-minimal-chrome] В `frontend/index.html` applicant-модульные и сервисные карточки упрощены до минимального состава: убраны буквенные иконки и верхние бейджи/теги, на карточках оставлены только заголовок, описание и action-button у модулей.

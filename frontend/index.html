@@ -129,6 +129,84 @@
         color: var(--text-muted);
       }
 
+      .header-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .header-login-btn {
+        min-width: 118px;
+      }
+
+      .header-account {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 10px 8px 14px;
+        border: 1px solid rgba(22, 77, 53, 0.16);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 10px 24px rgba(15, 54, 37, 0.08);
+      }
+
+      .header-account-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        min-width: 0;
+      }
+
+      .header-account-name {
+        max-width: 220px;
+        font-weight: 700;
+        color: var(--text-main);
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .header-account-role {
+        color: #95a397;
+        line-height: 1.2;
+      }
+
+      .header-avatar-btn,
+      .cabinet-avatar-preview {
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        border: 1px solid rgba(22, 77, 53, 0.16);
+        background: linear-gradient(160deg, #edf4ee 0%, #dceae0 100%);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--brand);
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+
+      .header-avatar-btn {
+        cursor: pointer;
+      }
+
+      .header-avatar-btn:hover {
+        border-color: var(--brand);
+      }
+
+      .header-avatar-icon,
+      .cabinet-avatar-icon {
+        font-size: 20px;
+      }
+
+      .header-avatar-image,
+      .cabinet-avatar-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
       .shell {
         max-width: 1320px;
         margin: 18px auto;
@@ -1266,6 +1344,132 @@
         color: var(--text-muted);
       }
 
+      .cabinet-shell {
+        display: grid;
+        gap: 18px;
+      }
+
+      .cabinet-summary {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        padding: 20px 22px;
+        border: 1px solid rgba(22, 77, 53, 0.12);
+        border-radius: 24px;
+        background:
+          radial-gradient(circle at right top, rgba(31, 107, 75, 0.14), transparent 34%),
+          linear-gradient(135deg, #fbfdfb 0%, #f0f7f2 100%);
+      }
+
+      .cabinet-summary-title {
+        font-size: var(--font-page-title-size);
+        font-weight: 700;
+        color: var(--text-main);
+      }
+
+      .cabinet-summary-sub {
+        margin-top: 6px;
+        color: var(--text-muted);
+      }
+
+      .cabinet-summary-meta {
+        margin-top: 14px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .cabinet-chip {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 7px 12px;
+        background: rgba(31, 107, 75, 0.08);
+        color: var(--brand);
+        font-weight: 700;
+      }
+
+      .cabinet-avatar {
+        display: grid;
+        gap: 12px;
+        justify-items: center;
+      }
+
+      .cabinet-avatar-preview {
+        width: 92px;
+        height: 92px;
+        border-width: 2px;
+      }
+
+      .cabinet-tabs {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .cabinet-tab {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 10px 16px;
+        background: #fff;
+        color: var(--text-muted);
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .cabinet-tab.active {
+        border-color: var(--brand);
+        background: var(--brand);
+        color: #fff;
+      }
+
+      .cabinet-panel {
+        padding: 20px 22px;
+        border: 1px solid rgba(22, 77, 53, 0.12);
+        border-radius: 24px;
+        background: #fff;
+      }
+
+      .cabinet-panel-head {
+        margin-bottom: 18px;
+      }
+
+      .cabinet-panel-title {
+        font-size: var(--font-section-title-size);
+        font-weight: 700;
+        color: var(--text-main);
+      }
+
+      .cabinet-panel-sub {
+        margin-top: 6px;
+        color: var(--text-muted);
+      }
+
+      .cabinet-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 16px;
+      }
+
+      .cabinet-form-grid .field.full {
+        grid-column: 1 / -1;
+      }
+
+      .cabinet-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+      }
+
+      .cabinet-empty {
+        border: 1px dashed var(--line);
+        border-radius: 18px;
+        padding: 18px;
+        color: var(--text-muted);
+        text-align: center;
+      }
+
       .section-head {
         padding: 18px 20px;
         border-bottom-color: var(--line);
@@ -2281,6 +2485,14 @@
           flex-direction: column;
         }
 
+        .cabinet-summary {
+          grid-template-columns: 1fr;
+        }
+
+        .cabinet-form-grid {
+          grid-template-columns: 1fr;
+        }
+
         .shell,
         .session-dock {
           padding-left: 16px;
@@ -2349,8 +2561,21 @@
           <span class="menu-item is-hidden" id="menuStandardization">Стандартизация</span>
         </nav>
         <div class="header-right">
-          <span>Ордер 3</span>
-          <span id="authState">не авторизован</span>
+          <div class="header-status" id="headerStatus">
+            <span>Ордер 3</span>
+            <span id="authState">не авторизован</span>
+          </div>
+          <button class="btn-primary header-login-btn" id="headerLoginBtn" type="button">Войти</button>
+          <div class="header-account is-hidden" id="headerAccount">
+            <div class="header-account-meta">
+              <div class="header-account-name" id="headerAccountName">-</div>
+              <div class="header-account-role" id="headerAccountRole">-</div>
+            </div>
+            <button class="header-avatar-btn" id="headerAccountBtn" type="button" aria-label="Открыть личный кабинет">
+              <img class="header-avatar-image is-hidden" id="headerAvatarImage" alt="Аватар пользователя" />
+              <span class="header-avatar-icon" id="headerAvatarIcon">&#128100;</span>
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -2686,6 +2911,135 @@
                 </div>
               </div>
             </section>
+          </section>
+
+          <section class="registry-view is-hidden" id="cabinetView">
+            <div class="cabinet-shell">
+              <section class="cabinet-summary">
+                <div>
+                  <div class="cabinet-summary-title">Личный кабинет</div>
+                  <div class="cabinet-summary-sub" id="cabinetSummarySub">
+                    Управление профилем, заявками и сертификатами текущего пользователя.
+                  </div>
+                  <div class="cabinet-summary-meta">
+                    <span class="cabinet-chip" id="cabinetSummaryRole">Роль: -</span>
+                    <span class="cabinet-chip" id="cabinetSummaryUsername">Аккаунт: -</span>
+                  </div>
+                </div>
+                <div class="cabinet-avatar">
+                  <div class="cabinet-avatar-preview">
+                    <img class="cabinet-avatar-image is-hidden" id="cabinetAvatarImage" alt="Аватар пользователя" />
+                    <span class="cabinet-avatar-icon" id="cabinetAvatarIcon">&#128100;</span>
+                  </div>
+                  <div class="landing-sub" id="cabinetAvatarCaption">Иконка профиля</div>
+                </div>
+              </section>
+
+              <div class="cabinet-tabs" id="cabinetTabs">
+                <button class="cabinet-tab active" id="cabinetTabProfile" type="button" data-cabinet-tab="profile">
+                  Профиль
+                </button>
+                <button class="cabinet-tab" id="cabinetTabHistory" type="button" data-cabinet-tab="history">
+                  История заявок
+                </button>
+                <button class="cabinet-tab" id="cabinetTabCertificates" type="button" data-cabinet-tab="certificates">
+                  Сертификаты
+                </button>
+              </div>
+
+              <section class="cabinet-panel" id="cabinetPanelProfile">
+                <div class="cabinet-panel-head">
+                  <div class="cabinet-panel-title">Редактируемая информация</div>
+                  <div class="cabinet-panel-sub">
+                    Телефон, адреса и контактные сведения хранятся в локальном профиле пользователя.
+                  </div>
+                </div>
+                <div class="cabinet-form-grid">
+                  <div class="field">
+                    <label for="cabinet_full_name">ФИО / наименование</label>
+                    <input id="cabinet_full_name" type="text" placeholder="Введите отображаемое имя" />
+                  </div>
+                  <div class="field">
+                    <label for="cabinet_email">E-mail</label>
+                    <input id="cabinet_email" type="email" placeholder="name@example.kz" />
+                  </div>
+                  <div class="field">
+                    <label for="cabinet_phone">Телефон</label>
+                    <input id="cabinet_phone" type="tel" placeholder="+7(___) ___ __ __" />
+                  </div>
+                  <div class="field">
+                    <label for="cabinet_username">Логин Keycloak</label>
+                    <input id="cabinet_username" type="text" readonly />
+                  </div>
+                  <div class="field full">
+                    <label for="cabinet_address">Юридический адрес</label>
+                    <input id="cabinet_address" type="text" placeholder="г. Алматы, ул. ..." />
+                  </div>
+                  <div class="field full">
+                    <label for="cabinet_actual_address">Фактический адрес</label>
+                    <input id="cabinet_actual_address" type="text" placeholder="При наличии" />
+                  </div>
+                </div>
+                <div class="cabinet-actions">
+                  <input class="is-hidden" id="cabinetAvatarInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+                  <button class="btn-secondary" id="cabinetAvatarUploadBtn" type="button">Изменить иконку</button>
+                  <button class="btn-secondary" id="cabinetAvatarResetBtn" type="button">Сбросить иконку</button>
+                  <button class="btn-primary" id="cabinetSaveBtn" type="button">Сохранить профиль</button>
+                </div>
+              </section>
+
+              <section class="cabinet-panel is-hidden" id="cabinetPanelHistory">
+                <div class="cabinet-panel-head">
+                  <div class="cabinet-panel-title">История заявок</div>
+                  <div class="cabinet-panel-sub">
+                    Ваши заявки и их текущий статус. Для роли ОПС этот раздел скрыт.
+                  </div>
+                </div>
+                <div class="registry-table-wrap">
+                  <table class="registry-table" aria-label="История заявок пользователя">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Номер заявки</th>
+                        <th>Статус</th>
+                        <th>Обновлено</th>
+                        <th>Действие</th>
+                      </tr>
+                    </thead>
+                    <tbody id="cabinetApplicationsBody"></tbody>
+                  </table>
+                  <div class="cabinet-empty is-hidden" id="cabinetApplicationsEmpty">
+                    История заявок пока пуста.
+                  </div>
+                </div>
+              </section>
+
+              <section class="cabinet-panel is-hidden" id="cabinetPanelCertificates">
+                <div class="cabinet-panel-head">
+                  <div class="cabinet-panel-title">Сертификаты пользователя</div>
+                  <div class="cabinet-panel-sub">
+                    Для заявителя отображаются его сертификаты и текущий статус по внутреннему реестру.
+                  </div>
+                </div>
+                <div class="registry-table-wrap">
+                  <table class="registry-table" aria-label="Сертификаты пользователя">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Номер сертификата</th>
+                        <th>Заявка</th>
+                        <th>Статус</th>
+                        <th>Опубликован</th>
+                      </tr>
+                    </thead>
+                    <tbody id="cabinetCertificatesBody"></tbody>
+                  </table>
+                  <div class="cabinet-empty is-hidden" id="cabinetCertificatesEmpty">
+                    Сертификаты пользователя пока отсутствуют.
+                  </div>
+                </div>
+              </section>
+            </div>
           </section>
 
           <section class="registry-view is-hidden" id="standardizationView">
@@ -3467,6 +3821,14 @@
       const output = document.getElementById("output");
       const appHeader = document.getElementById("appHeader");
       const shellContainer = document.getElementById("shellContainer");
+      const headerStatus = document.getElementById("headerStatus");
+      const headerLoginBtn = document.getElementById("headerLoginBtn");
+      const headerAccount = document.getElementById("headerAccount");
+      const headerAccountName = document.getElementById("headerAccountName");
+      const headerAccountRole = document.getElementById("headerAccountRole");
+      const headerAccountBtn = document.getElementById("headerAccountBtn");
+      const headerAvatarImage = document.getElementById("headerAvatarImage");
+      const headerAvatarIcon = document.getElementById("headerAvatarIcon");
       const authState = document.getElementById("authState");
       const pageHead = document.getElementById("pageHead");
       const pageEyebrow = document.getElementById("pageEyebrow");
@@ -3491,6 +3853,32 @@
       const applicantServicesSection = document.getElementById("applicantServicesSection");
       const applicantHomeSections = Array.from(applicantHomeView.querySelectorAll(".landing-section"));
       const applicantModuleCards = document.getElementById("applicantModuleCards");
+      const cabinetView = document.getElementById("cabinetView");
+      const cabinetSummarySub = document.getElementById("cabinetSummarySub");
+      const cabinetSummaryRole = document.getElementById("cabinetSummaryRole");
+      const cabinetSummaryUsername = document.getElementById("cabinetSummaryUsername");
+      const cabinetAvatarImage = document.getElementById("cabinetAvatarImage");
+      const cabinetAvatarIcon = document.getElementById("cabinetAvatarIcon");
+      const cabinetAvatarCaption = document.getElementById("cabinetAvatarCaption");
+      const cabinetTabs = document.getElementById("cabinetTabs");
+      const cabinetTabButtons = Array.from(document.querySelectorAll("[data-cabinet-tab]"));
+      const cabinetPanelProfile = document.getElementById("cabinetPanelProfile");
+      const cabinetPanelHistory = document.getElementById("cabinetPanelHistory");
+      const cabinetPanelCertificates = document.getElementById("cabinetPanelCertificates");
+      const cabinetApplicationsBody = document.getElementById("cabinetApplicationsBody");
+      const cabinetApplicationsEmpty = document.getElementById("cabinetApplicationsEmpty");
+      const cabinetCertificatesBody = document.getElementById("cabinetCertificatesBody");
+      const cabinetCertificatesEmpty = document.getElementById("cabinetCertificatesEmpty");
+      const cabinetFullNameInput = document.getElementById("cabinet_full_name");
+      const cabinetEmailInput = document.getElementById("cabinet_email");
+      const cabinetPhoneInput = document.getElementById("cabinet_phone");
+      const cabinetUsernameInput = document.getElementById("cabinet_username");
+      const cabinetAddressInput = document.getElementById("cabinet_address");
+      const cabinetActualAddressInput = document.getElementById("cabinet_actual_address");
+      const cabinetAvatarInput = document.getElementById("cabinetAvatarInput");
+      const cabinetAvatarUploadBtn = document.getElementById("cabinetAvatarUploadBtn");
+      const cabinetAvatarResetBtn = document.getElementById("cabinetAvatarResetBtn");
+      const cabinetSaveBtn = document.getElementById("cabinetSaveBtn");
       const conformityView = document.getElementById("standardizationView");
       const conformityServiceCards = document.getElementById("standardizationServiceCards");
       const registryView = document.getElementById("registryView");
@@ -3612,6 +4000,8 @@
       let currentApplicantCanEdit = true;
       let currentApplicantModule = "home";
       let currentApplicantService = null;
+      let currentProfile = null;
+      let currentCabinetTab = "profile";
       let sessionExpanded = false;
       let formDirty = false;
       let authReady = false;
@@ -3641,7 +4031,9 @@
         authIntent: "ektrm_oidc_auth_intent",
       };
       const postLoginDestinations = {
+        cabinet: "cabinet",
         applicantServices: "applicant-services",
+        certificates: "certificates",
       };
 
       function writeOutput(title, payload) {
@@ -3723,6 +4115,205 @@
         sessionPanelWrap.classList.toggle("is-hidden", !sessionExpanded);
         sessionToggleBtn.setAttribute("aria-expanded", sessionExpanded ? "true" : "false");
         sessionToggleIcon.innerHTML = sessionExpanded ? "&#9652;" : "&#9662;";
+      }
+
+      function resolvePrimaryRoleLabel() {
+        if (currentProfile && currentProfile.role_label) {
+          return currentProfile.role_label;
+        }
+        if (isOpsUser()) {
+          return "ОПС";
+        }
+        if (isApplicantUser()) {
+          return "Заявитель";
+        }
+        return "Пользователь";
+      }
+
+      function resolveDisplayName() {
+        if (currentProfile && currentProfile.display_name) {
+          return currentProfile.display_name;
+        }
+        const parsed = oidcSession.tokenParsed || {};
+        return parsed.name || parsed.preferred_username || parsed.sub || "-";
+      }
+
+      function renderAvatar(imageNode, iconNode, avatarDataUrl) {
+        const hasAvatar = Boolean(avatarDataUrl);
+        if (imageNode) {
+          imageNode.classList.toggle("is-hidden", !hasAvatar);
+          imageNode.src = hasAvatar ? avatarDataUrl : "";
+        }
+        if (iconNode) {
+          iconNode.classList.toggle("is-hidden", hasAvatar);
+        }
+      }
+
+      function renderHeaderAccountState() {
+        const authenticated = oidcSession.authenticated && (isApplicantUser() || isOpsUser());
+        headerLoginBtn.classList.toggle("is-hidden", authenticated);
+        headerAccount.classList.toggle("is-hidden", !authenticated);
+        if (headerStatus) {
+          headerStatus.classList.toggle("is-hidden", authenticated && currentView === "cabinet");
+        }
+        if (!authenticated) {
+          headerAccountName.textContent = "-";
+          headerAccountRole.textContent = "-";
+          renderAvatar(headerAvatarImage, headerAvatarIcon, null);
+          return;
+        }
+        headerAccountName.textContent = resolveDisplayName();
+        headerAccountRole.textContent = resolvePrimaryRoleLabel();
+        renderAvatar(headerAvatarImage, headerAvatarIcon, currentProfile && currentProfile.avatar_data_url);
+      }
+
+      function populateCabinetProfile() {
+        const profile = currentProfile || {};
+        cabinetFullNameInput.value = profile.full_name || "";
+        cabinetEmailInput.value = profile.email || "";
+        cabinetPhoneInput.value = profile.phone || "";
+        cabinetUsernameInput.value = profile.username || (oidcSession.tokenParsed && oidcSession.tokenParsed.preferred_username) || "";
+        cabinetAddressInput.value = profile.address || "";
+        cabinetActualAddressInput.value = profile.actual_address || "";
+        cabinetSummaryRole.textContent = `Роль: ${profile.role_label || resolvePrimaryRoleLabel()}`;
+        cabinetSummaryUsername.textContent = `Аккаунт: ${profile.username || "-"}`;
+        cabinetSummarySub.textContent = isOpsUser()
+          ? "Для роли ОПС в кабинете доступно редактирование профиля."
+          : "Профиль, история заявок и сертификаты текущего заявителя.";
+        cabinetAvatarCaption.textContent = profile.display_name || resolveDisplayName();
+        renderAvatar(cabinetAvatarImage, cabinetAvatarIcon, profile.avatar_data_url);
+        renderHeaderAccountState();
+      }
+
+      function renderCabinetApplications(items) {
+        cabinetApplicationsBody.innerHTML = "";
+        const rows = Array.isArray(items) ? items : [];
+        cabinetApplicationsEmpty.classList.toggle("is-hidden", rows.length > 0);
+        rows.forEach((application) => {
+          const row = document.createElement("tr");
+          const idCell = document.createElement("td");
+          idCell.textContent = String(application.id ?? "-");
+          const numberCell = document.createElement("td");
+          numberCell.textContent = application.application_number || "-";
+          const statusCell = document.createElement("td");
+          statusCell.textContent = application.status || "-";
+          const updatedCell = document.createElement("td");
+          updatedCell.textContent = formatDateTime(application.updated_at);
+          const actionCell = document.createElement("td");
+          const openButton = document.createElement("button");
+          openButton.type = "button";
+          openButton.className = "btn-secondary";
+          openButton.textContent = "Открыть";
+          openButton.addEventListener("click", async () => {
+            try {
+              await openApplicantApplication(Number(application.id));
+            } catch (error) {
+              writeOutput("Ошибка открытия заявки из кабинета", {
+                message: error instanceof Error ? error.message : String(error),
+                application_id: application.id,
+              });
+            }
+          });
+          actionCell.appendChild(openButton);
+          row.append(idCell, numberCell, statusCell, updatedCell, actionCell);
+          cabinetApplicationsBody.appendChild(row);
+        });
+      }
+
+      function renderCabinetCertificates(items) {
+        cabinetCertificatesBody.innerHTML = "";
+        const rows = Array.isArray(items) ? items : [];
+        cabinetCertificatesEmpty.classList.toggle("is-hidden", rows.length > 0);
+        rows.forEach((certificate) => {
+          const row = document.createElement("tr");
+          const idCell = document.createElement("td");
+          idCell.textContent = String(certificate.id ?? "-");
+          const numberCell = document.createElement("td");
+          numberCell.textContent = certificate.certificate_number || "-";
+          const appCell = document.createElement("td");
+          appCell.textContent = certificate.source_application_number || "-";
+          const statusCell = document.createElement("td");
+          statusCell.textContent = certificate.status || "-";
+          const publishedCell = document.createElement("td");
+          publishedCell.textContent = formatDateTime(certificate.published_at);
+          row.append(idCell, numberCell, appCell, statusCell, publishedCell);
+          cabinetCertificatesBody.appendChild(row);
+        });
+      }
+
+      function showCabinetTab(tabKey = "profile") {
+        currentCabinetTab = tabKey;
+        const allowApplicantOnly = tabKey === "history" || tabKey === "certificates";
+        const resolvedTab = !isApplicantUser() && allowApplicantOnly ? "profile" : tabKey;
+        currentCabinetTab = resolvedTab;
+        cabinetTabButtons.forEach((button) => {
+          const isActive = button.dataset.cabinetTab === resolvedTab;
+          button.classList.toggle("active", isActive);
+          if (!isApplicantUser() && button.dataset.cabinetTab !== "profile") {
+            button.classList.add("is-hidden");
+          } else {
+            button.classList.remove("is-hidden");
+          }
+        });
+        cabinetPanelProfile.classList.toggle("is-hidden", resolvedTab !== "profile");
+        cabinetPanelHistory.classList.toggle("is-hidden", resolvedTab !== "history");
+        cabinetPanelCertificates.classList.toggle("is-hidden", resolvedTab !== "certificates");
+      }
+
+      async function loadCurrentProfile() {
+        if (!oidcSession.authenticated || !oidcSession.token) {
+          currentProfile = null;
+          renderHeaderAccountState();
+          return null;
+        }
+        currentProfile = await callApi("GET", "/profile/me");
+        populateCabinetProfile();
+        return currentProfile;
+      }
+
+      async function refreshCabinetWorkspace() {
+        await loadCurrentProfile();
+        if (isApplicantUser()) {
+          const applications = await callApi("GET", "/applications/mine");
+          const certificates = await callApi("GET", "/registry/internal");
+          renderCabinetApplications(applications.items || []);
+          renderCabinetCertificates(certificates.items || []);
+        } else {
+          renderCabinetApplications([]);
+          renderCabinetCertificates([]);
+        }
+      }
+
+      function showCabinetView(tabKey = "profile") {
+        currentView = "cabinet";
+        currentFormMode = isOpsUser() ? "ops" : "applicant";
+        currentApplicationId = null;
+        currentOpsApplication = null;
+        resetPostIssuanceForm();
+        setActiveMenu("home");
+        pageEyebrow.textContent = "Рабочее пространство";
+        pageTitle.textContent = "Личный кабинет";
+        setBreadcrumb([]);
+        shellContainer.classList.add("single-column");
+        sidebarPanel.classList.add("is-hidden");
+        resetApplicantModuleViews();
+        applicantHomeView.classList.add("is-hidden");
+        cabinetView.classList.remove("is-hidden");
+        registryView.classList.add("is-hidden");
+        opsRegistryView.classList.add("is-hidden");
+        certificatesRegistryView.classList.add("is-hidden");
+        formView.classList.add("is-hidden");
+        setApplicantActionsVisible(false);
+        setApplicantActionButtonsEnabled(false);
+        setOpsActionsVisible(false);
+        setApplicationProgressVisible(false);
+        setOpsButtonsEnabled(false);
+        setFormButtonsEnabled(false);
+        buttons.createApplication.disabled = true;
+        showCabinetTab(tabKey);
+        updateHeaderMeta();
+        updatePageChrome();
+        renderHeaderAccountState();
       }
 
       function updateHeaderMeta() {
@@ -3859,6 +4450,7 @@
         if (headerBackText) {
           headerBackText.textContent = getBackButtonLabel();
         }
+        renderHeaderAccountState();
       }
 
       async function handleBackNavigation() {
@@ -3926,7 +4518,7 @@
           actionButton.disabled = !module.available;
           actionButton.addEventListener("click", async () => {
             if (!oidcSession.authenticated) {
-              await beginLoginJourney(postLoginDestinations.applicantServices);
+              await beginLoginJourney(buildModuleIntent(module.key));
               return;
             }
             await navigateApplicantModule(module.key);
@@ -4925,6 +5517,7 @@
         sidebarPanel.classList.add("is-hidden");
         resetApplicantModuleViews();
         applicantHomeView.classList.remove("is-hidden");
+        cabinetView.classList.add("is-hidden");
         registryView.classList.add("is-hidden");
         opsRegistryView.classList.add("is-hidden");
         certificatesRegistryView.classList.add("is-hidden");
@@ -4957,6 +5550,7 @@
         sidebarPanel.classList.add("is-hidden");
         resetApplicantModuleViews();
         applicantHomeView.classList.remove("is-hidden");
+        cabinetView.classList.add("is-hidden");
         registryView.classList.add("is-hidden");
         opsRegistryView.classList.add("is-hidden");
         certificatesRegistryView.classList.add("is-hidden");
@@ -4988,6 +5582,7 @@
         shellContainer.classList.add("single-column");
         sidebarPanel.classList.add("is-hidden");
         resetApplicantModuleViews();
+        cabinetView.classList.add("is-hidden");
         conformityView.classList.remove("is-hidden");
         registryView.classList.add("is-hidden");
         opsRegistryView.classList.add("is-hidden");
@@ -5064,6 +5659,7 @@
         shellContainer.classList.add("single-column");
         sidebarPanel.classList.add("is-hidden");
         resetApplicantModuleViews();
+        cabinetView.classList.add("is-hidden");
         registryView.classList.remove("is-hidden");
         opsRegistryView.classList.add("is-hidden");
         certificatesRegistryView.classList.add("is-hidden");
@@ -5093,6 +5689,7 @@
         shellContainer.classList.add("single-column");
         sidebarPanel.classList.add("is-hidden");
         resetApplicantModuleViews();
+        cabinetView.classList.add("is-hidden");
         registryView.classList.add("is-hidden");
         opsRegistryView.classList.remove("is-hidden");
         certificatesRegistryView.classList.add("is-hidden");
@@ -5120,6 +5717,7 @@
         shellContainer.classList.add("single-column");
         sidebarPanel.classList.add("is-hidden");
         resetApplicantModuleViews();
+        cabinetView.classList.add("is-hidden");
         registryView.classList.add("is-hidden");
         opsRegistryView.classList.add("is-hidden");
         certificatesRegistryView.classList.remove("is-hidden");
@@ -5160,6 +5758,7 @@
         shellContainer.classList.remove("single-column");
         sidebarPanel.classList.remove("is-hidden");
         resetApplicantModuleViews();
+        cabinetView.classList.add("is-hidden");
         registryView.classList.add("is-hidden");
         opsRegistryView.classList.add("is-hidden");
         certificatesRegistryView.classList.add("is-hidden");
@@ -5807,6 +6406,7 @@
         sidebarPanel.classList.add("is-hidden");
         resetApplicantModuleViews();
         applicantHomeView.classList.remove("is-hidden");
+        cabinetView.classList.add("is-hidden");
         registryView.classList.add("is-hidden");
         opsRegistryView.classList.add("is-hidden");
         certificatesRegistryView.classList.add("is-hidden");
@@ -5888,6 +6488,39 @@
         sessionStorage.setItem(pkceStorage.authIntent, destination);
       }
 
+      function buildModuleIntent(moduleKey) {
+        return `module:${moduleKey || "home"}`;
+      }
+
+      function buildServiceIntent(serviceKey) {
+        return `service:${serviceKey || APPLICANT_ACTIVE_SERVICE_KEY}`;
+      }
+
+      function parseAuthIntent(intent) {
+        const value = String(intent || "").trim();
+        if (!value) {
+          return { type: null, value: null };
+        }
+        if (!value.includes(":")) {
+          return { type: value, value: null };
+        }
+        const [type, ...rest] = value.split(":");
+        return { type, value: rest.join(":") || null };
+      }
+
+      function resolveGateLoginDestination() {
+        if (currentView === "conformity") {
+          return buildModuleIntent("conformity");
+        }
+        if (currentView === "registry" || currentView === "form") {
+          return buildServiceIntent(currentApplicantService || APPLICANT_ACTIVE_SERVICE_KEY);
+        }
+        if (currentView === "cert-registry") {
+          return postLoginDestinations.certificates;
+        }
+        return postLoginDestinations.cabinet;
+      }
+
       function consumeAuthIntent() {
         const destination = sessionStorage.getItem(pkceStorage.authIntent);
         sessionStorage.removeItem(pkceStorage.authIntent);
@@ -5924,6 +6557,49 @@
           throw new Error(`${response.status} ${message}`);
         }
         return payload;
+      }
+
+      async function saveCabinetProfile() {
+        const updated = await callApi("PUT", "/profile/me", {
+          full_name: cabinetFullNameInput.value,
+          email: cabinetEmailInput.value,
+          phone: cabinetPhoneInput.value,
+          address: cabinetAddressInput.value,
+          actual_address: cabinetActualAddressInput.value,
+        });
+        currentProfile = updated;
+        populateCabinetProfile();
+        writeOutput("Профиль сохранен", updated);
+      }
+
+      function readFileAsBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = typeof reader.result === "string" ? reader.result : "";
+            const parts = result.split(",", 2);
+            resolve(parts.length === 2 ? parts[1] : "");
+          };
+          reader.onerror = () => reject(new Error("Не удалось прочитать файл"));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function uploadCabinetAvatar(file) {
+        if (!file) {
+          return;
+        }
+        const contentBase64 = await readFileAsBase64(file);
+        const updated = await callApi("PUT", "/profile/me/avatar", {
+          content_type: file.type || "image/png",
+          content_base64: contentBase64,
+        });
+        currentProfile = updated;
+        populateCabinetProfile();
+        writeOutput("Иконка профиля обновлена", {
+          content_type: file.type,
+          size_bytes: file.size,
+        });
       }
 
       async function ensureDraftExists(payload) {
@@ -6096,6 +6772,7 @@
       function renderAuthState() {
         if (!authReady) {
           authState.textContent = "проверка сессии";
+          currentProfile = null;
           username.textContent = "-";
           roles.textContent = "-";
           buttons.login.disabled = true;
@@ -6103,12 +6780,14 @@
           buttons.refresh.disabled = true;
           buttons.createApplication.disabled = true;
           setFormButtonsEnabled(false);
+          renderHeaderAccountState();
           renderAccessGate("loading");
           return;
         }
 
         if (!oidcSession.authenticated || !oidcSession.tokenParsed) {
           authState.textContent = "не авторизован";
+          currentProfile = null;
           username.textContent = "-";
           roles.textContent = "-";
           buttons.login.disabled = false;
@@ -6116,6 +6795,7 @@
           buttons.refresh.disabled = true;
           buttons.createApplication.disabled = true;
           setFormButtonsEnabled(false);
+          renderHeaderAccountState();
           renderAccessGate("public");
           return;
         }
@@ -6128,11 +6808,16 @@
         buttons.login.disabled = true;
         buttons.logout.disabled = false;
         buttons.refresh.disabled = false;
+        renderHeaderAccountState();
 
         if (isOpsUser()) {
           buttons.createApplication.disabled = true;
           setFormButtonsEnabled(false);
           renderAccessGate("authorized");
+          if (currentView === "cabinet") {
+            showCabinetView(currentCabinetTab);
+            return;
+          }
           if (currentView === "ops-form") {
             showFormView("ops");
             return;
@@ -6153,6 +6838,10 @@
         }
 
         renderAccessGate("authorized");
+        if (currentView === "cabinet") {
+          showCabinetView(currentCabinetTab);
+          return;
+        }
         if (currentView === "form") {
           showFormView();
           return;
@@ -6213,10 +6902,22 @@
         });
 
         const postLoginIntent = completedLogin ? consumeAuthIntent() : null;
+        const parsedIntent = parseAuthIntent(postLoginIntent);
 
         if (oidcSession.authenticated && isApplicantUser()) {
           try {
-            if (completedLogin || postLoginIntent === postLoginDestinations.applicantServices) {
+            await loadCurrentProfile();
+            if (parsedIntent.type === postLoginDestinations.cabinet) {
+              await refreshCabinetWorkspace();
+              showCabinetView("profile");
+            } else if (parsedIntent.type === "module" && parsedIntent.value) {
+              await navigateApplicantModule(parsedIntent.value);
+            } else if (parsedIntent.type === "service" && parsedIntent.value) {
+              await openApplicantConformityService(parsedIntent.value);
+            } else if (parsedIntent.type === postLoginDestinations.certificates) {
+              await refreshCertificatesWorkspace();
+              showCertificatesRegistryView();
+            } else if (parsedIntent.type === postLoginDestinations.applicantServices) {
               showApplicantServicesHubView();
             } else if (currentView === "registry") {
               await loadApplicationsRegistry();
@@ -6240,8 +6941,16 @@
 
         if (oidcSession.authenticated && isOpsUser()) {
           try {
-            await loadOpsRegistry();
-            showOpsRegistryView();
+            await loadCurrentProfile();
+            if (parsedIntent.type === postLoginDestinations.cabinet) {
+              showCabinetView("profile");
+            } else if (parsedIntent.type === postLoginDestinations.certificates) {
+              await refreshCertificatesWorkspace();
+              showCertificatesRegistryView();
+            } else {
+              await loadOpsRegistry();
+              showOpsRegistryView();
+            }
           } catch (error) {
             writeOutput("Ошибка загрузки OPS реестра", {
               message: error instanceof Error ? error.message : String(error),
@@ -6264,7 +6973,8 @@
         }
 
         if (target === "home") {
-          writeOutput("Главная", "Раздел 'Главная' будет расширен в следующих тикетах.");
+          await refreshCabinetWorkspace();
+          showCabinetView("profile");
           return;
         }
         if (target === "applications") {
@@ -6435,12 +7145,31 @@
       });
 
       buttons.login.addEventListener("click", async () => {
-        await beginLoginJourney(postLoginDestinations.applicantServices);
+        await beginLoginJourney(postLoginDestinations.cabinet);
       });
 
       authGateLoginBtn.addEventListener("click", async () => {
-        await beginLoginJourney(postLoginDestinations.applicantServices);
+        await beginLoginJourney(resolveGateLoginDestination());
       });
+
+      if (headerLoginBtn) {
+        headerLoginBtn.addEventListener("click", async () => {
+          await beginLoginJourney(postLoginDestinations.cabinet);
+        });
+      }
+
+      if (headerAccountBtn) {
+        headerAccountBtn.addEventListener("click", async () => {
+          try {
+            await refreshCabinetWorkspace();
+            showCabinetView("profile");
+          } catch (error) {
+            writeOutput("Ошибка открытия личного кабинета", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        });
+      }
 
       if (headerBackBtn) {
         headerBackBtn.addEventListener("click", async () => {
@@ -6458,7 +7187,7 @@
         homeStartBtn.addEventListener("click", async () => {
           try {
             if (!oidcSession.authenticated) {
-              await beginLoginJourney(postLoginDestinations.applicantServices);
+              await beginLoginJourney(buildModuleIntent("conformity"));
               return;
             }
             await navigateApplicantModule("conformity");
@@ -6474,7 +7203,7 @@
         homeRegistryBtn.addEventListener("click", async () => {
           try {
             if (!oidcSession.authenticated) {
-              await beginLoginJourney(postLoginDestinations.applicantServices);
+              await beginLoginJourney(postLoginDestinations.certificates);
               return;
             }
             await loadInternalCertificatesRegistry();
@@ -6483,6 +7212,62 @@
             writeOutput("Реестр сертификатов", "Открыт внутренний реестр сертификатов.");
           } catch (error) {
             writeOutput("Ошибка открытия реестра сертификатов", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        });
+      }
+
+      cabinetTabButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          showCabinetTab(button.dataset.cabinetTab || "profile");
+        });
+      });
+
+      if (cabinetSaveBtn) {
+        cabinetSaveBtn.addEventListener("click", async () => {
+          try {
+            await saveCabinetProfile();
+          } catch (error) {
+            writeOutput("Ошибка сохранения профиля", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        });
+      }
+
+      if (cabinetAvatarUploadBtn) {
+        cabinetAvatarUploadBtn.addEventListener("click", () => {
+          cabinetAvatarInput.click();
+        });
+      }
+
+      if (cabinetAvatarInput) {
+        cabinetAvatarInput.addEventListener("change", async () => {
+          const [file] = Array.from(cabinetAvatarInput.files || []);
+          if (!file) {
+            return;
+          }
+          try {
+            await uploadCabinetAvatar(file);
+          } catch (error) {
+            writeOutput("Ошибка обновления иконки", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          } finally {
+            cabinetAvatarInput.value = "";
+          }
+        });
+      }
+
+      if (cabinetAvatarResetBtn) {
+        cabinetAvatarResetBtn.addEventListener("click", async () => {
+          try {
+            currentProfile = await callApi("DELETE", "/profile/me/avatar");
+            populateCabinetProfile();
+            writeOutput("Иконка профиля сброшена", currentProfile);
+          } catch (error) {
+            writeOutput("Ошибка сброса иконки", {
               message: error instanceof Error ? error.message : String(error),
             });
           }
@@ -6501,8 +7286,14 @@
           const activeView = currentView;
           const hadPostIssuanceOpen = Boolean(currentPostIssuanceApplication);
           const refreshed = await refreshAccessToken(30);
+          if (oidcSession.authenticated) {
+            await loadCurrentProfile();
+          }
           renderAuthState();
-          if (oidcSession.authenticated && (activeView === "cert-registry" || hadPostIssuanceOpen)) {
+          if (oidcSession.authenticated && activeView === "cabinet") {
+            await refreshCabinetWorkspace();
+            showCabinetView(currentCabinetTab);
+          } else if (oidcSession.authenticated && (activeView === "cert-registry" || hadPostIssuanceOpen)) {
             await refreshCertificatesWorkspace();
             showCertificatesRegistryView();
           } else if (oidcSession.authenticated && isApplicantUser() && activeView === "form") {
@@ -6532,6 +7323,7 @@
         if (!oidcSession.authenticated) {
           return;
         }
+        currentProfile = null;
         currentView = "public-home";
         resetPostIssuanceForm();
         await logoutFromOidc();
@@ -6608,6 +7400,13 @@
         phoneInput.addEventListener("input", () => {
           const masked = formatPhoneMask(phoneInput.value);
           phoneInput.value = masked;
+        });
+      }
+
+      if (cabinetPhoneInput) {
+        cabinetPhoneInput.addEventListener("input", () => {
+          const masked = formatPhoneMask(cabinetPhoneInput.value);
+          cabinetPhoneInput.value = masked;
         });
       }
 

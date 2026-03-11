@@ -18,6 +18,20 @@
         --green: #30d158;
         --green-dark: #1d7b3a;
         --green-soft: #f0fff4;
+        --font-page-title-size: 28px;
+        --font-page-title-weight: 600;
+        --font-section-title-size: 22px;
+        --font-section-title-weight: 600;
+        --font-card-title-size: 18px;
+        --font-card-title-weight: 600;
+        --font-body-size: 16px;
+        --font-body-weight: 400;
+        --font-label-size: 14px;
+        --font-label-weight: 500;
+        --font-secondary-size: 14px;
+        --font-secondary-weight: 400;
+        --font-small-size: 12px;
+        --font-small-weight: 400;
       }
 
       * {
@@ -29,6 +43,7 @@
         min-height: 100vh;
         color: var(--text);
         font-family: "DM Sans", "Segoe UI", sans-serif;
+        font-size: var(--font-body-size);
         background:
           radial-gradient(circle at 0% 0%, rgba(0, 113, 227, 0.08), transparent 24%),
           radial-gradient(circle at 100% 0%, rgba(48, 209, 88, 0.08), transparent 20%),
@@ -74,7 +89,7 @@
         border-radius: 999px;
         background: var(--green-soft);
         color: var(--green-dark);
-        font-size: 11px;
+        font-size: var(--font-small-size);
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -92,8 +107,8 @@
         margin: 18px 0 0;
         color: var(--black);
         font-family: "Cormorant Garamond", "Georgia", serif;
-        font-size: clamp(2.4rem, 4vw, 3.6rem);
-        font-weight: 700;
+        font-size: var(--font-page-title-size);
+        font-weight: var(--font-page-title-weight);
         letter-spacing: -0.05em;
         line-height: 0.98;
       }
@@ -106,7 +121,7 @@
         max-width: 560px;
         margin-top: 16px;
         color: var(--text2);
-        font-size: 15px;
+        font-size: var(--font-body-size);
         line-height: 1.75;
       }
 
@@ -119,7 +134,7 @@
         border: 1px solid rgba(0, 113, 227, 0.18);
         background: var(--blue-soft);
         color: var(--blue);
-        font-size: 12px;
+        font-size: var(--font-small-size);
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -133,7 +148,7 @@
       }
 
       .stats-head {
-        font-size: 11px;
+        font-size: var(--font-small-size);
         font-weight: 700;
         letter-spacing: 0.14em;
         text-transform: uppercase;
@@ -157,15 +172,15 @@
       .stat-value {
         color: var(--blue);
         font-family: "Cormorant Garamond", "Georgia", serif;
-        font-size: 32px;
-        font-weight: 700;
+        font-size: var(--font-page-title-size);
+        font-weight: var(--font-page-title-weight);
         line-height: 1;
       }
 
       .stat-label {
         margin-top: 6px;
         color: var(--text3);
-        font-size: 12px;
+        font-size: var(--font-small-size);
         line-height: 1.45;
       }
 
@@ -185,8 +200,8 @@
         margin: 0;
         color: var(--black);
         font-family: "Cormorant Garamond", "Georgia", serif;
-        font-size: 32px;
-        font-weight: 700;
+        font-size: var(--font-page-title-size);
+        font-weight: var(--font-page-title-weight);
         letter-spacing: -0.04em;
       }
 
@@ -244,7 +259,7 @@
 
       th {
         color: var(--text3);
-        font-size: 11px;
+        font-size: var(--font-small-size);
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -266,7 +281,7 @@
       .meta {
         margin-top: 12px;
         color: var(--text2);
-        font-size: 13px;
+        font-size: var(--font-secondary-size);
       }
 
       @media (max-width: 920px) {

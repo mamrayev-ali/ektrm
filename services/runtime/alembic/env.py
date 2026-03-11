@@ -11,6 +11,7 @@ from app.models import application as application_models  # noqa: F401
 from app.models import certificate as certificate_models  # noqa: F401
 from app.models import post_issuance as post_issuance_models  # noqa: F401
 from app.models import reference_data as reference_data_models  # noqa: F401
+from app.models import user_profile as user_profile_models  # noqa: F401
 from app.models.base import Base
 
 config = context.config

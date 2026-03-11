@@ -145,6 +145,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Realtime updates via WebSocket + fallback refresh.
 - Where styles/tokens live:
   - Базовые визуальные источники: `prototype.html` и актуальный референс `.agentkit/_temp/prototype_v2.html`.
+  - Runtime typography для `frontend/index.html` и `frontend/public-registry.html` централизована через CSS tokens `--font-*-size` и ограничена единственной шкалой `28 / 22 / 18 / 16 / 14 / 12 px`; любые новые UI-изменения должны использовать только эти размеры.
   - Локальные UI-правила: `.agentkit/rules/local/ui-design.md`.
 - How UI is verified vs design:
   - Сверка на этапе разработки по `prototype.html`, `.agentkit/_temp/prototype_v2.html`, `TECH_SPEC.md`, `PDF_ORDERS_DETAILED.md` и BPMN jpg.
@@ -415,6 +416,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - `frontend/index.html` — T5/T6/T8/T9 UI для заявителя и OPS (Ордер 3 + внутренний реестр сертификатов + post-issuance).
   - public surface / key exports:
     - единая дизайн-система приведена к референсу `.agentkit/_temp/prototype_v2.html`: бело-синий shell, serif-заголовки, обновленные карточки, таблицы, кнопки, формы и цветовая шкала состояний без изменения существующих `id` и JS-связок.
+    - typography contract enforced in-file: UI использует только размеры `28 / 22 / 18 / 16 / 14 / 12 px` через CSS tokens для page titles, section titles, card titles, body, labels, secondary и small text.
     - applicant landing `Главная` теперь оформлена как лендинг внутри кабинета и максимально приближена к `prototype_v2`: hero-блок, сетка сервисов, блок `Система в цифрах`, `Процесс подачи заявки`, `Нормативные правовые акты` и `Частые вопросы`; CTA используют существующую навигацию и не меняют бизнес-логику.
     - OIDC login helper сохраняет PKCE `S256`, но теперь умеет fallback на встроенную JS-реализацию SHA-256, если браузер открывает страницу по insecure origin и не предоставляет `crypto.subtle.digest`; это устраняет падение кнопки `Войти через Keycloak` на server-IP/HTTP окружениях.
     - frontend runtime config больше не завязан на `localhost`: `authority` и `apiBase` берутся из env-generated `runtime-config.js`, а при необходимости могут быть явно переопределены через query/localStorage (`oidc_authority`, `api_base`, `oidc_client_id`) без правки HTML.
@@ -445,6 +447,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - `frontend/public-registry.html` — отдельная публичная read-only страница реестра сертификатов (T8).
   - public surface / key exports:
     - listing опубликованных сертификатов через `GET /registry/public`.
+    - страница разделяет тот же обязательный typography contract `28 / 22 / 18 / 16 / 14 / 12 px`, что и основной frontend shell.
     - обновленный публичный landing-header в том же визуальном языке `prototype_v2`: hero, статистические карточки, переработанная таблица и поисковый toolbar без изменения JS-fetch логики.
     - runtime-aware API base для публичного реестра: по умолчанию использует текущий host на `:8080`, но поддерживает override через `api_base`.
   - invariants / assumptions:
@@ -587,6 +590,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-10 [font-size-system-normalization] В `frontend/index.html`, `frontend/public-registry.html` и `PROJECT_MAP.md` введен обязательный типографический контракт: все runtime `font-size` сведены к токенам `28 / 22 / 18 / 16 / 14 / 12 px`, а размеры `section/card/label/body/small` перераспределены по семантическим CSS-классам без изменения JS-связок и view-структуры.
 - 2026-03-10 [ops-menu-visibility-fix] В `frontend/index.html` исправлена навигация для роли `OPS`: header menu больше не остается скрытым целиком после входа и показывается только для `OPS`, тогда как applicant/public сценарии по-прежнему работают без верхнего меню.
 - 2026-03-10 [services-card-minimal-chrome] В `frontend/index.html` applicant-модульные и сервисные карточки упрощены до минимального состава: убраны буквенные иконки и верхние бейджи/теги, на карточках оставлены только заголовок, описание и action-button у модулей.
 - 2026-03-10 [public-landing-auth-redirect] В `frontend/index.html` главный landing стал доступен без авторизации, а CTA `Получить услугу`, `Реестр сертификатов` и `Перейти` на applicant-карточках теперь уводят неавторизованного пользователя в OIDC login; после успешного fresh login Applicant открывается отдельный services hub на базе секции `Государственные услуги онлайн`, при сохранении OPS-потока и backend auth enforcement без изменений.

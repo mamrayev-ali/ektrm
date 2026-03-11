@@ -17,6 +17,20 @@
         --brand-strong: #175238;
         --danger: #9f2e2e;
         --success: #286239;
+        --font-page-title-size: 28px;
+        --font-page-title-weight: 600;
+        --font-section-title-size: 22px;
+        --font-section-title-weight: 600;
+        --font-card-title-size: 18px;
+        --font-card-title-weight: 600;
+        --font-body-size: 16px;
+        --font-body-weight: 400;
+        --font-label-size: 14px;
+        --font-label-weight: 500;
+        --font-secondary-size: 14px;
+        --font-secondary-weight: 400;
+        --font-small-size: 12px;
+        --font-small-weight: 400;
       }
 
       * {
@@ -28,6 +42,7 @@
         min-height: 100vh;
         font-family: "Trebuchet MS", "Segoe UI", sans-serif;
         color: var(--text-main);
+        font-size: var(--font-body-size);
         background:
           radial-gradient(circle at 8% 4%, rgba(31, 107, 75, 0.14), transparent 34%),
           linear-gradient(140deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
@@ -54,7 +69,7 @@
 
       .brand {
         font-family: "Palatino Linotype", "Book Antiqua", serif;
-        font-size: 1.4rem;
+        font-size: var(--font-section-title-size);
         font-weight: 700;
       }
 
@@ -73,7 +88,7 @@
         border: 1px solid var(--line);
         border-radius: 999px;
         padding: 7px 12px;
-        font-size: 0.88rem;
+        font-size: var(--font-secondary-size);
         color: var(--text-muted);
         background: #fff;
       }
@@ -110,7 +125,7 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        font-size: 0.84rem;
+        font-size: var(--font-secondary-size);
         color: var(--text-muted);
       }
 
@@ -151,13 +166,13 @@
 
       .meta-id {
         font-weight: 700;
-        font-size: 0.98rem;
+        font-size: var(--font-body-size);
       }
 
       .meta-sub {
         margin-top: 3px;
         color: var(--text-muted);
-        font-size: 0.84rem;
+        font-size: var(--font-secondary-size);
       }
 
       .chip {
@@ -165,7 +180,7 @@
         margin-top: 8px;
         border-radius: 999px;
         padding: 5px 10px;
-        font-size: 0.77rem;
+        font-size: var(--font-small-size);
         font-weight: 700;
       }
 
@@ -198,7 +213,7 @@
         background: #ffffff;
         border-radius: 10px;
         color: var(--text-muted);
-        font-size: 0.88rem;
+        font-size: var(--font-secondary-size);
         cursor: pointer;
       }
 
@@ -220,7 +235,7 @@
         align-items: center;
         justify-content: center;
         border: 1px solid var(--line);
-        font-size: 0.78rem;
+        font-size: var(--font-small-size);
       }
 
       .step-item.active .bullet {
@@ -250,18 +265,18 @@
 
       .page-eyebrow {
         color: var(--text-muted);
-        font-size: 0.84rem;
+        font-size: var(--font-secondary-size);
       }
 
       .page-breadcrumb {
         margin-top: 8px;
         color: var(--text-muted);
-        font-size: 0.82rem;
+        font-size: var(--font-secondary-size);
       }
 
       h1 {
         margin: 4px 0 0;
-        font-size: 1.6rem;
+        font-size: var(--font-page-title-size);
       }
 
       .process {
@@ -279,19 +294,19 @@
       }
 
       .process-step .n {
-        font-size: 0.75rem;
+        font-size: var(--font-small-size);
         color: var(--text-muted);
       }
 
       .process-step .name {
         margin-top: 2px;
         font-weight: 700;
-        font-size: 0.88rem;
+        font-size: var(--font-secondary-size);
       }
 
       .process-step .who {
         margin-top: 2px;
-        font-size: 0.8rem;
+        font-size: var(--font-secondary-size);
         color: var(--text-muted);
       }
 
@@ -333,7 +348,7 @@
 
       .auth-gate-logo {
         font-family: "Palatino Linotype", "Book Antiqua", serif;
-        font-size: 1.9rem;
+        font-size: var(--font-page-title-size);
         font-weight: 700;
       }
 
@@ -343,20 +358,20 @@
       }
 
       .auth-gate-title {
-        font-size: 1.1rem;
+        font-size: var(--font-card-title-size);
         font-weight: 700;
       }
 
       .auth-gate-text {
         margin-top: 6px;
         color: var(--text-muted);
-        font-size: 0.9rem;
+        font-size: var(--font-secondary-size);
       }
 
       .auth-gate-meta {
         margin-top: 10px;
         color: var(--text-muted);
-        font-size: 0.8rem;
+        font-size: var(--font-secondary-size);
       }
 
       #authGateLoginBtn {
@@ -393,8 +408,8 @@
       }
 
       .module-card-title {
-        font-size: 0.92rem;
-        font-weight: 800;
+        font-size: var(--font-card-title-size);
+        font-weight: var(--font-card-title-weight);
         text-transform: uppercase;
         letter-spacing: 0.04em;
         color: #183727;
@@ -403,7 +418,7 @@
       .module-card-description {
         margin-top: 14px;
         color: var(--text-muted);
-        font-size: 0.88rem;
+        font-size: var(--font-secondary-size);
         line-height: 1.45;
       }
 
@@ -438,7 +453,8 @@
 
       .service-card-label {
         color: var(--brand);
-        font-weight: 800;
+        font-size: var(--font-card-title-size);
+        font-weight: var(--font-card-title-weight);
         line-height: 1.35;
       }
 
@@ -455,14 +471,14 @@
       }
 
       .registry-title {
-        font-size: 1.05rem;
-        font-weight: 700;
+        font-size: var(--font-section-title-size);
+        font-weight: var(--font-section-title-weight);
       }
 
       .registry-sub {
         margin-top: 2px;
         color: var(--text-muted);
-        font-size: 0.82rem;
+        font-size: var(--font-secondary-size);
       }
 
       .registry-table-wrap {
@@ -481,7 +497,7 @@
       .registry-table td {
         padding: 10px 12px;
         border-bottom: 1px solid var(--line);
-        font-size: 0.88rem;
+        font-size: var(--font-secondary-size);
         text-align: left;
       }
 
@@ -492,7 +508,7 @@
       .registry-empty {
         padding: 16px;
         color: var(--text-muted);
-        font-size: 0.88rem;
+        font-size: var(--font-secondary-size);
       }
 
       .section-head {
@@ -502,14 +518,14 @@
       }
 
       .section-title {
-        font-size: 1.05rem;
-        font-weight: 700;
+        font-size: var(--font-section-title-size);
+        font-weight: var(--font-section-title-weight);
       }
 
       .section-sub {
         margin-top: 2px;
         color: var(--text-muted);
-        font-size: 0.82rem;
+        font-size: var(--font-secondary-size);
       }
 
       .section-body {
@@ -536,7 +552,8 @@
       }
 
       .field label {
-        font-size: 0.82rem;
+        font-size: var(--font-label-size);
+        font-weight: var(--font-label-weight);
         color: var(--text-muted);
       }
 
@@ -551,9 +568,10 @@
         border: 1px solid var(--line);
         border-radius: 10px;
         padding: 9px 10px;
-        font-size: 0.92rem;
+        font-size: var(--font-secondary-size);
         font-family: inherit;
         color: var(--text-main);
+        font-size: var(--font-body-size);
         background: #fff;
       }
 
@@ -563,7 +581,7 @@
       }
 
       .field .hint {
-        font-size: 0.76rem;
+        font-size: var(--font-small-size);
         color: var(--text-muted);
       }
 
@@ -575,7 +593,7 @@
       }
 
       .field .error-text {
-        font-size: 0.76rem;
+        font-size: var(--font-small-size);
         color: var(--danger);
       }
 
@@ -594,7 +612,8 @@
 
       .doc-item label {
         display: block;
-        font-size: 0.8rem;
+        font-size: var(--font-label-size);
+        font-weight: var(--font-label-weight);
         margin-bottom: 6px;
         color: var(--text-muted);
       }
@@ -604,7 +623,7 @@
         padding: 10px;
         border: 1px solid var(--line);
         border-radius: 10px;
-        font-size: 0.82rem;
+        font-size: var(--font-secondary-size);
         color: var(--text-muted);
         background: #fafdf8;
       }
@@ -613,7 +632,7 @@
         margin-top: 8px;
         display: grid;
         gap: 8px;
-        font-size: 0.84rem;
+        font-size: var(--font-secondary-size);
       }
 
       .checks label {
@@ -651,7 +670,7 @@
 
       .ops-status-row {
         margin-bottom: 10px;
-        font-size: 0.86rem;
+        font-size: var(--font-secondary-size);
         color: var(--text-muted);
       }
 
@@ -668,7 +687,7 @@
       .ops-history-item {
         padding: 6px 0;
         border-bottom: 1px dashed var(--line);
-        font-size: 0.82rem;
+        font-size: var(--font-secondary-size);
       }
 
       .ops-history-item:last-child {
@@ -679,7 +698,7 @@
         border: 0;
         border-radius: 10px;
         padding: 9px 12px;
-        font-size: 0.9rem;
+        font-size: var(--font-secondary-size);
         font-family: inherit;
         cursor: pointer;
       }
@@ -736,7 +755,7 @@
         padding: 8px 12px;
         background: rgba(255, 255, 255, 0.92);
         color: var(--text-muted);
-        font-size: 0.84rem;
+        font-size: var(--font-secondary-size);
       }
 
       .session-toggle:hover {
@@ -764,7 +783,7 @@
 
       .session-meta {
         margin-top: 8px;
-        font-size: 0.82rem;
+        font-size: var(--font-secondary-size);
         color: var(--text-muted);
       }
 
@@ -774,7 +793,7 @@
         border-radius: 10px;
         background: #111c14;
         color: #dcf0df;
-        font-size: 0.8rem;
+        font-size: var(--font-secondary-size);
         line-height: 1.4;
         padding: 10px;
         max-height: 280px;
@@ -899,7 +918,7 @@
 
       .brand {
         color: var(--black);
-        font-size: 1.7rem;
+        font-size: var(--font-page-title-size);
       }
 
       .brand em,
@@ -915,6 +934,7 @@
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.96);
         color: var(--text-main);
+        font-size: var(--font-body-size);
         box-shadow: none;
       }
 
@@ -930,7 +950,7 @@
         justify-content: center;
         width: 18px;
         color: var(--brand);
-        font-size: 0.94rem;
+        font-size: var(--font-body-size);
       }
 
       .menu {
@@ -944,7 +964,7 @@
         border-radius: 10px;
         background: transparent;
         color: var(--text-muted);
-        font-size: 0.82rem;
+        font-size: var(--font-secondary-size);
         font-weight: 500;
         transition:
           color 0.18s ease,
@@ -973,7 +993,7 @@
 
       .header-right {
         color: var(--text-muted);
-        font-size: 0.8rem;
+        font-size: var(--font-secondary-size);
       }
 
       .header-right span:first-child {
@@ -982,7 +1002,7 @@
         border: 1px solid rgba(48, 209, 88, 0.3);
         background: var(--success-soft);
         color: var(--success-dark);
-        font-size: 0.72rem;
+        font-size: var(--font-small-size);
         font-weight: 700;
         letter-spacing: 0.06em;
         text-transform: uppercase;
@@ -1020,7 +1040,7 @@
 
       .meta-id {
         color: var(--black);
-        font-size: 0.92rem;
+        font-size: var(--font-secondary-size);
       }
 
       .meta-sub {
@@ -1031,7 +1051,7 @@
         min-height: 28px;
         padding: 0 12px;
         border: 1px solid transparent;
-        font-size: 0.72rem;
+        font-size: var(--font-small-size);
         letter-spacing: 0.04em;
         text-transform: uppercase;
       }
@@ -1117,7 +1137,7 @@
       .landing-eyebrow,
       .hero-visual-title {
         color: var(--brand);
-        font-size: 0.72rem;
+        font-size: var(--font-small-size);
         font-weight: 700;
         letter-spacing: 0.14em;
         text-transform: uppercase;
@@ -1125,13 +1145,13 @@
 
       .page-breadcrumb {
         color: var(--text-muted);
-        font-size: 0.84rem;
+        font-size: var(--font-secondary-size);
       }
 
       h1 {
         margin: 0;
         color: var(--black);
-        font-size: clamp(2rem, 3vw, 3rem);
+        font-size: var(--font-page-title-size);
         line-height: 1.05;
       }
 
@@ -1149,7 +1169,7 @@
       }
 
       .auth-gate-logo {
-        font-size: 2.2rem;
+        font-size: var(--font-page-title-size);
         color: var(--black);
       }
 
@@ -1157,7 +1177,7 @@
         margin-top: 14px;
         color: var(--black);
         font-family: "Cormorant Garamond", "Georgia", serif;
-        font-size: clamp(2rem, 3vw, 3rem);
+        font-size: var(--font-page-title-size);
         line-height: 1.02;
       }
 
@@ -1165,7 +1185,7 @@
         max-width: 600px;
         margin-top: 12px;
         color: var(--text-muted);
-        font-size: 1rem;
+        font-size: var(--font-body-size);
         line-height: 1.7;
       }
 
@@ -1177,7 +1197,7 @@
         border: 1px solid rgba(48, 209, 88, 0.24);
         background: var(--success-soft);
         color: var(--success-dark);
-        font-size: 0.76rem;
+        font-size: var(--font-small-size);
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -1200,7 +1220,8 @@
       .registry-title,
       .section-title {
         color: var(--black);
-        font-size: 1.7rem;
+        font-size: var(--font-section-title-size);
+        font-weight: var(--font-section-title-weight);
         line-height: 1.08;
       }
 
@@ -1208,7 +1229,7 @@
       .section-sub {
         margin-top: 6px;
         color: var(--text-muted);
-        font-size: 0.9rem;
+        font-size: var(--font-secondary-size);
         line-height: 1.65;
       }
 
@@ -1222,12 +1243,12 @@
       .registry-table td {
         padding: 15px 14px;
         border-bottom-color: var(--line);
-        font-size: 0.86rem;
+        font-size: var(--font-secondary-size);
       }
 
       .registry-table th {
         color: var(--text-subtle);
-        font-size: 0.7rem;
+        font-size: var(--font-small-size);
         letter-spacing: 0.08em;
         text-transform: uppercase;
       }
@@ -1269,8 +1290,8 @@
 
       .field label {
         color: var(--text-muted);
-        font-size: 0.76rem;
-        font-weight: 700;
+        font-size: var(--font-label-size);
+        font-weight: var(--font-label-weight);
         letter-spacing: 0.08em;
         text-transform: uppercase;
       }
@@ -1284,6 +1305,7 @@
         border-radius: 14px;
         background: var(--surface);
         color: var(--text-main);
+        font-size: var(--font-body-size);
         transition:
           border-color 0.16s ease,
           box-shadow 0.16s ease,
@@ -1313,7 +1335,7 @@
 
       .field .hint {
         color: var(--text-subtle);
-        font-size: 0.78rem;
+        font-size: var(--font-small-size);
       }
 
       .field.error input,
@@ -1325,7 +1347,7 @@
 
       .field .error-text {
         color: var(--danger);
-        font-size: 0.78rem;
+        font-size: var(--font-small-size);
       }
 
       .doc-item {
@@ -1337,8 +1359,8 @@
 
       .doc-item label {
         color: var(--text-muted);
-        font-size: 0.78rem;
-        font-weight: 700;
+        font-size: var(--font-label-size);
+        font-weight: var(--font-label-weight);
         letter-spacing: 0.06em;
         text-transform: uppercase;
       }
@@ -1355,7 +1377,7 @@
       .checks {
         margin-top: 14px;
         gap: 10px;
-        font-size: 0.88rem;
+        font-size: var(--font-secondary-size);
       }
 
       .checks label {
@@ -1387,7 +1409,7 @@
 
       .process-step .n {
         color: var(--text-subtle);
-        font-size: 0.72rem;
+        font-size: var(--font-small-size);
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -1396,13 +1418,13 @@
       .process-step .name {
         margin-top: 8px;
         color: var(--black);
-        font-size: 1rem;
+        font-size: var(--font-body-size);
       }
 
       .process-step .who {
         margin-top: 6px;
         color: var(--text-muted);
-        font-size: 0.82rem;
+        font-size: var(--font-secondary-size);
       }
 
       .process-step.active {
@@ -1424,7 +1446,7 @@
         border-radius: 12px;
         border: 1px solid transparent;
         font: inherit;
-        font-size: 0.9rem;
+        font-size: var(--font-secondary-size);
         font-weight: 600;
         line-height: 1;
         text-decoration: none;
@@ -1451,6 +1473,7 @@
         border-color: var(--line);
         background: var(--surface);
         color: var(--text-main);
+        font-size: var(--font-body-size);
       }
 
       .btn-secondary:hover:not(:disabled) {
@@ -1492,7 +1515,7 @@
       .ops-history-item {
         padding: 8px 0;
         border-bottom-color: var(--line);
-        font-size: 0.84rem;
+        font-size: var(--font-secondary-size);
         line-height: 1.55;
       }
 
@@ -1575,7 +1598,7 @@
         border-radius: 999px;
         background: var(--success-soft);
         color: var(--success-dark);
-        font-size: 0.72rem;
+        font-size: var(--font-small-size);
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -1592,7 +1615,7 @@
       .home-hero-title {
         margin: 20px 0 0;
         color: var(--black);
-        font-size: clamp(2.6rem, 4vw, 4rem);
+        font-size: var(--font-page-title-size);
         line-height: 0.98;
       }
 
@@ -1604,7 +1627,7 @@
         max-width: 520px;
         margin-top: 18px;
         color: var(--text-muted);
-        font-size: 1rem;
+        font-size: var(--font-body-size);
         line-height: 1.75;
       }
 
@@ -1632,7 +1655,7 @@
         border-radius: 999px;
         background: var(--success);
         color: var(--surface);
-        font-size: 0.72rem;
+        font-size: var(--font-small-size);
         font-weight: 700;
         letter-spacing: 0.04em;
       }
@@ -1655,7 +1678,7 @@
       .hero-metric-value {
         color: var(--black);
         font-family: "Cormorant Garamond", "Georgia", serif;
-        font-size: 2rem;
+        font-size: var(--font-page-title-size);
         font-weight: 700;
         line-height: 1;
       }
@@ -1667,7 +1690,7 @@
       .hero-metric-label {
         margin-top: 6px;
         color: var(--text-subtle);
-        font-size: 0.78rem;
+        font-size: var(--font-small-size);
         line-height: 1.45;
       }
 
@@ -1689,7 +1712,7 @@
         gap: 12px;
         margin-bottom: 8px;
         color: var(--text-main);
-        font-size: 0.82rem;
+        font-size: var(--font-secondary-size);
         font-weight: 600;
       }
 
@@ -1729,14 +1752,14 @@
       .landing-title {
         margin-top: 8px;
         color: var(--black);
-        font-size: clamp(2rem, 3vw, 2.75rem);
+        font-size: var(--font-page-title-size);
         line-height: 1.05;
       }
 
       .landing-sub {
         margin-top: 12px;
         color: var(--text-muted);
-        font-size: 0.98rem;
+        font-size: var(--font-body-size);
         line-height: 1.7;
       }
 
@@ -1782,7 +1805,7 @@
         border: 1px solid rgba(48, 209, 88, 0.24);
         background: var(--success-soft);
         color: var(--success-dark);
-        font-size: 0.8rem;
+        font-size: var(--font-secondary-size);
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -1804,7 +1827,7 @@
         border-radius: 999px;
         background: var(--brand-soft);
         color: var(--brand);
-        font-size: 0.68rem;
+        font-size: var(--font-small-size);
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -1818,14 +1841,14 @@
 
       .module-card-title {
         color: var(--black);
-        font-size: 1rem;
-        font-weight: 700;
+        font-size: var(--font-card-title-size);
+        font-weight: var(--font-card-title-weight);
         line-height: 1.35;
       }
 
       .module-card-description {
         color: var(--text-muted);
-        font-size: 0.9rem;
+        font-size: var(--font-secondary-size);
         line-height: 1.65;
       }
 
@@ -1856,14 +1879,14 @@
 
       .service-card-label {
         color: var(--black);
-        font-size: 0.96rem;
-        font-weight: 700;
+        font-size: var(--font-card-title-size);
+        font-weight: var(--font-card-title-weight);
         line-height: 1.45;
       }
 
       .service-card-copy {
         color: var(--text-muted);
-        font-size: 0.86rem;
+        font-size: var(--font-secondary-size);
         line-height: 1.6;
       }
 
@@ -1910,7 +1933,7 @@
       .stats-showcase-value {
         color: var(--brand);
         font-family: "Cormorant Garamond", "Georgia", serif;
-        font-size: 2.15rem;
+        font-size: var(--font-page-title-size);
         font-weight: 700;
         line-height: 1;
       }
@@ -1919,7 +1942,7 @@
         max-width: 210px;
         margin-top: 12px;
         color: var(--text-muted);
-        font-size: 0.88rem;
+        font-size: var(--font-secondary-size);
         line-height: 1.55;
       }
 
@@ -1960,7 +1983,7 @@
         background: var(--surface);
         color: var(--text-subtle);
         font-family: "Cormorant Garamond", "Georgia", serif;
-        font-size: 1.45rem;
+        font-size: var(--font-section-title-size);
         font-weight: 700;
       }
 
@@ -1979,7 +2002,7 @@
       .process-showcase-name {
         margin-top: 18px;
         color: var(--black);
-        font-size: 0.94rem;
+        font-size: var(--font-body-size);
         font-weight: 700;
       }
 
@@ -1995,7 +2018,7 @@
         max-width: 180px;
         margin-top: 8px;
         color: var(--text-subtle);
-        font-size: 0.82rem;
+        font-size: var(--font-secondary-size);
         line-height: 1.55;
       }
 
@@ -2014,7 +2037,7 @@
 
       .regulation-tag {
         color: var(--brand);
-        font-size: 0.75rem;
+        font-size: var(--font-small-size);
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -2023,7 +2046,7 @@
       .regulation-title {
         margin-top: 14px;
         color: var(--black);
-        font-size: 0.98rem;
+        font-size: var(--font-body-size);
         font-weight: 500;
         line-height: 1.45;
       }
@@ -2031,7 +2054,7 @@
       .regulation-sub {
         margin-top: 10px;
         color: var(--text-subtle);
-        font-size: 0.86rem;
+        font-size: var(--font-secondary-size);
         line-height: 1.55;
       }
 
@@ -2060,7 +2083,7 @@
 
       .faq-line-title {
         color: var(--black);
-        font-size: 0.98rem;
+        font-size: var(--font-body-size);
         line-height: 1.45;
       }
 
@@ -2074,14 +2097,14 @@
         border-radius: 50%;
         border: 1px solid var(--brand);
         color: var(--brand);
-        font-size: 0.74rem;
+        font-size: var(--font-small-size);
       }
 
       .faq-line-body {
         max-width: 860px;
         margin-top: 18px;
         color: var(--text-muted);
-        font-size: 0.94rem;
+        font-size: var(--font-body-size);
         line-height: 1.7;
       }
 
@@ -2098,14 +2121,14 @@
       .info-card-title {
         margin-top: 10px;
         color: var(--black);
-        font-size: 1.02rem;
-        font-weight: 700;
+        font-size: var(--font-card-title-size);
+        font-weight: var(--font-card-title-weight);
       }
 
       .info-card-copy {
         margin-top: 8px;
         color: var(--text-muted);
-        font-size: 0.9rem;
+        font-size: var(--font-secondary-size);
         line-height: 1.65;
       }
 
@@ -2147,20 +2170,20 @@
         background: var(--surface);
         color: var(--brand);
         font-family: "Cormorant Garamond", "Georgia", serif;
-        font-size: 1.4rem;
+        font-size: var(--font-section-title-size);
         font-weight: 700;
       }
 
       .process-node-title {
         color: var(--black);
-        font-size: 0.88rem;
+        font-size: var(--font-secondary-size);
         font-weight: 700;
       }
 
       .process-node-text,
       .faq-a-static {
         color: var(--text-subtle);
-        font-size: 0.78rem;
+        font-size: var(--font-small-size);
         line-height: 1.6;
       }
 
@@ -2177,7 +2200,7 @@
         justify-content: space-between;
         gap: 12px;
         color: var(--black);
-        font-size: 0.92rem;
+        font-size: var(--font-secondary-size);
         font-weight: 700;
       }
 
@@ -2602,7 +2625,7 @@
             <section class="home-info-grid is-hidden">
               <div class="home-panel" style="padding: 28px">
                 <div class="landing-eyebrow">Как это работает</div>
-                <div class="landing-title" style="font-size: 2.15rem">Процесс подачи заявки</div>
+                <div class="landing-title" style="font-size: var(--font-page-title-size)">Процесс подачи заявки</div>
                 <div class="landing-sub">
                   От выбора услуги до выпуска документа. Бизнес-логика не меняется, обновлен только визуальный слой.
                 </div>

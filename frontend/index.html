@@ -1084,6 +1084,46 @@
         align-items: flex-start;
       }
 
+      .appendix-table-wrap {
+        overflow-x: auto;
+      }
+
+      .appendix-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 820px;
+      }
+
+      .appendix-table th,
+      .appendix-table td {
+        border: 1px solid var(--line);
+        padding: 8px;
+        vertical-align: top;
+        text-align: left;
+        font-size: var(--font-secondary-size);
+      }
+
+      .appendix-table th {
+        background: var(--surface-soft);
+        color: var(--text-muted);
+        font-weight: var(--font-label-weight);
+      }
+
+      .appendix-table input {
+        width: 100%;
+      }
+
+      .helper-card {
+        margin-top: 10px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-size: var(--font-secondary-size);
+        color: var(--text-muted);
+        background: var(--surface-soft);
+        white-space: pre-wrap;
+      }
+
       .action-bar {
         margin-top: 8px;
         display: flex;
@@ -2081,6 +2121,10 @@
 
       .field {
         gap: 8px;
+      }
+
+      .field.full {
+        grid-column: 1 / -1;
       }
 
       .field label {
@@ -4371,7 +4415,7 @@
           <section class="section" data-step="0">
             <div class="section-head">
               <div class="section-title">Заявитель</div>
-              <div class="section-sub">Обязательные данные для подачи заявки</div>
+              <div class="section-sub">Реквизиты заявителя, руководителя и обязательство заявителя</div>
             </div>
             <div class="section-body">
               <div class="grid-3">
@@ -4379,58 +4423,97 @@
                   <label>Вид сертификации <span class="required">*</span></label>
                   <select id="certification_kind">
                     <option value="">Выберите</option>
-                    <option value="Обязательная">Обязательная</option>
-                    <option value="Добровольная">Добровольная</option>
                   </select>
                 </div>
                 <div class="field" data-field="applicant_type">
                   <label>Тип заявителя <span class="required">*</span></label>
                   <select id="applicant_type">
                     <option value="">Выберите</option>
-                    <option value="Резидент РК">Резидент РК</option>
-                    <option value="Резидент ЕАЭС">Резидент ЕАЭС</option>
                   </select>
                 </div>
                 <div class="field" data-field="submission_from">
                   <label>Подача заявки от <span class="required">*</span></label>
                   <select id="submission_from">
                     <option value="">Выберите</option>
-                    <option value="Изготовитель">Изготовитель</option>
-                    <option value="Уполномоченное лицо">Уполномоченное лицо</option>
-                    <option value="Продавец (Импортер)">Продавец (Импортер)</option>
+                  </select>
+                </div>
+                <div class="field" data-field="submission_format">
+                  <label>Формат подачи заявки <span class="required">*</span></label>
+                  <select id="submission_format">
+                    <option value="">Выберите</option>
+                  </select>
+                </div>
+                <div class="field" data-field="certification_object">
+                  <label>Вид сертификации <span class="required">*</span></label>
+                  <select id="certification_object">
+                    <option value="">Выберите</option>
                   </select>
                 </div>
               </div>
               <div class="grid-2" style="margin-top: 10px">
                 <div class="field" data-field="applicant_name">
-                  <label>Полное наименование <span class="required">*</span></label>
+                  <label>Полное наименование заявителя <span class="required">*</span></label>
                   <input id="applicant_name" type="text" placeholder="ТОО Пример" />
+                </div>
+                <div class="field" data-field="applicant_name_kz">
+                  <label>Полное наименование заявителя (на казахском языке)</label>
+                  <input id="applicant_name_kz" type="text" placeholder="Компания атауы қазақ тілінде" />
                 </div>
                 <div class="field" data-field="applicant_bin">
                   <label>БИН <span class="required">*</span></label>
                   <input id="applicant_bin" type="text" placeholder="12 цифр" maxlength="12" />
                   <span class="hint">Формат: 12 цифр</span>
                 </div>
+                <div class="field" data-field="applicant_head_iin">
+                  <label>ИИН руководителя <span class="required">*</span></label>
+                  <input id="applicant_head_iin" type="text" placeholder="12 цифр" maxlength="12" />
+                  <span class="hint">Формат: 12 цифр</span>
+                </div>
+                <div class="field" data-field="applicant_head_name">
+                  <label>ФИО руководителя организации (или уполномоченное им лицо) / индивидуального предпринимателя <span class="required">*</span></label>
+                  <input id="applicant_head_name" type="text" placeholder="Фамилия Имя Отчество" />
+                </div>
+                <div class="field" data-field="applicant_head_name_kz">
+                  <label>ФИО руководителя организации (или уполномоченное им лицо) / индивидуального предпринимателя (на казахском языке)</label>
+                  <input id="applicant_head_name_kz" type="text" placeholder="Қазақ тіліндегі Т.А.Ә." />
+                </div>
+                <div class="field" data-field="applicant_signatory_role">
+                  <label>Руководитель или уполномоченное им лицо</label>
+                  <input id="applicant_signatory_role" type="text" placeholder="Например: директор / уполномоченное лицо" />
+                </div>
+                <div class="field" data-field="applicant_head_position">
+                  <label>Должность руководителя</label>
+                  <input id="applicant_head_position" type="text" placeholder="Директор" />
+                </div>
+                <div class="field" data-field="applicant_head_position_kz">
+                  <label>Должность руководителя (на казахском языке)</label>
+                  <input id="applicant_head_position_kz" type="text" placeholder="Лауазымы қазақ тілінде" />
+                </div>
                 <div class="field" data-field="phone">
                   <label>Мобильный телефон <span class="required">*</span></label>
                   <input id="phone" type="tel" placeholder="+7(___) ___ __ __" />
                 </div>
                 <div class="field" data-field="email">
-                  <label>Email <span class="required">*</span></label>
+                  <label>Адрес электронной почты (без пробелов) <span class="required">*</span></label>
                   <input id="email" type="email" placeholder="example@company.kz" />
                 </div>
+                <div class="field" data-field="iban">
+                  <label>Расчетный счет (IBAN)</label>
+                  <input id="iban" type="text" placeholder="KZ..." />
+                </div>
+                <div class="field" data-field="bik">
+                  <label>Банковский идентификационный код (БИК)</label>
+                  <input id="bik" type="text" placeholder="Например: HSBKKZKX" />
+                </div>
               </div>
-              <div class="obligation">
-                Настоящей заявкой заявитель подтверждает достоверность данных и соблюдение процедур подтверждения соответствия.
+              <div class="field full" style="margin-top: 10px">
+                <label>Обязательство заявителя <span class="required">*</span></label>
+                <textarea id="applicant_obligation_text" readonly>Настоящей заявкой заявитель подтверждает достоверность представленных сведений, обязуется соблюдать процедуру подтверждения соответствия, обеспечивать стабильность показателей сертифицируемой продукции, оплачивать расходы, связанные с проведением работ, и дает согласие на использование и обработку представленных сведений в рамках процедуры подтверждения соответствия.</textarea>
               </div>
               <div class="checks">
                 <label>
                   <input id="agree_procedure" type="checkbox" />
-                  <span>Принимаю обязательство соблюдения процедур</span>
-                </label>
-                <label>
-                  <input id="agree_data" type="checkbox" />
-                  <span>Даю согласие на обработку персональных данных</span>
+                  <span>Подтверждаю и принимаю обязательство заявителя</span>
                 </label>
               </div>
             </div>
@@ -4439,16 +4522,24 @@
           <section class="section hidden" data-step="1">
             <div class="section-head">
               <div class="section-title">Адрес заявителя</div>
-              <div class="section-sub">Юридический и фактический адрес</div>
+              <div class="section-sub">Юридический, фактический адрес и адрес места осуществления деятельности</div>
             </div>
             <div class="section-body">
-              <div class="grid-2">
+              <div class="grid-3">
                 <div class="field" data-field="applicant_address">
-                  <label>Юридический адрес <span class="required">*</span></label>
+                  <label>Место нахождения (адрес юридического лица) / Место жительства (адрес физического лица) (юридический адрес) <span class="required">*</span></label>
                   <input id="applicant_address" type="text" placeholder="г. Алматы, ул. ..." />
                 </div>
-                <div class="field">
-                  <label>Фактический адрес</label>
+                <div class="field" data-field="applicant_activity_address">
+                  <label>Адрес места осуществления деятельности <span class="required">*</span></label>
+                  <select id="applicant_activity_address">
+                    <option value="">Выберите</option>
+                    <option value="legal">Юридический</option>
+                    <option value="other">Другой</option>
+                  </select>
+                </div>
+                <div class="field is-hidden" data-field="actual_address" id="actualAddressField">
+                  <label>Адрес (фактический адрес)</label>
                   <input id="actual_address" type="text" placeholder="При наличии" />
                 </div>
               </div>
@@ -4458,38 +4549,85 @@
           <section class="section hidden" data-step="2">
             <div class="section-head">
               <div class="section-title">ОПС</div>
-              <div class="section-sub">Выбор органа и аттестата</div>
+              <div class="section-sub">Сведения по органу по подтверждению соответствия и аттестату аккредитации</div>
             </div>
             <div class="section-body">
               <div class="grid-3">
+                <div class="field" data-field="ops_org_type">
+                  <label>Выберите тип организации <span class="required">*</span></label>
+                  <select id="ops_org_type">
+                    <option value="">Выберите</option>
+                  </select>
+                </div>
                 <div class="field" data-field="ops_code">
-                  <label>Орган по подтверждению соответствия <span class="required">*</span></label>
+                  <label>ОРГАН ПО ПОДТВЕРЖДЕНИЮ СООТВЕТСТВИЯ <span class="required">*</span></label>
                   <select id="ops_code">
                     <option value="">Выберите из реестра</option>
-                    <option value="OPS-KZ-001">OPS-KZ-001 | ТОО Cert KZ</option>
-                    <option value="OPS-KZ-002">OPS-KZ-002 | ТОО National Test</option>
+                  </select>
+                </div>
+                <div class="field" data-field="accreditation_no">
+                  <label>Аттестат аккредитации <span class="required">*</span></label>
+                  <select id="accreditation_no">
+                    <option value="">Выберите</option>
                   </select>
                 </div>
                 <div class="field">
-                  <label>Аттестат аккредитации</label>
-                  <select id="accreditation_no">
-                    <option value="">Выберите</option>
-                    <option value="KZ.I.00.1234.2022">KZ.I.00.1234.2022</option>
-                    <option value="KZ.I.00.5678.2021">KZ.I.00.5678.2021</option>
-                  </select>
+                  <label>Номер Аттестата аккредитации <span class="required">*</span></label>
+                  <input id="accreditation_number_display" type="text" readonly placeholder="Заполняется автоматически" />
+                </div>
+                <div class="field">
+                  <label>БИН субъекта аккредитации</label>
+                  <input id="ops_bin" type="text" placeholder="12 цифр" maxlength="12" />
+                </div>
+                <div class="field">
+                  <label>Наименование субъекта аккредитации</label>
+                  <input id="ops_name" type="text" placeholder="Полное наименование ОПС" />
+                </div>
+                <div class="field">
+                  <label>Наименование на казахском</label>
+                  <input id="ops_name_kz" type="text" placeholder="Атауы қазақ тілінде" />
+                </div>
+                <div class="field">
+                  <label>Наименование на английском</label>
+                  <input id="ops_name_en" type="text" placeholder="English name" />
+                </div>
+                <div class="field">
+                  <label>Юридический адрес</label>
+                  <input id="ops_legal_address" type="text" placeholder="Юридический адрес ОПС" />
+                </div>
+                <div class="field">
+                  <label>Юридический адрес на казахском</label>
+                  <input id="ops_legal_address_kz" type="text" placeholder="Заңды мекенжай" />
+                </div>
+                <div class="field">
+                  <label>Фактический адрес</label>
+                  <input id="ops_actual_address" type="text" placeholder="Фактический адрес ОПС" />
+                </div>
+                <div class="field">
+                  <label>Фактический адрес на казахском</label>
+                  <input id="ops_actual_address_kz" type="text" placeholder="Нақты мекенжай" />
+                </div>
+                <div class="field">
+                  <label>Номер телефона</label>
+                  <input id="ops_phone" type="tel" placeholder="+7(___) ___ __ __" />
+                </div>
+                <div class="field">
+                  <label>Адрес эл.почты</label>
+                  <input id="ops_email" type="email" placeholder="ops@example.kz" />
                 </div>
                 <div class="field">
                   <label>Руководитель ОПС</label>
                   <input id="ops_manager" type="text" placeholder="ФИО" />
                 </div>
               </div>
+              <div class="helper-card" id="accreditation_scope_summary">Данные аттестата появятся после выбора ОПС и аттестата аккредитации.</div>
             </div>
           </section>
 
           <section class="section hidden" data-step="3">
             <div class="section-head">
               <div class="section-title">Схема сертификации</div>
-              <div class="section-sub">Выбор схемы и параметров</div>
+              <div class="section-sub">Схема сертификации и нормативное основание</div>
             </div>
             <div class="section-body">
               <div class="grid-2">
@@ -4497,16 +4635,16 @@
                   <label>Схема сертификации <span class="required">*</span></label>
                   <select id="cert_scheme_code">
                     <option value="">Выберите схему</option>
-                    <option value="SCHEME-1">SCHEME-1</option>
-                    <option value="SCHEME-2">SCHEME-2</option>
                   </select>
                 </div>
                 <div class="field">
-                  <label>Формат подачи</label>
-                  <select id="submission_format">
-                    <option value="Самостоятельно">Самостоятельно</option>
-                    <option value="ОПС с бумажного носителя">ОПС с бумажного носителя</option>
-                  </select>
+                  <label>Схемы сертификации утверждены приказом и.о. Министра торговли и интеграции Республики Казахстан от 29 июня 2021 года № 433-НҚ</label>
+                  <input
+                    id="order_433_reference"
+                    type="text"
+                    readonly
+                    value="Правила оценки соответствия, приказ Министра торговли и интеграции РК от 29 июня 2021 года № 433-НҚ"
+                  />
                 </div>
               </div>
             </div>
@@ -4515,31 +4653,109 @@
           <section class="section hidden" data-step="4">
             <div class="section-head">
               <div class="section-title">Данные по продукции</div>
-              <div class="section-sub">Основные сведения о продукции</div>
+              <div class="section-sub">Изготовитель, адреса изготовления и идентификация продукции</div>
             </div>
             <div class="section-body">
               <div class="grid-3">
+                <div class="field">
+                  <label>Полное наименование изготовителя <span class="required">*</span></label>
+                  <input id="manufacturer_name" type="text" placeholder="Наименование изготовителя" />
+                </div>
+                <div class="field">
+                  <label>Полное наименование изготовителя (на казахском языке)</label>
+                  <input id="manufacturer_name_kz" type="text" placeholder="Өндірушінің атауы қазақ тілінде" />
+                </div>
+                <div class="field">
+                  <label>Адрес (юридический адрес) <span class="required">*</span></label>
+                  <input id="manufacturer_address" type="text" placeholder="Юридический адрес изготовителя" />
+                </div>
+                <div class="field">
+                  <label>Адрес места осуществления деятельности по изготовлению</label>
+                  <select id="manufacturer_activity_address">
+                    <option value="">Выберите</option>
+                    <option value="legal">Юридический</option>
+                    <option value="other">Другой</option>
+                  </select>
+                </div>
+                <div class="field is-hidden" id="manufacturerActualAddressField">
+                  <label>Адрес (фактический адрес)</label>
+                  <input id="manufacturer_actual_address" type="text" placeholder="Фактический адрес изготовления" />
+                </div>
+                <div class="field">
+                  <label>Код продукции в соответствии с единой ТНВЭД ЕАЭС <span class="required">*</span></label>
+                  <input id="tnved_code" type="text" placeholder="10 знаков" />
+                </div>
+                <div class="field">
+                  <label>Название продукции (в случаях, предусмотренных техническими регламентами) (при наличии) (на русском) <span class="required">*</span></label>
+                  <input id="product_name_regulatory_ru" type="text" placeholder="Название продукции на русском" />
+                </div>
+                <div class="field">
+                  <label>Название продукции (в случаях, предусмотренных техническими регламентами) (при наличии) (на казахском)</label>
+                  <input id="product_name_regulatory_kz" type="text" placeholder="Өнім атауы қазақ тілінде" />
+                </div>
                 <div class="field" data-field="product_name">
                   <label>Наименование продукции <span class="required">*</span></label>
                   <input id="product_name" type="text" placeholder="Например: Насос" />
                 </div>
                 <div class="field">
-                  <label>Код ТН ВЭД</label>
-                  <input id="tnved_code" type="text" placeholder="10 знаков" />
-                </div>
-                <div class="field">
                   <label>Тип продукции</label>
                   <input id="product_type" type="text" placeholder="Тип" />
+                </div>
+                <div class="field">
+                  <label>Вид продукции</label>
+                  <input id="product_kind" type="text" placeholder="Вид продукции" />
+                </div>
+                <div class="field">
+                  <label>Марка продукции</label>
+                  <input id="brand" type="text" placeholder="Марка / модель" />
+                </div>
+                <div class="field">
+                  <label>Размер партии</label>
+                  <input id="batch_size" type="text" placeholder="Например: 500" />
+                </div>
+                <div class="field">
+                  <label>Единицы измерения <span class="required">*</span></label>
+                  <select id="unit_of_measure">
+                    <option value="">Выберите</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Заводской номер единичного изделия</label>
+                  <input id="serial_number" type="text" placeholder="Серийный / заводской номер" />
+                </div>
+                <div class="field">
+                  <label>Реквизиты товаросопроводительной документации, идентифицирующей партию продукции (в том числе ее размер) или единичное изделие</label>
+                  <input id="shipping_documents_details" type="text" placeholder="Реквизиты товаросопроводительной документации" />
+                </div>
+                <div class="field">
+                  <label>ТР РК</label>
+                  <input id="tr_rk" type="text" placeholder="Технический регламент" />
+                </div>
+                <div class="field">
+                  <label>Нормативный документ (СТ РК, ГОСТ)</label>
+                  <input id="normative_doc" type="text" placeholder="ГОСТ/СТ РК/..." />
+                </div>
+                <div class="field">
+                  <label>Прочие документы</label>
+                  <input id="product_other_documents" type="text" placeholder="Иные документы по продукции" />
+                </div>
+                <div class="field">
+                  <label>Код GIA / внутренний код</label>
+                  <input id="gia_code" type="text" placeholder="Внутренний код продукции" />
+                </div>
+                <div class="field">
+                  <label>Штрих-код</label>
+                  <input id="barcode" type="text" placeholder="Штрих-код продукции" />
                 </div>
               </div>
               <div class="grid-2" style="margin-top: 10px">
                 <div class="field">
-                  <label>Нормативный документ</label>
-                  <input id="normative_doc" type="text" placeholder="ГОСТ/СТ РК/..." />
+                  <label>Иные сведения о продукции, обеспечивающие идентификацию продукции</label>
+                  <textarea id="additional_product_info" placeholder="Дополнительные характеристики, штрих-коды, внутренние коды и другие сведения"></textarea>
                 </div>
                 <div class="field">
-                  <label>Документ изготовления</label>
-                  <input id="manufacture_doc" type="text" placeholder="ТУ/СТО/..." />
+                  <label>Иные сведения о продукции, обеспечивающие идентификацию продукции (на казахском языке)</label>
+                  <textarea id="additional_product_info_kz" placeholder="Өнімді сәйкестендіретін қосымша мәліметтер"></textarea>
                 </div>
               </div>
             </div>
@@ -4548,12 +4764,27 @@
           <section class="section hidden" data-step="5">
             <div class="section-head">
               <div class="section-title">Приложение</div>
-              <div class="section-sub">Табличные данные по продукции</div>
+              <div class="section-sub">Табличное представление продукции по номенклатуре и документации</div>
             </div>
             <div class="section-body">
-              <div class="field">
-                <label>Строки приложения (JSON или текст)</label>
-                <textarea id="appendix_rows" placeholder='[{"name":"Позиция 1","qty":"10"}]'></textarea>
+              <div class="appendix-table-wrap">
+                <table class="appendix-table" aria-label="Приложение по продукции">
+                  <thead>
+                    <tr>
+                      <th>№ п/п</th>
+                      <th>Код ТНВЭД ЕАЭС</th>
+                      <th>Наименование продукции</th>
+                      <th>Изготовитель</th>
+                      <th>Тип документа</th>
+                      <th>Обозначение документации</th>
+                      <th>Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody id="appendixTableBody"></tbody>
+                </table>
+              </div>
+              <div class="action-bar" style="margin-top: 10px">
+                <button class="btn-secondary" id="appendixAddRowBtn" type="button">Добавить строку</button>
               </div>
             </div>
           </section>
@@ -4561,25 +4792,59 @@
           <section class="section hidden" data-step="6">
             <div class="section-head">
               <div class="section-title">Документы для оценки соответствия</div>
-              <div class="section-sub">Подготовьте пакет документов (MVP: UI-уровень)</div>
+              <div class="section-sub">Типизированный пакет документов согласно аналитике Ордер 3</div>
             </div>
             <div class="section-body">
               <div class="doc-grid">
                 <div class="doc-item">
-                  <label>Заявка с подписью и печатью</label>
-                  <input id="doc_signed" type="file" />
+                  <label>Сканированная версия заявки на сертификацию с подписью и печатью заявителя</label>
+                  <input id="doc_application_scan" type="file" />
+                  <span class="hint" id="doc_application_scan_status">Файл не загружен.</span>
                 </div>
                 <div class="doc-item">
-                  <label>Техническая документация</label>
+                  <label>Техническая документация и (или) проектная, и (или) конструкторская, и (или) технологическая, и (или) эксплуатационная</label>
                   <input id="doc_tech" type="file" />
+                  <span class="hint" id="doc_tech_status">Файл не загружен.</span>
                 </div>
                 <div class="doc-item">
-                  <label>Список стандартов</label>
+                  <label>Список стандартов или иных нормативных документов в области стандартизации, в соответствии с которыми изготавливается продукция</label>
                   <input id="doc_standards" type="file" />
+                  <span class="hint" id="doc_standards_status">Файл не загружен.</span>
                 </div>
                 <div class="doc-item">
-                  <label>Иные документы</label>
+                  <label>Документ (документы), в соответствии с которыми изготовлена продукция (стандарт организации, технические условия или иной документ) (при наличии)</label>
+                  <input id="doc_manufacture_docs" type="file" />
+                  <span class="hint" id="doc_manufacture_docs_status">Файл не загружен.</span>
+                </div>
+                <div class="doc-item">
+                  <label>Сертификат соответствия системы менеджмента качества, если его действие распространяется на изготовление продукции (при наличии или если требуется схемой подтверждения)</label>
+                  <input id="doc_qms_certificate" type="file" />
+                  <span class="hint" id="doc_qms_certificate_status">Файл не загружен.</span>
+                </div>
+                <div class="doc-item">
+                  <label>Отчет об аудите системы менеджмента качества и информация, подтверждающая способность внедренной системы менеджмента качества обеспечивать стабильный выпуск продукции, соответствующей требованиям, подтверждаемым при сертификации</label>
+                  <input id="doc_reports" type="file" />
+                  <span class="hint" id="doc_reports_status">Файл не загружен.</span>
+                </div>
+                <div class="doc-item">
+                  <label>Сертификат соответствия критических компонентов, материалов, комплектующих изделий или составных частей изделия (при наличии)</label>
+                  <input id="doc_components_certificate" type="file" />
+                  <span class="hint" id="doc_components_certificate_status">Файл не загружен.</span>
+                </div>
+                <div class="doc-item">
+                  <label>Договор с иностранным изготовителем, предусматривающего обеспечение соответствия поставляемой в Республику Казахстан продукции требованиям технических регламентов или нормативных документов по стандартизации и ответственность за несоответствие такой продукции указанным требованиям (для серийно выпускаемой продукции)</label>
+                  <input id="doc_foreign_contract" type="file" />
+                  <span class="hint" id="doc_foreign_contract_status">Файл не загружен.</span>
+                </div>
+                <div class="doc-item">
+                  <label>Иные документы по выбору заявителя, косвенно подтверждающие соответствие продукции</label>
                   <input id="doc_other" type="file" />
+                  <span class="hint" id="doc_other_status">Файл не загружен.</span>
+                </div>
+                <div class="doc-item">
+                  <label>Документы о соответствии продукции установленным требованиям</label>
+                  <input id="doc_product_compliance" type="file" />
+                  <span class="hint" id="doc_product_compliance_status">Файл не загружен.</span>
                 </div>
               </div>
             </div>
@@ -4588,12 +4853,19 @@
           <section class="section hidden" data-step="7">
             <div class="section-head">
               <div class="section-title">Примечание</div>
-              <div class="section-sub">Дополнительная информация по заявке</div>
+              <div class="section-sub">Примечание и юридически значимое подтверждение</div>
             </div>
             <div class="section-body">
               <div class="field">
                 <label>Примечание</label>
                 <textarea id="note" placeholder="Текст примечания"></textarea>
+              </div>
+              <div class="field" style="margin-top: 10px">
+                <label>Примечание (на казахском)</label>
+                <textarea id="note_kz" placeholder="Ескертпе мәтіні"></textarea>
+              </div>
+              <div class="field full" style="margin-top: 10px">
+                <textarea id="legal_confirmation_note" readonly>Заявитель подтверждает, что приложенные документы и сведения актуальны, а представленные материалы могут использоваться ОПС в рамках процедуры подтверждения соответствия.</textarea>
               </div>
             </div>
           </section>
@@ -4809,20 +5081,104 @@
         "Схема сертификации",
         "Данные по продукции",
         "Приложение",
-        "Документы",
+        "Документы для оценки соответствия",
         "Примечание",
       ];
 
       const REQUIRED_FIELDS = [
+        "certification_kind",
+        "applicant_type",
+        "submission_from",
+        "submission_format",
+        "certification_object",
         "applicant_name",
         "applicant_bin",
         "applicant_address",
+        "applicant_activity_address",
+        "applicant_head_iin",
+        "applicant_head_name",
+        "ops_org_type",
         "ops_code",
+        "accreditation_no",
         "cert_scheme_code",
+        "manufacturer_name",
+        "manufacturer_address",
         "product_name",
+        "product_name_regulatory_ru",
+        "tnved_code",
+        "unit_of_measure",
         "phone",
         "email",
       ];
+      const APPLICANT_DOCUMENT_SLOTS = [
+        {
+          slot: "application_scan",
+          inputId: "doc_application_scan",
+          statusId: "doc_application_scan_status",
+          label: "Сканированная версия заявки на сертификацию с подписью и печатью заявителя",
+        },
+        {
+          slot: "technical_documentation",
+          inputId: "doc_tech",
+          statusId: "doc_tech_status",
+          label: "Техническая документация и (или) проектная, и (или) конструкторская, и (или) технологическая, и (или) эксплуатационная",
+        },
+        {
+          slot: "standards_list",
+          inputId: "doc_standards",
+          statusId: "doc_standards_status",
+          label: "Список стандартов или иных нормативных документов в области стандартизации, в соответствии с которыми изготавливается продукция",
+        },
+        {
+          slot: "manufacture_documents",
+          inputId: "doc_manufacture_docs",
+          statusId: "doc_manufacture_docs_status",
+          label: "Документ (документы), в соответствии с которыми изготовлена продукция (стандарт организации, технические условия или иной документ) (при наличии)",
+        },
+        {
+          slot: "qms_certificate",
+          inputId: "doc_qms_certificate",
+          statusId: "doc_qms_certificate_status",
+          label: "Сертификат соответствия системы менеджмента качества, если его действие распространяется на изготовление продукции (при наличии или если требуется схемой подтверждения)",
+        },
+        {
+          slot: "reports",
+          inputId: "doc_reports",
+          statusId: "doc_reports_status",
+          label: "Отчет об аудите системы менеджмента качества и информация, подтверждающая способность внедренной системы менеджмента качества обеспечивать стабильный выпуск продукции, соответствующей требованиям, подтверждаемым при сертификации",
+        },
+        {
+          slot: "critical_components_certificate",
+          inputId: "doc_components_certificate",
+          statusId: "doc_components_certificate_status",
+          label: "Сертификат соответствия критических компонентов, материалов, комплектующих изделий или составных частей изделия (при наличии)",
+        },
+        {
+          slot: "foreign_manufacturer_contract",
+          inputId: "doc_foreign_contract",
+          statusId: "doc_foreign_contract_status",
+          label: "Договор с иностранным изготовителем, предусматривающего обеспечение соответствия поставляемой в Республику Казахстан продукции требованиям технических регламентов или нормативных документов по стандартизации и ответственность за несоответствие такой продукции указанным требованиям (для серийно выпускаемой продукции)",
+        },
+        {
+          slot: "product_compliance_documents",
+          inputId: "doc_product_compliance",
+          statusId: "doc_product_compliance_status",
+          label: "Документы о соответствии продукции установленным требованиям",
+        },
+        {
+          slot: "other_documents",
+          inputId: "doc_other",
+          statusId: "doc_other_status",
+          label: "Иные документы по выбору заявителя, косвенно подтверждающие соответствие продукции",
+        },
+      ];
+      const EMPTY_APPENDIX_ROW = Object.freeze({
+        tnved_code: "",
+        name: "",
+        manufacturer: "",
+        document_type: "",
+        document_reference: "",
+      });
       const EDITABLE_APPLICANT_STATUSES = new Set(["DRAFT", "REVISION_REQUESTED"]);
       const APPLICANT_MODULES = [
         {
@@ -5128,6 +5484,15 @@
       };
       const phoneInput = document.getElementById("phone");
       const applicantBinInput = document.getElementById("applicant_bin");
+      const applicantHeadIinInput = document.getElementById("applicant_head_iin");
+      const applicantActivityAddressSelect = document.getElementById("applicant_activity_address");
+      const manufacturerActivityAddressSelect = document.getElementById("manufacturer_activity_address");
+      const opsBinInput = document.getElementById("ops_bin");
+      const opsPhoneInput = document.getElementById("ops_phone");
+      const opsCodeSelect = document.getElementById("ops_code");
+      const accreditationNoSelect = document.getElementById("accreditation_no");
+      const appendixTableBody = document.getElementById("appendixTableBody");
+      const appendixAddRowBtn = document.getElementById("appendixAddRowBtn");
       const opsStatusValue = document.getElementById("opsStatusValue");
       const opsProtocolFile = document.getElementById("opsProtocolFile");
       const opsProtocolUploadCard = document.getElementById("opsProtocolUploadCard");
@@ -5174,6 +5539,7 @@
       let currentApplicationStatus = "DRAFT";
       let currentApplicationHistory = [];
       let currentApplicationApplicantSubject = null;
+      let currentApplicationFileSlots = {};
       let currentPostIssuanceId = null;
       let currentPostIssuanceApplication = null;
       let currentPostIssuanceOriginTab = "post-issuance";
@@ -5191,6 +5557,19 @@
       let sessionExpanded = false;
       let formDirty = false;
       let authReady = false;
+      let applicationFormLookupsLoaded = false;
+      let applicationFormLookups = {
+        certificationTypes: [],
+        applicantTypes: [],
+        submissionBy: [],
+        submissionFormats: [],
+        certificationObjects: [],
+        organizationTypes: [],
+        certificationSchemes: [],
+        measurementUnits: [],
+        opsRegistry: [],
+        accreditationAttestats: [],
+      };
       let postIssuanceDictionariesLoaded = false;
       let postIssuanceDictionaries = {
         suspension: [],
@@ -5255,6 +5634,12 @@
           element.disabled = readOnly;
           if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
             element.readOnly = readOnly;
+          }
+        });
+        const appendixButtons = Array.from(document.querySelectorAll("#sectionsWrap [data-appendix-action], #appendixAddRowBtn"));
+        appendixButtons.forEach((button) => {
+          if (button instanceof HTMLButtonElement) {
+            button.disabled = readOnly;
           }
         });
         formView.classList.toggle("form-readonly", readOnly);
@@ -6427,6 +6812,391 @@
         selectNode.value = hasCurrentValue ? currentValue : "";
       }
 
+      function populateApplicationSelect(selectNode, items, placeholder, options = {}) {
+        if (!selectNode) {
+          return;
+        }
+        const valueKey = options.valueKey || "code";
+        const currentValue = String(options.preserveValue ?? selectNode.value ?? "").trim();
+        const labelBuilder = typeof options.labelBuilder === "function"
+          ? options.labelBuilder
+          : (item) => item.name || item[valueKey] || "-";
+        selectNode.innerHTML = "";
+        const placeholderOption = document.createElement("option");
+        placeholderOption.value = "";
+        placeholderOption.textContent = placeholder;
+        selectNode.appendChild(placeholderOption);
+        const knownValues = new Set();
+        items.forEach((item) => {
+          const value = String(item?.[valueKey] ?? "").trim();
+          if (!value) {
+            return;
+          }
+          knownValues.add(value);
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = labelBuilder(item);
+          selectNode.appendChild(option);
+        });
+        if (currentValue && !knownValues.has(currentValue)) {
+          const preservedOption = document.createElement("option");
+          preservedOption.value = currentValue;
+          preservedOption.textContent = `${currentValue} (сохраненное значение)`;
+          selectNode.appendChild(preservedOption);
+        }
+        selectNode.value = currentValue;
+      }
+
+      function setFieldValue(fieldId, value, overwrite = true) {
+        const element = document.getElementById(fieldId);
+        if (!element) {
+          return;
+        }
+        if (!overwrite && typeof element.value === "string" && element.value.trim()) {
+          return;
+        }
+        element.value = value ?? "";
+      }
+
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function formatOpsAddress(city) {
+        const normalizedCity = String(city || "").trim();
+        return normalizedCity ? `г. ${normalizedCity}` : "";
+      }
+
+      function getOpsRegistryItemByCode(opsCode) {
+        return applicationFormLookups.opsRegistry.find((item) => item.ops_code === opsCode) || null;
+      }
+
+      function getAttestatsForOpsCode(opsCode) {
+        if (!opsCode) {
+          return applicationFormLookups.accreditationAttestats;
+        }
+        return applicationFormLookups.accreditationAttestats.filter((item) => item.ops_code === opsCode);
+      }
+
+      function syncAccreditationScopeSummary() {
+        const summaryNode = document.getElementById("accreditation_scope_summary");
+        const numberNode = document.getElementById("accreditation_number_display");
+        if (!summaryNode) {
+          return;
+        }
+        const accreditationNo = getValue("accreditation_no");
+        const selectedAttestat = applicationFormLookups.accreditationAttestats.find(
+          (item) => item.attestat_number === accreditationNo,
+        );
+        if (!selectedAttestat) {
+          if (numberNode instanceof HTMLInputElement) {
+            numberNode.value = "";
+          }
+          summaryNode.textContent = "Данные аттестата появятся после выбора ОПС и аттестата аккредитации.";
+          return;
+        }
+        if (numberNode instanceof HTMLInputElement) {
+          numberNode.value = selectedAttestat.attestat_number || "";
+        }
+        const parts = [
+          `Номер аттестата: ${selectedAttestat.attestat_number || "-"}`,
+          `Статус: ${selectedAttestat.status || "-"}`,
+          `Срок действия: ${selectedAttestat.issued_at || "-"} -> ${selectedAttestat.expires_at || "-"}`,
+          `Область аккредитации: ${selectedAttestat.scope_summary || "-"}`,
+        ];
+        summaryNode.textContent = parts.join("\n");
+      }
+
+      function syncOpsRegistryFields(options = {}) {
+        const overwrite = options.overwrite !== false;
+        const opsCode = getValue("ops_code");
+        const accreditationItems = getAttestatsForOpsCode(opsCode);
+        populateApplicationSelect(
+          accreditationNoSelect,
+          accreditationItems,
+          opsCode ? "Выберите номер аттестата" : "Сначала выберите ОПС",
+          {
+            valueKey: "attestat_number",
+            labelBuilder: (item) => item.attestat_number || "-",
+            preserveValue: getValue("accreditation_no"),
+          },
+        );
+        if (opsCode && !getValue("accreditation_no") && accreditationItems[0] && accreditationNoSelect) {
+          accreditationNoSelect.value = accreditationItems[0].attestat_number || "";
+        }
+
+        const opsItem = getOpsRegistryItemByCode(opsCode);
+        if (opsItem) {
+          const address = formatOpsAddress(opsItem.city);
+          setFieldValue("ops_bin", opsItem.bin || "", overwrite);
+          setFieldValue("ops_name", opsItem.full_name || "", overwrite);
+          setFieldValue("ops_manager", opsItem.head_name || "", overwrite);
+          setFieldValue("ops_legal_address", address, overwrite);
+          setFieldValue("ops_actual_address", address, overwrite);
+        }
+        syncAccreditationScopeSummary();
+      }
+
+      function setConditionalFieldVisibility(fieldId, visible) {
+        const field = document.getElementById(fieldId);
+        if (!(field instanceof HTMLElement)) {
+          return;
+        }
+        field.classList.toggle("is-hidden", !visible);
+      }
+
+      function syncApplicantAddressVisibility() {
+        const showActualAddress = getValue("applicant_activity_address") === "other" || Boolean(getValue("actual_address"));
+        setConditionalFieldVisibility("actualAddressField", showActualAddress);
+        if (!showActualAddress) {
+          setFieldValue("actual_address", "", true);
+        }
+      }
+
+      function syncManufacturerAddressVisibility() {
+        const showActualAddress =
+          getValue("manufacturer_activity_address") === "other" || Boolean(getValue("manufacturer_actual_address"));
+        setConditionalFieldVisibility("manufacturerActualAddressField", showActualAddress);
+        if (!showActualAddress) {
+          setFieldValue("manufacturer_actual_address", "", true);
+        }
+      }
+
+      function createAppendixRow(row = {}) {
+        return {
+          ...EMPTY_APPENDIX_ROW,
+          ...(row && typeof row === "object" ? row : {}),
+        };
+      }
+
+      function renderAppendixRows(rows = [EMPTY_APPENDIX_ROW]) {
+        if (!(appendixTableBody instanceof HTMLElement)) {
+          return;
+        }
+        const normalizedRows = Array.isArray(rows) && rows.length ? rows.map((row) => createAppendixRow(row)) : [createAppendixRow()];
+        appendixTableBody.innerHTML = "";
+        normalizedRows.forEach((row, index) => {
+          const tableRow = document.createElement("tr");
+          tableRow.innerHTML = `
+            <td>${index + 1}</td>
+            <td><input type="text" data-appendix-field="tnved_code" value="${escapeHtml(row.tnved_code || "")}" /></td>
+            <td><input type="text" data-appendix-field="name" value="${escapeHtml(row.name || "")}" /></td>
+            <td><input type="text" data-appendix-field="manufacturer" value="${escapeHtml(row.manufacturer || "")}" /></td>
+            <td><input type="text" data-appendix-field="document_type" value="${escapeHtml(row.document_type || "")}" /></td>
+            <td><input type="text" data-appendix-field="document_reference" value="${escapeHtml(row.document_reference || "")}" /></td>
+            <td><button class="btn-secondary" type="button" data-appendix-action="remove">Удалить</button></td>
+          `;
+          appendixTableBody.appendChild(tableRow);
+        });
+      }
+
+      function collectAppendixRows() {
+        if (!(appendixTableBody instanceof HTMLElement)) {
+          return [];
+        }
+        return Array.from(appendixTableBody.querySelectorAll("tr"))
+          .map((row) => {
+            const result = { ...EMPTY_APPENDIX_ROW };
+            row.querySelectorAll("[data-appendix-field]").forEach((input) => {
+              if (input instanceof HTMLInputElement) {
+                result[input.dataset.appendixField] = input.value.trim();
+              }
+            });
+            return result;
+          })
+          .filter((row) => Object.values(row).some(Boolean));
+      }
+
+      function addAppendixRow(row = EMPTY_APPENDIX_ROW) {
+        const rows = collectAppendixRows();
+        rows.push(createAppendixRow(row));
+        renderAppendixRows(rows);
+      }
+
+      function normalizeApplicantFileSlots(rawSlots) {
+        const source = rawSlots && typeof rawSlots === "object" ? rawSlots : {};
+        const normalized = {};
+        APPLICANT_DOCUMENT_SLOTS.forEach(({ slot }) => {
+          const entry = source[slot];
+          if (entry && typeof entry === "object") {
+            normalized[slot] = { ...entry };
+          }
+        });
+        return normalized;
+      }
+
+      function buildApplicantDocumentPackageSummary(fileSlots = currentApplicationFileSlots) {
+        const summary = {};
+        APPLICANT_DOCUMENT_SLOTS.forEach(({ slot, label }) => {
+          const entry = fileSlots[slot];
+          if (!entry || typeof entry !== "object") {
+            return;
+          }
+          summary[slot] = {
+            label,
+            file_name: entry.file_name || "",
+            object_key: entry.object_key || "",
+            content_type: entry.content_type || "",
+            size_bytes: entry.size_bytes || 0,
+            uploaded_at: entry.uploaded_at || "",
+          };
+        });
+        return summary;
+      }
+
+      function refreshApplicantDocumentStatuses() {
+        APPLICANT_DOCUMENT_SLOTS.forEach(({ slot, inputId, statusId, label }) => {
+          const input = document.getElementById(inputId);
+          const statusNode = document.getElementById(statusId);
+          if (!(statusNode instanceof HTMLElement)) {
+            return;
+          }
+          const selectedFile =
+            input instanceof HTMLInputElement && input.files && input.files[0] ? input.files[0] : null;
+          const stored = currentApplicationFileSlots[slot];
+          if (selectedFile) {
+            statusNode.textContent = `Выбран файл: ${selectedFile.name}`;
+            return;
+          }
+          if (stored && typeof stored === "object") {
+            const uploadedAt = stored.uploaded_at ? ` | ${formatDateTime(stored.uploaded_at)}` : "";
+            statusNode.textContent = `Загружен: ${stored.file_name || label}${uploadedAt}`;
+            return;
+          }
+          statusNode.textContent = "Файл не загружен.";
+        });
+      }
+
+      async function uploadApplicantDocumentSlots(applicationId) {
+        const uploadedSlots = {};
+        for (const { slot, inputId } of APPLICANT_DOCUMENT_SLOTS) {
+          const input = document.getElementById(inputId);
+          const file = input instanceof HTMLInputElement && input.files && input.files[0] ? input.files[0] : null;
+          if (!file) {
+            continue;
+          }
+          const contentBase64 = await readFileAsBase64(file);
+          const uploaded = await callApi("POST", "/files/slots/upload", {
+            application_id: applicationId,
+            slot,
+            file_name: file.name,
+            content_base64: contentBase64,
+            content_type: file.type || "application/octet-stream",
+          });
+          uploadedSlots[slot] = uploaded;
+          input.value = "";
+        }
+        if (Object.keys(uploadedSlots).length > 0) {
+          currentApplicationFileSlots = {
+            ...currentApplicationFileSlots,
+            ...uploadedSlots,
+          };
+          refreshApplicantDocumentStatuses();
+        }
+        return uploadedSlots;
+      }
+
+      function renderApplicationFormLookups() {
+        populateApplicationSelect(
+          document.getElementById("certification_kind"),
+          applicationFormLookups.certificationTypes,
+          "Выберите вид сертификации",
+        );
+        populateApplicationSelect(
+          document.getElementById("applicant_type"),
+          applicationFormLookups.applicantTypes,
+          "Выберите тип заявителя",
+        );
+        populateApplicationSelect(
+          document.getElementById("submission_from"),
+          applicationFormLookups.submissionBy,
+          "Выберите источник подачи",
+        );
+        populateApplicationSelect(
+          document.getElementById("submission_format"),
+          applicationFormLookups.submissionFormats,
+          "Выберите формат подачи",
+        );
+        populateApplicationSelect(
+          document.getElementById("certification_object"),
+          applicationFormLookups.certificationObjects,
+          "Выберите вид сертификации",
+        );
+        populateApplicationSelect(
+          document.getElementById("ops_org_type"),
+          applicationFormLookups.organizationTypes,
+          "Выберите тип организации",
+        );
+        populateApplicationSelect(
+          document.getElementById("cert_scheme_code"),
+          applicationFormLookups.certificationSchemes,
+          "Выберите схему сертификации",
+        );
+        populateApplicationSelect(
+          document.getElementById("unit_of_measure"),
+          applicationFormLookups.measurementUnits,
+          "Выберите единицу измерения",
+        );
+        populateApplicationSelect(
+          opsCodeSelect,
+          applicationFormLookups.opsRegistry,
+          "Выберите ОПС из реестра",
+          {
+            valueKey: "ops_code",
+            labelBuilder: (item) => `${item.ops_code || "-"} | ${item.full_name || "-"}`,
+          },
+        );
+        syncOpsRegistryFields({ overwrite: false });
+      }
+
+      async function ensureApplicationFormLookupsLoaded() {
+        if (applicationFormLookupsLoaded) {
+          renderApplicationFormLookups();
+          return;
+        }
+        const [
+          certificationTypes,
+          applicantTypes,
+          submissionBy,
+          submissionFormats,
+          certificationObjects,
+          organizationTypes,
+          certificationSchemes,
+          measurementUnits,
+          opsRegistry,
+          accreditationAttestats,
+        ] = await Promise.all([
+          callApi("GET", "/reference-data/dictionaries/certification_type/items"),
+          callApi("GET", "/reference-data/dictionaries/applicant_type/items"),
+          callApi("GET", "/reference-data/dictionaries/application_submission_by/items"),
+          callApi("GET", "/reference-data/dictionaries/application_submission_format/items"),
+          callApi("GET", "/reference-data/dictionaries/certification_object/items"),
+          callApi("GET", "/reference-data/dictionaries/organization_type/items"),
+          callApi("GET", "/reference-data/dictionaries/certification_scheme/items"),
+          callApi("GET", "/reference-data/dictionaries/measurement_unit/items"),
+          callApi("GET", "/reference-data/ops-registry?limit=200"),
+          callApi("GET", "/reference-data/accreditation-attestats?limit=200"),
+        ]);
+        applicationFormLookups = {
+          certificationTypes: Array.isArray(certificationTypes.items) ? certificationTypes.items : [],
+          applicantTypes: Array.isArray(applicantTypes.items) ? applicantTypes.items : [],
+          submissionBy: Array.isArray(submissionBy.items) ? submissionBy.items : [],
+          submissionFormats: Array.isArray(submissionFormats.items) ? submissionFormats.items : [],
+          certificationObjects: Array.isArray(certificationObjects.items) ? certificationObjects.items : [],
+          organizationTypes: Array.isArray(organizationTypes.items) ? organizationTypes.items : [],
+          certificationSchemes: Array.isArray(certificationSchemes.items) ? certificationSchemes.items : [],
+          measurementUnits: Array.isArray(measurementUnits.items) ? measurementUnits.items : [],
+          opsRegistry: Array.isArray(opsRegistry.items) ? opsRegistry.items : [],
+          accreditationAttestats: Array.isArray(accreditationAttestats.items) ? accreditationAttestats.items : [],
+        };
+        applicationFormLookupsLoaded = true;
+        renderApplicationFormLookups();
+      }
+
       function getTerminationReasonRequestSource() {
         const source = (piRequestSource?.value || currentPostIssuanceApplication?.initiator_role || "").trim();
         return source === "OPS" ? "OPS" : "Applicant";
@@ -6863,6 +7633,7 @@
 
       async function openApplicantApplication(applicationId) {
         ensureApplicantAccess();
+        await ensureApplicationFormLookupsLoaded();
         const application = await callApi("GET", `/applications/${applicationId}`);
         const historyItems = await fetchApplicationHistory(applicationId);
         currentOpsApplication = null;
@@ -6888,6 +7659,7 @@
 
       async function openOpsApplication(applicationId) {
         ensureOpsAccess();
+        await ensureApplicationFormLookupsLoaded();
         const application = await callApi("GET", `/applications/${applicationId}`);
         currentOpsApplication = application;
         applyApplicationToForm(application);
@@ -6996,6 +7768,7 @@
         renderProcessByStatus("DRAFT");
         currentApplicationHistory = [];
         currentApplicationApplicantSubject = null;
+        currentApplicationFileSlots = {};
         setApplicantOpsComment(null);
         setApplicantCommentVisible(false);
         setOpsStatusBannerVisible(false);
@@ -7013,6 +7786,20 @@
         closeOpsRevisionModal();
         closeOpsDecisionModal();
         currentApplicantCanEdit = true;
+        setFieldValue(
+          "applicant_obligation_text",
+          "Настоящей заявкой заявитель подтверждает достоверность представленных сведений, обязуется соблюдать процедуру подтверждения соответствия, обеспечивать стабильность показателей сертифицируемой продукции, оплачивать расходы, связанные с проведением работ, и дает согласие на использование и обработку представленных сведений в рамках процедуры подтверждения соответствия.",
+          true,
+        );
+        setFieldValue(
+          "legal_confirmation_note",
+          "Заявитель подтверждает, что приложенные документы и сведения актуальны, а представленные материалы могут использоваться ОПС в рамках процедуры подтверждения соответствия.",
+          true,
+        );
+        renderAppendixRows([EMPTY_APPENDIX_ROW]);
+        syncApplicantAddressVisibility();
+        syncManufacturerAddressVisibility();
+        refreshApplicantDocumentStatuses();
         renderStep();
       }
 
@@ -7286,6 +8073,11 @@
         currentFormMode = mode === "ops" ? "ops" : "applicant";
         currentView = currentFormMode === "ops" ? "ops-form" : "form";
         resetPostIssuanceForm();
+        ensureApplicationFormLookupsLoaded().catch((error) => {
+          writeOutput("Ошибка загрузки справочников формы", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        });
         if (currentFormMode === "ops") {
           setActiveMenu("applications");
           pageEyebrow.textContent = "Раздел заявок";
@@ -7430,104 +8222,240 @@
 
       function buildPayload() {
         const productName = getValue("product_name");
-        let appendixRows = [];
-        const appendixRaw = getValue("appendix_rows");
-        if (appendixRaw) {
-          try {
-            const parsed = JSON.parse(appendixRaw);
-            if (Array.isArray(parsed)) {
-              appendixRows = parsed;
-            }
-          } catch (_err) {
-            appendixRows = [{ raw: appendixRaw }];
-          }
-        }
+        const appendixRows = collectAppendixRows();
 
         return {
           certification_kind: getValue("certification_kind"),
           applicant_type: getValue("applicant_type"),
           submission_from: getValue("submission_from"),
+          submission_format: getValue("submission_format"),
+          certification_object: getValue("certification_object"),
           applicant_name: getValue("applicant_name"),
+          applicant_name_kz: getValue("applicant_name_kz"),
           applicant_bin: getValue("applicant_bin"),
+          applicant_head_iin: getValue("applicant_head_iin"),
+          applicant_head_name: getValue("applicant_head_name"),
+          applicant_head_name_kz: getValue("applicant_head_name_kz"),
+          applicant_signatory_role: getValue("applicant_signatory_role"),
+          applicant_head_position: getValue("applicant_head_position"),
+          applicant_head_position_kz: getValue("applicant_head_position_kz"),
           phone: getValue("phone"),
           email: getValue("email"),
+          iban: getValue("iban"),
+          bik: getValue("bik"),
+          applicant_obligation_text: getValue("applicant_obligation_text"),
           agree_procedure: getValue("agree_procedure"),
-          agree_data: getValue("agree_data"),
           applicant_address: getValue("applicant_address"),
+          applicant_activity_address: getValue("applicant_activity_address"),
           actual_address: getValue("actual_address"),
+          ops_org_type: getValue("ops_org_type"),
           ops_code: getValue("ops_code"),
           accreditation_no: getValue("accreditation_no"),
+          accreditation_number_display: getValue("accreditation_number_display"),
+          ops_bin: getValue("ops_bin"),
+          ops_name: getValue("ops_name"),
+          ops_name_kz: getValue("ops_name_kz"),
+          ops_name_en: getValue("ops_name_en"),
+          ops_legal_address: getValue("ops_legal_address"),
+          ops_legal_address_kz: getValue("ops_legal_address_kz"),
+          ops_actual_address: getValue("ops_actual_address"),
+          ops_actual_address_kz: getValue("ops_actual_address_kz"),
+          ops_phone: getValue("ops_phone"),
+          ops_email: getValue("ops_email"),
           ops_manager: getValue("ops_manager"),
           cert_scheme_code: getValue("cert_scheme_code"),
-          submission_format: getValue("submission_format"),
+          order_433_reference: getValue("order_433_reference"),
+          manufacturer_name: getValue("manufacturer_name"),
+          manufacturer_name_kz: getValue("manufacturer_name_kz"),
+          manufacturer_address: getValue("manufacturer_address"),
+          manufacturer_activity_address: getValue("manufacturer_activity_address"),
+          manufacturer_actual_address: getValue("manufacturer_actual_address"),
+          product_name_regulatory_ru: getValue("product_name_regulatory_ru"),
+          product_name_regulatory_kz: getValue("product_name_regulatory_kz"),
+          product_name: getValue("product_name"),
+          tnved_code: getValue("tnved_code"),
+          product_type: getValue("product_type"),
+          product_kind: getValue("product_kind"),
+          brand: getValue("brand"),
+          batch_size: getValue("batch_size"),
+          unit_of_measure: getValue("unit_of_measure"),
+          serial_number: getValue("serial_number"),
+          shipping_documents_details: getValue("shipping_documents_details"),
+          tr_rk: getValue("tr_rk"),
+          normative_doc: getValue("normative_doc"),
+          product_other_documents: getValue("product_other_documents"),
+          gia_code: getValue("gia_code"),
+          barcode: getValue("barcode"),
+          additional_product_info: getValue("additional_product_info"),
+          additional_product_info_kz: getValue("additional_product_info_kz"),
+          file_slots: { ...currentApplicationFileSlots },
+          document_package: buildApplicantDocumentPackageSummary(),
           products: productName
             ? [
                 {
                   name: productName,
+                  regulatory_name_ru: getValue("product_name_regulatory_ru"),
+                  regulatory_name_kz: getValue("product_name_regulatory_kz"),
                   tnved_code: getValue("tnved_code"),
                   product_type: getValue("product_type"),
+                  product_kind: getValue("product_kind"),
+                  brand: getValue("brand"),
+                  batch_size: getValue("batch_size"),
+                  unit_of_measure: getValue("unit_of_measure"),
+                  serial_number: getValue("serial_number"),
+                  shipping_documents_details: getValue("shipping_documents_details"),
+                  tr_rk: getValue("tr_rk"),
                   normative_doc: getValue("normative_doc"),
-                  manufacture_doc: getValue("manufacture_doc"),
+                  other_documents: getValue("product_other_documents"),
+                  gia_code: getValue("gia_code"),
+                  barcode: getValue("barcode"),
+                  additional_info: getValue("additional_product_info"),
+                  additional_info_kz: getValue("additional_product_info_kz"),
                 },
               ]
             : [],
           appendix_rows: appendixRows,
           note: getValue("note"),
+          note_kz: getValue("note_kz"),
+          legal_confirmation_note: getValue("legal_confirmation_note"),
         };
       }
 
       function applyPayload(payload) {
         const data = payload && typeof payload === "object" ? payload : {};
+        currentApplicationFileSlots = normalizeApplicantFileSlots(data.file_slots);
         const keys = [
           "certification_kind",
           "applicant_type",
           "submission_from",
+          "submission_format",
+          "certification_object",
           "applicant_name",
+          "applicant_name_kz",
           "applicant_bin",
+          "applicant_head_iin",
+          "applicant_head_name",
+          "applicant_head_name_kz",
+          "applicant_signatory_role",
+          "applicant_head_position",
+          "applicant_head_position_kz",
           "phone",
           "email",
+          "iban",
+          "bik",
+          "applicant_obligation_text",
           "applicant_address",
+          "applicant_activity_address",
           "actual_address",
+          "ops_org_type",
           "ops_code",
           "accreditation_no",
+          "accreditation_number_display",
+          "ops_bin",
+          "ops_name",
+          "ops_name_kz",
+          "ops_name_en",
+          "ops_legal_address",
+          "ops_legal_address_kz",
+          "ops_actual_address",
+          "ops_actual_address_kz",
+          "ops_phone",
+          "ops_email",
           "ops_manager",
           "cert_scheme_code",
-          "submission_format",
+          "order_433_reference",
+          "manufacturer_name",
+          "manufacturer_name_kz",
+          "manufacturer_address",
+          "manufacturer_activity_address",
+          "manufacturer_actual_address",
+          "product_name_regulatory_ru",
+          "product_name_regulatory_kz",
+          "product_name",
           "tnved_code",
           "product_type",
+          "product_kind",
+          "brand",
+          "batch_size",
+          "unit_of_measure",
+          "serial_number",
+          "shipping_documents_details",
+          "tr_rk",
           "normative_doc",
-          "manufacture_doc",
+          "product_other_documents",
+          "gia_code",
+          "barcode",
+          "additional_product_info",
+          "additional_product_info_kz",
           "note",
+          "note_kz",
+          "legal_confirmation_note",
         ];
         keys.forEach((key) => {
           const element = document.getElementById(key);
           if (element && typeof data[key] !== "undefined") {
-            if (key === "phone") {
+            if (key === "phone" || key === "ops_phone") {
               element.value = formatPhoneMask(data[key] ?? "");
               return;
+            }
+            if (
+              element instanceof HTMLSelectElement &&
+              !Array.from(element.options).some((option) => option.value === String(data[key] ?? ""))
+            ) {
+              const preservedOption = document.createElement("option");
+              preservedOption.value = String(data[key] ?? "");
+              preservedOption.textContent = `${String(data[key] ?? "")} (сохраненное значение)`;
+              element.appendChild(preservedOption);
             }
             element.value = data[key] ?? "";
           }
         });
 
-        const productName = Array.isArray(data.products) && data.products[0] ? data.products[0].name || "" : "";
+        const primaryProduct = Array.isArray(data.products) && data.products[0] && typeof data.products[0] === "object"
+          ? data.products[0]
+          : null;
+        const productName = primaryProduct?.name || data.product_name || "";
         const productNameInput = document.getElementById("product_name");
         if (productNameInput) {
           productNameInput.value = productName;
         }
+        const productFieldMapping = {
+          product_name_regulatory_ru: primaryProduct?.regulatory_name_ru ?? data.product_name_regulatory_ru,
+          product_name_regulatory_kz: primaryProduct?.regulatory_name_kz ?? data.product_name_regulatory_kz,
+          tnved_code: primaryProduct?.tnved_code,
+          product_type: primaryProduct?.product_type,
+          product_kind: primaryProduct?.product_kind,
+          brand: primaryProduct?.brand,
+          batch_size: primaryProduct?.batch_size,
+          unit_of_measure: primaryProduct?.unit_of_measure,
+          serial_number: primaryProduct?.serial_number,
+          shipping_documents_details: primaryProduct?.shipping_documents_details ?? data.shipping_documents_details,
+          tr_rk: primaryProduct?.tr_rk ?? data.tr_rk,
+          normative_doc: primaryProduct?.normative_doc,
+          product_other_documents: primaryProduct?.other_documents,
+          gia_code: primaryProduct?.gia_code ?? data.gia_code,
+          barcode: primaryProduct?.barcode ?? data.barcode,
+          additional_product_info: primaryProduct?.additional_info,
+          additional_product_info_kz: primaryProduct?.additional_info_kz ?? data.additional_product_info_kz,
+        };
+        Object.entries(productFieldMapping).forEach(([fieldId, value]) => {
+          const element = document.getElementById(fieldId);
+          if (element && typeof value !== "undefined") {
+            element.value = value ?? "";
+          }
+        });
 
-        const appendixRows = document.getElementById("appendix_rows");
-        if (appendixRows && Array.isArray(data.appendix_rows)) {
-          appendixRows.value = JSON.stringify(data.appendix_rows, null, 2);
-        }
+        renderAppendixRows(Array.isArray(data.appendix_rows) ? data.appendix_rows : [EMPTY_APPENDIX_ROW]);
 
         const agreeProcedure = document.getElementById("agree_procedure");
-        const agreeData = document.getElementById("agree_data");
         if (agreeProcedure) {
           agreeProcedure.checked = Boolean(data.agree_procedure);
         }
-        if (agreeData) {
-          agreeData.checked = Boolean(data.agree_data);
+        syncApplicantAddressVisibility();
+        syncManufacturerAddressVisibility();
+        refreshApplicantDocumentStatuses();
+        if (applicationFormLookupsLoaded) {
+          syncOpsRegistryFields({ overwrite: false });
         }
       }
 
@@ -7548,9 +8476,19 @@
           markFieldError("applicant_bin", "БИН должен содержать 12 цифр");
         }
 
+        if (payload.applicant_head_iin && !/^\d{12}$/.test(payload.applicant_head_iin)) {
+          errors.push("ИИН руководителя должен содержать 12 цифр");
+          markFieldError("applicant_head_iin", "ИИН руководителя должен содержать 12 цифр");
+        }
+
         if (payload.phone && !/^\+7\(\d{3}\)\s\d{3}\s\d{2}\s\d{2}$/.test(payload.phone)) {
           errors.push("Неверный формат телефона");
           markFieldError("phone", "Формат телефона: +7(___) ___ __ __");
+        }
+
+        if (payload.ops_phone && !/^\+7\(\d{3}\)\s\d{3}\s\d{2}\s\d{2}$/.test(payload.ops_phone)) {
+          errors.push("Неверный формат телефона ОПС");
+          markFieldError("ops_phone", "Формат телефона: +7(___) ___ __ __");
         }
 
         if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
@@ -7558,12 +8496,23 @@
           markFieldError("email", "Введите корректный email");
         }
 
+        if (payload.ops_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.ops_email)) {
+          errors.push("Неверный email ОПС");
+          markFieldError("ops_email", "Введите корректный email");
+        }
+
         if (!payload.agree_procedure) {
           errors.push("Не отмечено обязательство заявителя");
         }
 
-        if (!payload.agree_data) {
-          errors.push("Не отмечено согласие на обработку данных");
+        if (payload.applicant_activity_address === "other" && !payload.actual_address) {
+          errors.push("Заполните адрес (фактический адрес) заявителя");
+          markFieldError("actual_address", "Заполните адрес (фактический адрес)");
+        }
+
+        if (payload.manufacturer_activity_address === "other" && !payload.manufacturer_actual_address) {
+          errors.push("Заполните адрес (фактический адрес) изготовителя");
+          markFieldError("manufacturer_actual_address", "Заполните адрес (фактический адрес)");
         }
 
         if (errors.length) {
@@ -8239,19 +9188,23 @@
         ensureApplicantEditable();
         if (currentApplicationId) {
           const updated = await callApi("PUT", `/applications/${currentApplicationId}/draft`, payload);
+          currentApplicationFileSlots = normalizeApplicantFileSlots(updated?.payload?.file_slots);
           setStatusChip(updated.status || "DRAFT");
           renderProcessByStatus(updated.status || "DRAFT");
           applyApplicantFormAccess(updated.status || "DRAFT");
+          refreshApplicantDocumentStatuses();
           setFormDirty(false);
           return updated;
         }
 
         const created = await callApi("POST", "/applications/drafts", payload);
         currentApplicationId = created.id;
+        currentApplicationFileSlots = normalizeApplicantFileSlots(created?.payload?.file_slots);
         localStorage.setItem(config.draftStorageKey, String(currentApplicationId));
         setStatusChip(created.status || "DRAFT");
         renderProcessByStatus(created.status || "DRAFT");
         applyApplicantFormAccess(created.status || "DRAFT");
+        refreshApplicantDocumentStatuses();
         updateHeaderMeta();
         setFormDirty(false);
         return created;
@@ -8259,14 +9212,18 @@
 
       async function saveDraft() {
         ensureApplicantEditable();
-        const payload = buildPayload();
-        const response = await ensureDraftExists(payload);
+        let response = await ensureDraftExists(buildPayload());
+        const uploadedSlots = await uploadApplicantDocumentSlots(currentApplicationId);
+        if (Object.keys(uploadedSlots).length > 0) {
+          response = await ensureDraftExists(buildPayload());
+        }
         setFormDirty(false);
         writeOutput("Черновик сохранен", response);
       }
 
       async function startNewApplication() {
         ensureApplicantAccess();
+        await ensureApplicationFormLookupsLoaded();
         currentApplicationId = null;
         localStorage.removeItem(config.draftStorageKey);
         setStatusChip("DRAFT");
@@ -8278,12 +9235,17 @@
 
       async function submitApplication() {
         ensureApplicantEditable();
-        const payload = buildPayload();
+        let payload = buildPayload();
         if (!validateForSubmit(payload)) {
           return;
         }
 
         await ensureDraftExists(payload);
+        const uploadedSlots = await uploadApplicantDocumentSlots(currentApplicationId);
+        if (Object.keys(uploadedSlots).length > 0) {
+          payload = buildPayload();
+          await ensureDraftExists(payload);
+        }
         const submitted = await callApi("POST", `/applications/${currentApplicationId}/submit`);
         setStatusChip(submitted.status || "SUBMITTED");
         renderProcessByStatus(submitted.status || "SUBMITTED");
@@ -9076,10 +10038,34 @@
         });
       });
 
+      APPLICANT_DOCUMENT_SLOTS.forEach(({ inputId }) => {
+        const input = document.getElementById(inputId);
+        if (!(input instanceof HTMLInputElement)) {
+          return;
+        }
+        input.addEventListener("change", () => {
+          refreshApplicantDocumentStatuses();
+        });
+      });
+
       if (applicantBinInput) {
         applicantBinInput.addEventListener("input", () => {
           const digits = applicantBinInput.value.replace(/\D/g, "").slice(0, 12);
           applicantBinInput.value = digits;
+        });
+      }
+
+      if (applicantHeadIinInput) {
+        applicantHeadIinInput.addEventListener("input", () => {
+          const digits = applicantHeadIinInput.value.replace(/\D/g, "").slice(0, 12);
+          applicantHeadIinInput.value = digits;
+        });
+      }
+
+      if (opsBinInput) {
+        opsBinInput.addEventListener("input", () => {
+          const digits = opsBinInput.value.replace(/\D/g, "").slice(0, 12);
+          opsBinInput.value = digits;
         });
       }
 
@@ -9090,6 +10076,68 @@
         });
       }
 
+      if (opsPhoneInput) {
+        opsPhoneInput.addEventListener("input", () => {
+          const masked = formatPhoneMask(opsPhoneInput.value);
+          opsPhoneInput.value = masked;
+        });
+      }
+
+      if (opsCodeSelect) {
+        opsCodeSelect.addEventListener("change", () => {
+          syncOpsRegistryFields({ overwrite: true });
+        });
+      }
+
+      if (accreditationNoSelect) {
+        accreditationNoSelect.addEventListener("change", () => {
+          syncAccreditationScopeSummary();
+        });
+      }
+
+      if (applicantActivityAddressSelect) {
+        applicantActivityAddressSelect.addEventListener("change", () => {
+          syncApplicantAddressVisibility();
+        });
+      }
+
+      if (manufacturerActivityAddressSelect) {
+        manufacturerActivityAddressSelect.addEventListener("change", () => {
+          syncManufacturerAddressVisibility();
+        });
+      }
+
+      if (appendixAddRowBtn) {
+        appendixAddRowBtn.addEventListener("click", () => {
+          addAppendixRow();
+        });
+      }
+
+      if (appendixTableBody) {
+        appendixTableBody.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement) || target.dataset.appendixAction !== "remove") {
+            return;
+          }
+          const row = target.closest("tr");
+          if (!row) {
+            return;
+          }
+          const remainingRows = Array.from(appendixTableBody.querySelectorAll("tr"))
+            .filter((item) => item !== row)
+            .map((item) => {
+              const result = { ...EMPTY_APPENDIX_ROW };
+              item.querySelectorAll("[data-appendix-field]").forEach((input) => {
+                if (input instanceof HTMLInputElement) {
+                  result[input.dataset.appendixField] = input.value.trim();
+                }
+              });
+              return result;
+            });
+          renderAppendixRows(remainingRows.length ? remainingRows : [EMPTY_APPENDIX_ROW]);
+        });
+      }
+
       if (cabinetPhoneInput) {
         cabinetPhoneInput.addEventListener("input", () => {
           const masked = formatPhoneMask(cabinetPhoneInput.value);
@@ -9097,7 +10145,11 @@
         });
       }
 
+      renderAppendixRows([EMPTY_APPENDIX_ROW]);
+      syncApplicantAddressVisibility();
+      syncManufacturerAddressVisibility();
       renderStep();
+      refreshApplicantDocumentStatuses();
       renderApplicantModuleCards();
       renderConformityServices();
       setSessionExpanded(false);

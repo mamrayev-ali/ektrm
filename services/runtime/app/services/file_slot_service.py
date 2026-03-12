@@ -14,9 +14,35 @@ from app.auth import CurrentUser
 
 PROTOCOL_FILE_SLOT = "protocol_test_report"
 POST_ISSUANCE_BASIS_FILE_SLOT = "post_issuance_basis"
+APPLICATION_SCAN_FILE_SLOT = "application_scan"
+TECHNICAL_DOCUMENTATION_FILE_SLOT = "technical_documentation"
+STANDARDS_LIST_FILE_SLOT = "standards_list"
+MANUFACTURE_DOCUMENTS_FILE_SLOT = "manufacture_documents"
+QMS_CERTIFICATE_FILE_SLOT = "qms_certificate"
+REPORTS_FILE_SLOT = "reports"
+CRITICAL_COMPONENTS_CERTIFICATE_FILE_SLOT = "critical_components_certificate"
+FOREIGN_MANUFACTURER_CONTRACT_FILE_SLOT = "foreign_manufacturer_contract"
+PRODUCT_COMPLIANCE_DOCUMENTS_FILE_SLOT = "product_compliance_documents"
+OTHER_DOCUMENTS_FILE_SLOT = "other_documents"
 APPLICATION_ENTITY_KIND = "application"
 POST_ISSUANCE_ENTITY_KIND = "post_issuance"
-ALLOWED_SLOTS = frozenset({PROTOCOL_FILE_SLOT, POST_ISSUANCE_BASIS_FILE_SLOT})
+APPLICATION_FILE_SLOTS = frozenset(
+    {
+        PROTOCOL_FILE_SLOT,
+        APPLICATION_SCAN_FILE_SLOT,
+        TECHNICAL_DOCUMENTATION_FILE_SLOT,
+        STANDARDS_LIST_FILE_SLOT,
+        MANUFACTURE_DOCUMENTS_FILE_SLOT,
+        QMS_CERTIFICATE_FILE_SLOT,
+        REPORTS_FILE_SLOT,
+        CRITICAL_COMPONENTS_CERTIFICATE_FILE_SLOT,
+        FOREIGN_MANUFACTURER_CONTRACT_FILE_SLOT,
+        PRODUCT_COMPLIANCE_DOCUMENTS_FILE_SLOT,
+        OTHER_DOCUMENTS_FILE_SLOT,
+    }
+)
+APPLICANT_DOCUMENT_FILE_SLOTS = frozenset(APPLICATION_FILE_SLOTS - {PROTOCOL_FILE_SLOT})
+ALLOWED_SLOTS = frozenset(APPLICATION_FILE_SLOTS | {POST_ISSUANCE_BASIS_FILE_SLOT})
 ALLOWED_EXTENSIONS = frozenset({".pdf", ".doc", ".docx", ".xls", ".xlsx", ".jpg", ".jpeg", ".png"})
 DEFAULT_CONTENT_TYPE = "application/octet-stream"
 
@@ -95,7 +121,7 @@ class FileSlotService:
         elif "OPS" not in current_user.roles and "Applicant" not in current_user.roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only Applicant or OPS role can upload post-issuance basis files",
+                detail="Only Applicant or OPS role can upload supported application or post-issuance files",
             )
 
         resolved_entity_kind, resolved_entity_id, object_prefix = self._resolve_target(
@@ -103,6 +129,7 @@ class FileSlotService:
             entity_kind=entity_kind,
             entity_id=entity_id,
         )
+        self._validate_slot_target(normalized_slot, resolved_entity_kind)
 
         normalized_name = file_name.strip()
         if not normalized_name:
@@ -182,6 +209,18 @@ class FileSlotService:
             )
         object_prefix = "applications" if normalized_kind == APPLICATION_ENTITY_KIND else "post-issuance"
         return normalized_kind, entity_id, object_prefix
+
+    def _validate_slot_target(self, slot: str, entity_kind: str) -> None:
+        if slot in APPLICATION_FILE_SLOTS and entity_kind != APPLICATION_ENTITY_KIND:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Slot '{slot}' requires entity_kind 'application'",
+            )
+        if slot == POST_ISSUANCE_BASIS_FILE_SLOT and entity_kind != POST_ISSUANCE_ENTITY_KIND:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Slot '{slot}' requires entity_kind 'post_issuance'",
+            )
 
 
 def build_file_slot_service() -> FileSlotService:

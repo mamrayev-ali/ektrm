@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from app.auth import CurrentUser
 from app.models.application import CertApplication
 from app.repositories.application_repository import ApplicationRepository
+from app.services.applicant_lookup_service import ApplicantLookupService
 from app.services.certificate_service import CertificateService
 
 ORDER3_STATUSES = frozenset(
@@ -61,9 +62,11 @@ class ApplicationStateService:
         self,
         repository: ApplicationRepository,
         certificate_service: CertificateService | None = None,
+        applicant_lookup_service: ApplicantLookupService | None = None,
     ) -> None:
         self._repository = repository
         self._certificate_service = certificate_service
+        self._applicant_lookup_service = applicant_lookup_service
 
     def create_draft(self, payload: dict[str, Any], current_user: CurrentUser) -> dict[str, Any]:
         application_number = self._new_application_number()
@@ -196,7 +199,8 @@ class ApplicationStateService:
 
         payload = self._decode_payload(application.payload_json)
         if normalized == "SUBMITTED":
-            self._validate_submit_payload(payload)
+            payload = self._validate_submit_payload(payload)
+            self._repository.update_payload(application, payload)
         if normalized == "REVISION_REQUESTED" and not (comment or "").strip():
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -354,7 +358,7 @@ class ApplicationStateService:
             "attached_by_subject": current_user.subject,
         }
 
-    def _validate_submit_payload(self, payload: dict[str, Any]) -> None:
+    def _validate_submit_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
         missing = [field for field in REQUIRED_SUBMIT_FIELDS if field not in payload or payload[field] in (None, "", [])]
         if missing:
             raise HTTPException(
@@ -374,6 +378,20 @@ class ApplicationStateService:
                     "expected": "12 digits",
                 },
             )
+        normalized_payload = dict(payload)
+        if self._applicant_lookup_service is None:
+            return normalized_payload
+        lookup_result = self._applicant_lookup_service.lookup_by_bin(applicant_bin)
+        resolved_fields = lookup_result.get("resolved_fields")
+        if isinstance(resolved_fields, dict):
+            for field_name, value in resolved_fields.items():
+                if value in (None, ""):
+                    continue
+                normalized_payload[field_name] = value
+        integration_snapshot = lookup_result.get("integration_snapshot")
+        if isinstance(integration_snapshot, dict):
+            normalized_payload["integration_snapshot"] = integration_snapshot
+        return normalized_payload
 
     def _serialize_application(self, application: CertApplication) -> dict[str, Any]:
         return {

@@ -1,5 +1,6 @@
 import sys
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from typing import Iterator
 
@@ -14,7 +15,32 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.auth import CurrentUser, get_current_user
 from app.db import get_session
 from app.models.base import Base
-from app.routers.applications import router as applications_router
+from app.routers.applications import _get_applicant_lookup_service, router as applications_router
+
+LOOKUP_FIELDS = {
+    "applicant_bin": "123456789012",
+    "applicant_name": "ТОО Источник",
+    "applicant_name_kz": "Источник ЖШС",
+    "applicant_head_iin": "890627301030",
+    "applicant_head_name": "КАБЫЛОВ МЕЙРАМБЕК МАЛИБЕКОВИЧ",
+    "applicant_head_position": "Руководитель",
+    "applicant_address": "город Алматы, Бостандыкский район, Проспект Абая, здание 10",
+    "applicant_activity_address": "legal",
+    "actual_address": "",
+}
+
+
+class FakeApplicantLookupService:
+    def lookup_by_bin(self, bin_value: str) -> dict:
+        resolved_fields = deepcopy(LOOKUP_FIELDS)
+        resolved_fields["applicant_bin"] = bin_value
+        return {
+            "resolved_fields": resolved_fields,
+            "integration_snapshot": {
+                "source": "gbd_ul_kompra_v1",
+                "resolved_fields": deepcopy(resolved_fields),
+            },
+        }
 
 
 class ApplicationsApiTests(unittest.TestCase):
@@ -41,6 +67,7 @@ class ApplicationsApiTests(unittest.TestCase):
                 session.close()
 
         self._app.dependency_overrides[get_session] = _session_override
+        self._app.dependency_overrides[_get_applicant_lookup_service] = FakeApplicantLookupService
         self._set_auth_user(
             CurrentUser(
                 subject="applicant-1",
@@ -112,6 +139,28 @@ class ApplicationsApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 422)
         detail = response.json()["detail"]
         self.assertEqual(detail["field"], "applicant_bin")
+
+    def test_lookup_endpoint_returns_merged_applicant_payload(self) -> None:
+        response = self._client.get("/applications/lookup/applicant-by-bin", params={"bin": "123456789012"})
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["resolved_fields"]["applicant_head_name"], LOOKUP_FIELDS["applicant_head_name"])
+        self.assertEqual(payload["integration_snapshot"]["source"], "gbd_ul_kompra_v1")
+
+    def test_submit_persists_lookup_snapshot_and_normalized_fields(self) -> None:
+        payload = self._applicant_payload()
+        payload["applicant_name"] = "Ручное название"
+        payload["applicant_address"] = "Ручной адрес"
+        created = self._client.post("/applications/drafts", json=payload)
+        self.assertEqual(created.status_code, 200)
+        app_id = created.json()["id"]
+
+        response = self._client.post(f"/applications/{app_id}/submit")
+        self.assertEqual(response.status_code, 200)
+        persisted_payload = response.json()["payload"]
+        self.assertEqual(persisted_payload["applicant_name"], LOOKUP_FIELDS["applicant_name"])
+        self.assertEqual(persisted_payload["applicant_head_iin"], LOOKUP_FIELDS["applicant_head_iin"])
+        self.assertIn("integration_snapshot", persisted_payload)
 
     def test_invalid_transition_returns_409(self) -> None:
         created = self._client.post("/applications/drafts", json={"applicant_name": "A"})

@@ -13,11 +13,12 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Репозиторий хранит процессный каркас AgentKit и базовую runtime-платформу e-КТРМ (MVP Phase 1) с приоритетом Ордер 3 -> Ордер 4 -> Ордер 5 (без возобновления).
 - Key user flows:
   - Applicant создает/отправляет заявку, OPS проверяет/возвращает/принимает решение, система формирует сертификат, OPS подписывает canonical payload через NCALayer, backend валидирует CMS и только затем публикует сертификат в реестр, далее доступны post-issuance действия.
+  - В applicant wizard BIN заявителя может запускать backend-mediated lookup: runtime запрашивает ГБД ЮЛ по `BIN`, затем Kompra по `IIN` руководителя, автозаполняет sourced applicant-поля и на submit повторно нормализует эти поля на сервере.
   - Для локального/dev стенда без Kalkan SDK compose по умолчанию включает `temporary_gost_fallback`: backend принимает GOST CMS operationally и публикует сертификат, но явно маркирует результат как `ACCEPTED_WITHOUT_CRYPTO_VERIFY`, то есть без полноценной server-side криптографической проверки.
   - Публичный пользователь может открыть главный landing без авторизации, но внутренние applicant/OPS сценарии всегда проходят через OIDC login; header CTA `Войти` ведет в личный кабинет, а intent от public CTA сохраняется: клик по модулю после login открывает сервисы модуля, клик по реестру открывает реестр сертификатов.
 - Tech stack:
   - Целевой: Angular SPA, Python/FastAPI микросервисы, PostgreSQL + SQLAlchemy/Alembic, Redis + Celery, MinIO, Keycloak, WebSocket, Docker Compose.
-  - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`) + OPS review/protocol attachment API (`T6`) + baseline генерации сертификата/snapshot (`T7`) + OPS ECP signing flow с prepare/validate/publish и внутренний/публичный реестры (`T8+`) + post-issuance suspend/terminate workflow и UI-очередь (`T9`).
+  - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`) + applicant BIN autofill through backend GBD UL + Kompra orchestration + OPS review/protocol attachment API (`T6`) + baseline генерации сертификата/snapshot (`T7`) + OPS ECP signing flow с prepare/validate/publish и внутренний/публичный реестры (`T8+`) + post-issuance suspend/terminate workflow и UI-очередь (`T9`).
 - Where to start reading the code:
   - `docker-compose.yml`,
   - `services/runtime/app/main.py`,
@@ -108,6 +109,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - Versioning strategy:
   - Semver API namespace (`/api/v1/...`) и эволюционные non-breaking изменения в рамках версии.
 - Critical endpoints / operations (planned/implemented baseline):
+  - `GET /applications/lookup/applicant-by-bin`
   - `POST /applications/drafts`, `POST /applications/{id}/submit`, `POST /applications/{id}/review-actions`
   - `POST /applications/{id}/protocol`, `POST /applications/{id}/decision`
   - `GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`, `POST /certificates/{id}/sign/prepare`, `POST /certificates/{id}/sign`
@@ -608,7 +610,8 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Обязательные runtime переменные уже заданы в `.env.example`:
     - сервисные порты (`GATEWAY_PORT`, `APPLICATIONS_PORT`, ...);
     - инфраструктура (`POSTGRES_*`, `REDIS_*`, `MINIO_*`, `KEYCLOAK_*`);
-    - OIDC и feature flags.
+    - OIDC и feature flags;
+    - applicant lookup integrations (`GBD_UL_*`, `KOMPRA_*`).
 - Troubleshooting:
   - Если порты заняты локально, переопределить `*_PORT`/`*_EXPOSE_PORT` в `.env`.
   - Если `verify.sh` недоступен на Windows, использовать `verify.ps1`.
@@ -619,6 +622,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-13 [applicant-bin-lookup-gbd-ul-kompra] В `services/runtime/app/services/applicant_lookup_service.py`, `services/runtime/app/routers/applications.py`, `services/runtime/app/services/application_state_service.py`, `services/runtime/tests/test_applicant_lookup_service.py`, `services/runtime/tests/test_application_state_engine.py`, `services/runtime/tests/test_applications_api.py`, `frontend/index.html`, `.env.example`, `README.md`, `.agentkit/rules/local/integrations.md`, `.agentkit/docs/ROADMAP.md` и `PROJECT_MAP.md` добавлен backend-mediated applicant lookup по `BIN`: runtime читает ГБД ЮЛ, затем Kompra по `IIN` руководителя, возвращает нормализованный payload для wizard, сохраняет `integration_snapshot` в заявке и на submit повторно нормализует sourced applicant-поля на сервере, не раскрывая Kompra token во frontend.
 - 2026-03-13 [ops-ecp-base64-normalization-fix] В `services/runtime/app/services/certificate_signature_validation.py`, `services/runtime/app/services/certificate_service.py`, `services/runtime/tests/test_certificate_service.py`, `frontend/index.html` добавлена нормализация NCALayer CMS/payload (`PEM` armor и whitespace removal) перед backend validation, чтобы detached signature из реального NCALayer не падала на `invalid_signature_payload` только из-за переносов строк или `-----BEGIN/END PKCS7-----`.
 - 2026-03-13 [ops-ecp-temporary-gost-fallback] В `services/runtime/app/services/certificate_signature_validation.py`, `services/runtime/app/services/certificate_service.py`, `services/runtime/tests/test_certificate_signature_validation.py`, `services/runtime/tests/test_certificate_service.py`, `.env.example`, `README.md` и `docker-compose.yml` добавлен dev/demo-only режим `CERT_SIGNATURE_VALIDATOR_MODE=temporary_gost_fallback`: backend проверяет только техническую корректность detached CMS/payload, сохраняет артефакты подписи и выпускает сертификат с явным `validation_result=ACCEPTED_WITHOUT_CRYPTO_VERIFY`, чтобы локальный GOST flow через NCALayer работал end-to-end без ложного заявления о полноценной криптографической проверке НУЦ.
 - 2026-03-13 [ops-ecp-nuc-trust-bundle] В `infra/cert-signing/` добавлен официальный public trust bundle НУЦ РК (`root_rsa_2020`, `root_gost_2022`, `nca_rsa_2022`, `nca_gost_2022` в `.cer`/`.pem` и собранный `nuc-ca-chain.pem`); runtime-контейнеры перезапущены и подтверждено, что `certificates-service` видит `/app/cert-signing/nuc-ca-chain.pem` и env `CERT_SIGNATURE_TRUSTED_CA_FILE=/app/cert-signing/nuc-ca-chain.pem`.

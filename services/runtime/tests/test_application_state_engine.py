@@ -1,5 +1,6 @@
 import sys
 import unittest
+from copy import deepcopy
 from pathlib import Path
 
 from fastapi import HTTPException
@@ -13,6 +14,33 @@ from app.auth import CurrentUser
 from app.models.base import Base
 from app.repositories.application_repository import ApplicationRepository
 from app.services.application_state_service import ApplicationStateService
+
+LOOKUP_FIELDS = {
+    "applicant_bin": "123456789012",
+    "applicant_name": "ТОО Источник",
+    "applicant_name_kz": "Источник ЖШС",
+    "applicant_head_iin": "890627301030",
+    "applicant_head_name": "КАБЫЛОВ МЕЙРАМБЕК МАЛИБЕКОВИЧ",
+    "applicant_head_position": "Руководитель",
+    "applicant_address": "город Алматы, Бостандыкский район, Проспект Абая, здание 10",
+    "applicant_activity_address": "legal",
+    "actual_address": "",
+}
+
+
+class FakeApplicantLookupService:
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    def lookup_by_bin(self, bin_value: str) -> dict:
+        self.calls.append(bin_value)
+        return {
+            "resolved_fields": deepcopy(LOOKUP_FIELDS),
+            "integration_snapshot": {
+                "source": "gbd_ul_kompra_v1",
+                "resolved_fields": deepcopy(LOOKUP_FIELDS),
+            },
+        }
 
 
 class ApplicationStateEngineTests(unittest.TestCase):
@@ -208,6 +236,30 @@ class ApplicationStateEngineTests(unittest.TestCase):
         history = self._service.get_history(application_id=app["id"], current_user=self._ops_user)
         self.assertTrue(any(row["to_status"] == "REJECTED" for row in history["items"]))
         self.assertFalse(any(row["to_status"] == "ARCHIVED" for row in history["items"]))
+
+    def test_submit_normalizes_sourced_fields_from_lookup_service(self) -> None:
+        lookup_service = FakeApplicantLookupService()
+        service = ApplicationStateService(self._repository, applicant_lookup_service=lookup_service)
+        payload = {
+            "applicant_name": "Ручное значение",
+            "applicant_bin": "123456789012",
+            "applicant_address": "Ручной адрес",
+            "ops_code": "OPS-KZ-001",
+            "cert_scheme_code": "SCHEME-1",
+            "products": [{"name": "Провод"}],
+        }
+
+        draft = service.create_draft(payload=payload, current_user=self._user)
+        submitted = service.transition(
+            application_id=draft["id"],
+            to_status="SUBMITTED",
+            current_user=self._user,
+        )
+
+        self.assertEqual(lookup_service.calls, ["123456789012"])
+        self.assertEqual(submitted["payload"]["applicant_name"], LOOKUP_FIELDS["applicant_name"])
+        self.assertEqual(submitted["payload"]["applicant_head_name"], LOOKUP_FIELDS["applicant_head_name"])
+        self.assertIn("integration_snapshot", submitted["payload"])
 
 
 if __name__ == "__main__":

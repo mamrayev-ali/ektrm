@@ -6,7 +6,12 @@ from typing import Any
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from app.models.certificate import Certificate, CertificateRegistryPublication, CertificateStatusHistory
+from app.models.certificate import (
+    Certificate,
+    CertificateRegistryPublication,
+    CertificateSignature,
+    CertificateStatusHistory,
+)
 
 
 class CertificateRepository:
@@ -114,6 +119,42 @@ class CertificateRepository:
             comment=comment,
         )
         self._session.add(row)
+
+    def create_signature_operation(
+        self,
+        operation_id: str,
+        certificate_id: int,
+        requested_by_subject: str,
+        signer_kind: str,
+        signature_mode: str,
+        payload_base64: str,
+        payload_sha256_hex: str,
+        validation_result: str,
+        file_name: str | None = None,
+        mime_type: str | None = None,
+    ) -> CertificateSignature:
+        row = CertificateSignature(
+            operation_id=operation_id,
+            certificate_id=certificate_id,
+            requested_by_subject=requested_by_subject,
+            signer_kind=signer_kind,
+            signature_mode=signature_mode,
+            payload_base64=payload_base64,
+            payload_sha256_hex=payload_sha256_hex,
+            file_name=file_name,
+            mime_type=mime_type,
+            validation_result=validation_result,
+        )
+        self._session.add(row)
+        self._session.flush()
+        return row
+
+    def get_signature_operation(self, certificate_id: int, operation_id: str) -> CertificateSignature | None:
+        stmt = select(CertificateSignature).where(
+            CertificateSignature.certificate_id == certificate_id,
+            CertificateSignature.operation_id == operation_id,
+        )
+        return self._session.scalar(stmt)
 
     def commit(self) -> None:
         self._session.commit()

@@ -13,6 +13,13 @@ x-runtime-test-env: &runtime-test-env
   KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-ektrm-api}
   KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
   AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+  CERT_SIGNATURE_VALIDATOR_MODE: ${CERT_SIGNATURE_VALIDATOR_MODE:-temporary_gost_fallback}
+  CERT_SIGNATURE_OPENSSL_BIN: ${CERT_SIGNATURE_OPENSSL_BIN:-openssl}
+  CERT_SIGNATURE_TRUSTED_CA_FILE: ${CERT_SIGNATURE_TRUSTED_CA_FILE:-/app/cert-signing/nuc-ca-chain.pem}
+  CERT_SIGNATURE_CRL_FILE: ${CERT_SIGNATURE_CRL_FILE:-}
+
+x-runtime-cert-signing-volume: &runtime-cert-signing-volume
+  - ./infra/cert-signing:/app/cert-signing:ro
 
 x-runtime-test-base: &runtime-test-base
   build:
@@ -20,6 +27,7 @@ x-runtime-test-base: &runtime-test-base
     dockerfile: services/runtime/Dockerfile.test
   profiles: ["test"]
   environment: *runtime-test-env
+  volumes: *runtime-cert-signing-volume
   depends_on:
     postgres:
       condition: service_healthy
@@ -133,8 +141,13 @@ services:
       KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-ektrm-api}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
       AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+      CERT_SIGNATURE_VALIDATOR_MODE: ${CERT_SIGNATURE_VALIDATOR_MODE:-temporary_gost_fallback}
+      CERT_SIGNATURE_OPENSSL_BIN: ${CERT_SIGNATURE_OPENSSL_BIN:-openssl}
+      CERT_SIGNATURE_TRUSTED_CA_FILE: ${CERT_SIGNATURE_TRUSTED_CA_FILE:-/app/cert-signing/nuc-ca-chain.pem}
+      CERT_SIGNATURE_CRL_FILE: ${CERT_SIGNATURE_CRL_FILE:-}
     ports:
       - "${GATEWAY_PORT:-8180}:8000"
+    volumes: *runtime-cert-signing-volume
     depends_on:
       postgres:
         condition: service_healthy
@@ -173,8 +186,13 @@ services:
       KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-ektrm-api}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
       AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+      CERT_SIGNATURE_VALIDATOR_MODE: ${CERT_SIGNATURE_VALIDATOR_MODE:-temporary_gost_fallback}
+      CERT_SIGNATURE_OPENSSL_BIN: ${CERT_SIGNATURE_OPENSSL_BIN:-openssl}
+      CERT_SIGNATURE_TRUSTED_CA_FILE: ${CERT_SIGNATURE_TRUSTED_CA_FILE:-/app/cert-signing/nuc-ca-chain.pem}
+      CERT_SIGNATURE_CRL_FILE: ${CERT_SIGNATURE_CRL_FILE:-}
     ports:
       - "${APPLICATIONS_PORT:-8081}:8000"
+    volumes: *runtime-cert-signing-volume
     depends_on:
       postgres:
         condition: service_healthy
@@ -254,8 +272,13 @@ services:
       KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-ektrm-api}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
       AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+      CERT_SIGNATURE_VALIDATOR_MODE: ${CERT_SIGNATURE_VALIDATOR_MODE:-temporary_gost_fallback}
+      CERT_SIGNATURE_OPENSSL_BIN: ${CERT_SIGNATURE_OPENSSL_BIN:-openssl}
+      CERT_SIGNATURE_TRUSTED_CA_FILE: ${CERT_SIGNATURE_TRUSTED_CA_FILE:-/app/cert-signing/nuc-ca-chain.pem}
+      CERT_SIGNATURE_CRL_FILE: ${CERT_SIGNATURE_CRL_FILE:-}
     ports:
       - "${CERTIFICATES_PORT:-8082}:8000"
+    volumes: *runtime-cert-signing-volume
     depends_on:
       postgres:
         condition: service_healthy
@@ -294,8 +317,13 @@ services:
       KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-ektrm-api}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
       AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+      CERT_SIGNATURE_VALIDATOR_MODE: ${CERT_SIGNATURE_VALIDATOR_MODE:-temporary_gost_fallback}
+      CERT_SIGNATURE_OPENSSL_BIN: ${CERT_SIGNATURE_OPENSSL_BIN:-openssl}
+      CERT_SIGNATURE_TRUSTED_CA_FILE: ${CERT_SIGNATURE_TRUSTED_CA_FILE:-/app/cert-signing/nuc-ca-chain.pem}
+      CERT_SIGNATURE_CRL_FILE: ${CERT_SIGNATURE_CRL_FILE:-}
     ports:
       - "${REFERENCE_DATA_PORT:-8083}:8000"
+    volumes: *runtime-cert-signing-volume
     depends_on:
       postgres:
         condition: service_healthy
@@ -334,8 +362,13 @@ services:
       KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-ektrm-api}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
       AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+      CERT_SIGNATURE_VALIDATOR_MODE: ${CERT_SIGNATURE_VALIDATOR_MODE:-temporary_gost_fallback}
+      CERT_SIGNATURE_OPENSSL_BIN: ${CERT_SIGNATURE_OPENSSL_BIN:-openssl}
+      CERT_SIGNATURE_TRUSTED_CA_FILE: ${CERT_SIGNATURE_TRUSTED_CA_FILE:-/app/cert-signing/nuc-ca-chain.pem}
+      CERT_SIGNATURE_CRL_FILE: ${CERT_SIGNATURE_CRL_FILE:-}
     ports:
       - "${FILES_PORT:-8084}:8000"
+    volumes: *runtime-cert-signing-volume
     depends_on:
       postgres:
         condition: service_healthy
@@ -374,8 +407,13 @@ services:
       KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-ektrm-api}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ektrm-web}
       AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+      CERT_SIGNATURE_VALIDATOR_MODE: ${CERT_SIGNATURE_VALIDATOR_MODE:-temporary_gost_fallback}
+      CERT_SIGNATURE_OPENSSL_BIN: ${CERT_SIGNATURE_OPENSSL_BIN:-openssl}
+      CERT_SIGNATURE_TRUSTED_CA_FILE: ${CERT_SIGNATURE_TRUSTED_CA_FILE:-/app/cert-signing/nuc-ca-chain.pem}
+      CERT_SIGNATURE_CRL_FILE: ${CERT_SIGNATURE_CRL_FILE:-}
     ports:
       - "${NOTIFICATIONS_PORT:-8085}:8000"
+    volumes: *runtime-cert-signing-volume
     depends_on:
       postgres:
         condition: service_healthy

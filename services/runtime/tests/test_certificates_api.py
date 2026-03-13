@@ -18,6 +18,19 @@ from app.models.base import Base
 from app.routers.applications import router as applications_router
 from app.routers.certificates import router as certificates_router
 from app.routers.registry import router as registry_router
+from app.routers.certificates import get_signature_validator
+from app.services.certificate_signature_validation import SignatureValidationResult
+
+
+class FakeSignatureValidator:
+    def validate(self, *, payload_base64: str, signature_cms_base64: str, signature_mode: str) -> SignatureValidationResult:
+        return SignatureValidationResult(
+            is_valid=True,
+            validator_name="fake-validator",
+            revocation_check_mode="TEST",
+            signer_subject="CN=OPS Signer",
+            signer_serial_number="ABC123",
+        )
 
 
 class CertificatesApiTests(unittest.TestCase):
@@ -46,6 +59,7 @@ class CertificatesApiTests(unittest.TestCase):
                 session.close()
 
         self._app.dependency_overrides[get_session] = _session_override
+        self._app.dependency_overrides[get_signature_validator] = lambda: FakeSignatureValidator()
         self._set_auth_user(
             CurrentUser(
                 subject="applicant-1",
@@ -167,25 +181,76 @@ class CertificatesApiTests(unittest.TestCase):
         _, certificate_id = self._create_approved_application()
         self._set_auth_user(self._ops_user())
 
-        response = self._client.post(f"/certificates/{certificate_id}/sign", json={"comment": "Подписано ОПС"})
+        prepared = self._client.post(
+            f"/certificates/{certificate_id}/sign/prepare",
+            json={"signer_kind": "signAny"},
+        )
+        self.assertEqual(prepared.status_code, 200)
+        operation = prepared.json()["signature_operation"]
+
+        response = self._client.post(
+            f"/certificates/{certificate_id}/sign",
+            json={
+                "operation_id": operation["operation_id"],
+                "signature_mode": "detached",
+                "payload_base64": operation["payload_base64"],
+                "payload_sha256_hex": operation["payload_sha256_hex"],
+                "signature_cms_base64": "ZmFrZS1zaWduYXR1cmU=",
+                "comment": "Подписано ОПС",
+            },
+        )
         self.assertEqual(response.status_code, 200)
         body = response.json()
-        self.assertEqual(body["status"], "ACTIVE")
-        self.assertEqual(body["signed_by_subject"], "ops-1")
-        self.assertIsNotNone(body["signed_at"])
-        self.assertIsNotNone(body["published_at"])
+        self.assertEqual(body["certificate"]["status"], "ACTIVE")
+        self.assertEqual(body["certificate"]["signed_by_subject"], "ops-1")
+        self.assertIsNotNone(body["certificate"]["signed_at"])
+        self.assertIsNotNone(body["certificate"]["published_at"])
+        self.assertEqual(body["signature_operation"]["validation_result"], "VALID")
 
     def test_sign_certificate_requires_ops_role(self) -> None:
         _, certificate_id = self._create_approved_application()
+        self._set_auth_user(self._ops_user())
+        prepared = self._client.post(
+            f"/certificates/{certificate_id}/sign/prepare",
+            json={"signer_kind": "signAny"},
+        )
+        self.assertEqual(prepared.status_code, 200)
+        operation = prepared.json()["signature_operation"]
         self._set_auth_user(self._other_applicant_user())
 
-        response = self._client.post(f"/certificates/{certificate_id}/sign", json={"comment": "forbidden"})
+        response = self._client.post(
+            f"/certificates/{certificate_id}/sign",
+            json={
+                "operation_id": operation["operation_id"],
+                "signature_mode": "detached",
+                "payload_base64": operation["payload_base64"],
+                "payload_sha256_hex": operation["payload_sha256_hex"],
+                "signature_cms_base64": "ZmFrZS1zaWduYXR1cmU=",
+                "comment": "forbidden",
+            },
+        )
         self.assertEqual(response.status_code, 403)
 
     def test_internal_registry_for_ops_and_public_registry_visibility(self) -> None:
         _, certificate_id = self._create_approved_application()
         self._set_auth_user(self._ops_user())
-        signed = self._client.post(f"/certificates/{certificate_id}/sign", json={"comment": "publish"})
+        prepared = self._client.post(
+            f"/certificates/{certificate_id}/sign/prepare",
+            json={"signer_kind": "signAny"},
+        )
+        self.assertEqual(prepared.status_code, 200)
+        operation = prepared.json()["signature_operation"]
+        signed = self._client.post(
+            f"/certificates/{certificate_id}/sign",
+            json={
+                "operation_id": operation["operation_id"],
+                "signature_mode": "detached",
+                "payload_base64": operation["payload_base64"],
+                "payload_sha256_hex": operation["payload_sha256_hex"],
+                "signature_cms_base64": "ZmFrZS1zaWduYXR1cmU=",
+                "comment": "publish",
+            },
+        )
         self.assertEqual(signed.status_code, 200)
 
         internal = self._client.get("/registry/internal")
@@ -201,7 +266,23 @@ class CertificatesApiTests(unittest.TestCase):
     def test_internal_registry_filters_applicant_records(self) -> None:
         _, certificate_id = self._create_approved_application()
         self._set_auth_user(self._ops_user())
-        signed = self._client.post(f"/certificates/{certificate_id}/sign", json={"comment": "publish"})
+        prepared = self._client.post(
+            f"/certificates/{certificate_id}/sign/prepare",
+            json={"signer_kind": "signAny"},
+        )
+        self.assertEqual(prepared.status_code, 200)
+        operation = prepared.json()["signature_operation"]
+        signed = self._client.post(
+            f"/certificates/{certificate_id}/sign",
+            json={
+                "operation_id": operation["operation_id"],
+                "signature_mode": "detached",
+                "payload_base64": operation["payload_base64"],
+                "payload_sha256_hex": operation["payload_sha256_hex"],
+                "signature_cms_base64": "ZmFrZS1zaWduYXR1cmU=",
+                "comment": "publish",
+            },
+        )
         self.assertEqual(signed.status_code, 200)
 
         self._set_auth_user(self._other_applicant_user())

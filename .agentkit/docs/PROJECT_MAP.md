@@ -12,11 +12,12 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - What this system does:
   - Репозиторий хранит процессный каркас AgentKit и базовую runtime-платформу e-КТРМ (MVP Phase 1) с приоритетом Ордер 3 -> Ордер 4 -> Ордер 5 (без возобновления).
 - Key user flows:
-  - Applicant создает/отправляет заявку, OPS проверяет/возвращает/принимает решение, система формирует сертификат, OPS mock-подписывает, сертификат публикуется в реестр, далее доступны post-issuance действия.
+  - Applicant создает/отправляет заявку, OPS проверяет/возвращает/принимает решение, система формирует сертификат, OPS подписывает canonical payload через NCALayer, backend валидирует CMS и только затем публикует сертификат в реестр, далее доступны post-issuance действия.
+  - Для локального/dev стенда без Kalkan SDK compose по умолчанию включает `temporary_gost_fallback`: backend принимает GOST CMS operationally и публикует сертификат, но явно маркирует результат как `ACCEPTED_WITHOUT_CRYPTO_VERIFY`, то есть без полноценной server-side криптографической проверки.
   - Публичный пользователь может открыть главный landing без авторизации, но внутренние applicant/OPS сценарии всегда проходят через OIDC login; header CTA `Войти` ведет в личный кабинет, а intent от public CTA сохраняется: клик по модулю после login открывает сервисы модуля, клик по реестру открывает реестр сертификатов.
 - Tech stack:
   - Целевой: Angular SPA, Python/FastAPI микросервисы, PostgreSQL + SQLAlchemy/Alembic, Redis + Celery, MinIO, Keycloak, WebSocket, Docker Compose.
-  - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`) + OPS review/protocol attachment API (`T6`) + baseline генерации сертификата/snapshot (`T7`) + mock-sign/publish и внутренний/публичный реестры (`T8`) + post-issuance suspend/terminate workflow и UI-очередь (`T9`).
+  - Текущий этап репозитория: docker-compose topology + runtime baseline c OIDC/JWT/RBAC (`T2`) + reference-data baseline (`T3`) + Order 3 domain model/state engine (`T4`) + Applicant Wizard UI и draft lifecycle (`T5`) + OPS review/protocol attachment API (`T6`) + baseline генерации сертификата/snapshot (`T7`) + OPS ECP signing flow с prepare/validate/publish и внутренний/публичный реестры (`T8+`) + post-issuance suspend/terminate workflow и UI-очередь (`T9`).
 - Where to start reading the code:
   - `docker-compose.yml`,
   - `services/runtime/app/main.py`,
@@ -44,6 +45,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - `/.agents/skills/` — локальные навыки Codex (`project-intake`, `ticket-planning`).
 - `/logs/agent/` — локальные аудиторские логи тикетов (gitignored).
 - `/docker-compose.yml` — контейнерная топология T1 (core services + infrastructure).
+- `/infra/cert-signing/` — trust artifacts для backend-проверки ЭЦП (public CA chain/optional CRL), монтируются read-only в runtime containers как `/app/cert-signing`.
 - `/services/runtime/Dockerfile.test` — отдельный test-only image для runtime unit/API tests без расширения production image.
 - `/services/runtime/` — единый Python/FastAPI runtime-шаблон для gateway и доменных сервисов.
 - `/frontend/` — контейнер статического frontend baseline (nginx + OIDC/RBAC demo shell + health probes).
@@ -68,7 +70,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
   - Для T4/T5 добавлены applications endpoint-ы: `/applications/drafts`, `/applications/{id}/draft` (`PUT` и `DELETE`), `/applications/{id}/submit`, `/applications/{id}/transitions`, `/applications/{id}/history`.
   - Для T6 добавлены OPS/file endpoint-ы: `/applications/ops/queue`, `/applications/{id}/protocol/attach`, `/files/slots/upload`.
   - Для T7 добавлены certificate endpoint-ы: `/certificates/{id}`, `/certificates/by-application/{application_id}` и генерация сертификата при переходе `PROTOCOL_ATTACHED -> APPROVED`.
-  - Для T8 добавлены certificate/registry endpoint-ы: `POST /certificates/{id}/sign` (OPS mock-sign + auto publish), `GET /registry/internal` (role-aware visibility), `GET /registry/public` (read-only без авторизации).
+  - Для certificate signing добавлены endpoint-ы: `POST /certificates/{id}/sign/prepare` (canonical payload для OPS ECP), `POST /certificates/{id}/sign` (принимает CMS detached signature и публикует сертификат только после backend validation), `GET /registry/internal` (role-aware visibility), `GET /registry/public` (read-only без авторизации).
   - Для T9 добавлены post-issuance endpoint-ы: `POST /post-issuance/drafts`, `PUT /post-issuance/{id}/draft`, `POST /post-issuance/{id}/submit`, `POST /post-issuance/{id}/transitions`, `POST /post-issuance/{id}/basis/attach`, `GET /post-issuance/mine`, `GET /post-issuance/ops/queue`.
   - Для T9 расширен files endpoint `/files/slots/upload`: поддерживается slot `post_issuance_basis` с таргетом `entity_kind=post_issuance`, при сохранении обратной совместимости для `application_id`.
   - Для кабинета добавлены profile endpoint-ы: `GET /profile/me`, `PUT /profile/me`, `PUT /profile/me/avatar`, `DELETE /profile/me/avatar`.
@@ -88,7 +90,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - Main business rules:
   - Активные роли MVP: только `Applicant` и `OPS`.
   - Order 3: workflow заявка -> review -> decision -> generate certificate.
-  - Order 4: mock-sign + publication in internal/public registry.
+  - Order 4: OPS ECP signing flow + publication in internal/public registry.
   - Order 5: reissue/suspend/terminate (resume explicitly out of scope).
   - Post-issuance forms prefill from source certificate.
 - Invariants (things that must always be true):
@@ -108,7 +110,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 - Critical endpoints / operations (planned/implemented baseline):
   - `POST /applications/drafts`, `POST /applications/{id}/submit`, `POST /applications/{id}/review-actions`
   - `POST /applications/{id}/protocol`, `POST /applications/{id}/decision`
-  - `GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`, `POST /certificates/{id}/sign`
+  - `GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`, `POST /certificates/{id}/sign/prepare`, `POST /certificates/{id}/sign`
   - `POST /post-issuance/drafts`, `PUT /post-issuance/{id}/draft`, `POST /post-issuance/{id}/submit`, `POST /post-issuance/{id}/transitions`, `POST /post-issuance/{id}/basis/attach`
   - `GET /registry/public`
   - `GET /notifications`, `POST /notifications/{id}/read`
@@ -351,16 +353,17 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/app/models/certificate.py`.
   - tests:
     - `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py`.
-- `services/runtime/app/services/certificate_service.py` — доменный сервис генерации, подписи/публикации и реестров сертификатов (T7/T8).
+- `services/runtime/app/services/certificate_service.py` — доменный сервис генерации, prepare/sign/publish и реестров сертификатов (T7/T8+).
   - public surface / key exports:
-    - `generate_for_approved_application`, `sign_and_publish`, `get_certificate`, `get_certificate_by_application`, `download_certificate_pdf`, `list_internal_registry`, `list_public_registry`.
+    - `generate_for_approved_application`, `prepare_signature`, `sign_and_publish`, `get_certificate`, `get_certificate_by_application`, `download_certificate_pdf`, `list_internal_registry`, `list_public_registry`.
   - invariants / assumptions:
     - генерация разрешена только для `APPROVED`;
-    - mock-sign+publish разрешены только для роли `OPS` и статуса `GENERATED`;
+    - `prepare_signature` и `sign_and_publish` разрешены только для роли `OPS` и статуса `GENERATED`;
+    - publish выполняется только после successful backend validation CMS;
     - ownership enforcement: Applicant только свои сертификаты, OPS — все;
     - downloadable PDF строится встроенным lightweight generator без внешних зависимостей и визуально приближен к референсу, но не повторяет исходный шаблон побайтно.
   - dependencies:
-    - `services/runtime/app/repositories/certificate_repository.py`, `app/auth.py`.
+    - `services/runtime/app/repositories/certificate_repository.py`, `services/runtime/app/services/certificate_signature_validation.py`, `app/auth.py`.
   - tests:
     - `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py`.
 - `services/runtime/app/repositories/post_issuance_repository.py` — persistence слой T9 post-issuance процессов.
@@ -396,7 +399,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - `services/runtime/tests/test_post_issuance_api.py`.
 - `services/runtime/app/routers/certificates.py` — API сертификатов (T7/T8).
   - public surface / key exports:
-    - `GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`, `GET /certificates/{id}/download`, `POST /certificates/{id}/sign`.
+    - `GET /certificates/{id}`, `GET /certificates/by-application/{application_id}`, `GET /certificates/{id}/download`, `POST /certificates/{id}/sign/prepare`, `POST /certificates/{id}/sign`.
   - invariants / assumptions:
     - чтение защищено backend RBAC + ownership checks;
     - операция sign доступна только `OPS`.
@@ -456,7 +459,7 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
     - OPS-режим формы теперь отдельный one-page review: левый wizard sidebar и process line скрываются, все секции заявки показываются последовательно в read-only, в page chrome доступны только две OPS-команды `На доработку` и `Принять решение`, а flow `Принять решение` больше не использует промежуточные статусы `REGISTERED / IN_REVIEW / PROTOCOL_ATTACHED / COMPLETED`.
     - `На доработку` открывает отдельную модалку с обязательным комментарием; `Принять решение` открывает отдельную модалку с deferred upload протокола и кнопками `Одобрить` / `Отказать`, которые активируются только после выбора файла и только тогда отправляют upload + final OPS decision request.
     - визуал процесса `Подача -> Регистрация -> Проверка -> Решение -> Сертификат` приближен к прототипу крупными карточками-плашками; активный шаг выделяется мягким серо-голубым фоном.
-    - внутренний реестр сертификатов с действиями `Скачать` и `Подписать` для `OPS` (вызовы `GET /certificates/{id}/download`, `POST /certificates/{id}/sign`) и same-tab переходом в публичный read-only реестр без открытия нового окна; во вкладке сертификатов личного кабинета номер сертификата стал clickable download-link.
+    - внутренний реестр сертификатов с действиями `Скачать` и `Подписать` для `OPS`; frontend использует `GET /certificates/{id}/download`, `POST /certificates/{id}/sign/prepare` и `POST /certificates/{id}/sign`, подписывает payload через NCALayer (`signAny`, detached CMS), выполняет backend validation перед publish и открывает публичный read-only реестр в same-tab; во вкладке сертификатов личного кабинета номер сертификата стал clickable download-link.
     - T9 panel в разделе `Реестр сертификатов`: действия `Приостановить` / `Прекратить`, форма post-issuance, upload файла-основания и очередь post-issuance для Applicant/OPS; создание процесса открывает detail внутри текущего workspace без новой вкладки, а `Назад и отменить` для свежего draft вызывает `DELETE /post-issuance/{id}/draft`.
     - OIDC-сессия (Authorization Code + PKCE, нативный JS-клиент без `keycloak.js`) + вызовы applications/certificates/registry API через gateway.
     - Техническая OIDC/API панель (`Войти`, `Обновить токен`, `Выйти`, debug output) вынесена под основной shell и открывается отдельным шевроном; по умолчанию скрыта, а внутри нее теперь живут `Ход выполнения` заявки и OPS history.
@@ -616,6 +619,12 @@ This is enforced by `.agentkit/scripts/verify.sh` (DOC-gate). No exceptions.
 ---
 
 ## Map changelog (most recent first)
+- 2026-03-13 [ops-ecp-base64-normalization-fix] В `services/runtime/app/services/certificate_signature_validation.py`, `services/runtime/app/services/certificate_service.py`, `services/runtime/tests/test_certificate_service.py`, `frontend/index.html` добавлена нормализация NCALayer CMS/payload (`PEM` armor и whitespace removal) перед backend validation, чтобы detached signature из реального NCALayer не падала на `invalid_signature_payload` только из-за переносов строк или `-----BEGIN/END PKCS7-----`.
+- 2026-03-13 [ops-ecp-temporary-gost-fallback] В `services/runtime/app/services/certificate_signature_validation.py`, `services/runtime/app/services/certificate_service.py`, `services/runtime/tests/test_certificate_signature_validation.py`, `services/runtime/tests/test_certificate_service.py`, `.env.example`, `README.md` и `docker-compose.yml` добавлен dev/demo-only режим `CERT_SIGNATURE_VALIDATOR_MODE=temporary_gost_fallback`: backend проверяет только техническую корректность detached CMS/payload, сохраняет артефакты подписи и выпускает сертификат с явным `validation_result=ACCEPTED_WITHOUT_CRYPTO_VERIFY`, чтобы локальный GOST flow через NCALayer работал end-to-end без ложного заявления о полноценной криптографической проверке НУЦ.
+- 2026-03-13 [ops-ecp-nuc-trust-bundle] В `infra/cert-signing/` добавлен официальный public trust bundle НУЦ РК (`root_rsa_2020`, `root_gost_2022`, `nca_rsa_2022`, `nca_gost_2022` в `.cer`/`.pem` и собранный `nuc-ca-chain.pem`); runtime-контейнеры перезапущены и подтверждено, что `certificates-service` видит `/app/cert-signing/nuc-ca-chain.pem` и env `CERT_SIGNATURE_TRUSTED_CA_FILE=/app/cert-signing/nuc-ca-chain.pem`.
+- 2026-03-12 [ops-ecp-verifier-container-wiring] В `services/runtime/Dockerfile`, `docker-compose.yml`, `infra/cert-signing/README.md`, `README.md` и `PROJECT_MAP.md` добавлена container wiring для backend verifier OPS ЭЦП: runtime image теперь устанавливает `openssl` и `ca-certificates`, compose прокидывает `CERT_SIGNATURE_*` переменные и монтирует `./infra/cert-signing` в `/app/cert-signing`, чтобы можно было положить trust chain/CRL без записи секретов в репозиторий.
+- 2026-03-12 [ops-ecp-signing-flow] В `services/runtime/app/services/certificate_service.py`, `services/runtime/app/services/certificate_signature_validation.py`, `services/runtime/app/routers/certificates.py`, `services/runtime/app/models/certificate.py`, `services/runtime/app/repositories/certificate_repository.py`, `services/runtime/alembic/versions/20260312_0007_certificate_signature_ops.py`, `services/runtime/tests/test_certificate_service.py`, `services/runtime/tests/test_certificates_api.py`, `services/runtime/tests/test_post_issuance_api.py`, `frontend/index.html`, `README.md` и `.env.example` mock-sign OPS переведен на новый ECP flow: backend выдает canonical payload через `POST /certificates/{id}/sign/prepare`, фронт подписывает его через NCALayer (`signAny`, detached CMS), backend принимает CMS в `POST /certificates/{id}/sign`, сохраняет signing artifacts в `certificate_signature` и публикует сертификат только после успешной backend validation через verifier adapter.
+- 2026-03-12 [ecp-signature-planning] Для planning-only тикета добавлен `logs/agent/ecp-signature-plan.md`: зафиксирован план перехода от текущего `POST /certificates/{id}/sign` mock-sign контура к реальной ЭЦП-интеграции, отмечено что это high-risk изменение с обязательным PR/threat-model и что текущие MVP rules/roadmap по-прежнему считают реальную ЭЦП отдельным согласуемым scope, а не частью базового MVP.
 - 2026-03-11 [order3-ui-and-ops-review-rework-form-typography-contract] В `frontend/index.html` applicant-form и process-line очищены от размеров шрифта вне дизайн-контракта: oversized `30/26/13/11px` overrides убраны из form-mode, введены явные CSS tokens `--text-page-title / --text-section-title / --text-card-title / --text-body / --text-label / --text-small`, а applicant wizard дополнительно подогнан к `prototype.html` без изменения заголовка, breadcrumbs, back-link и логики шагов.
 - 2026-03-11 [order3-ui-and-ops-review-rework-form-skin-pass] В `frontend/index.html` applicant-form skin доведен ближе к `prototype.html` без изменения заголовка, breadcrumbs, back-link и flow шагов: секции, поля, document rows и action-bar получили более точный прототипный layout с сохранением текущей типографической системы; дополнительно во вкладке сертификатов личного кабинета номер сертификата стал clickable download-link на `GET /certificates/{id}/download`.
 - 2026-03-11 [order3-ui-and-ops-review-rework-certificate-download] В `frontend/index.html`, `services/runtime/app/services/certificate_service.py`, `services/runtime/app/routers/certificates.py` и `services/runtime/tests/test_certificates_api.py` добавлены applicant/OPS download flow и backend PDF generation для сертификатов: внутренний реестр получил действие `Скачать`, menu label `Государственный контроль` сокращен до `Гос контроль`, конфликт `There is already an active post-issuance process for this certificate` маппится в понятное русскоязычное сообщение, process-line заявки визуально приведен ближе к референсу, а `GET /certificates/{id}/download` отдает встроенно сгенерированный PDF-сертификат, похожий на образец по структуре и реквизитам, но без побайтного воспроизведения исходного шаблона.

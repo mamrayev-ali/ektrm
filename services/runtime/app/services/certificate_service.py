@@ -1,22 +1,35 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 import textwrap
 from datetime import UTC, datetime
 from datetime import timedelta
 from typing import Any
+from uuid import uuid4
 
 from fastapi import HTTPException, status
 
 from app.auth import CurrentUser
 from app.models.application import CertApplication
-from app.models.certificate import Certificate
+from app.models.certificate import Certificate, CertificateSignature
 from app.repositories.certificate_repository import CertificateRepository
+from app.services.certificate_signature_validation import (
+    CertificateSignatureValidator,
+    build_certificate_signature_validator,
+    normalize_base64_block,
+)
 
 
 class CertificateService:
-    def __init__(self, repository: CertificateRepository) -> None:
+    def __init__(
+        self,
+        repository: CertificateRepository,
+        signature_validator: CertificateSignatureValidator | None = None,
+    ) -> None:
         self._repository = repository
+        self._signature_validator = signature_validator or build_certificate_signature_validator()
 
     def generate_for_approved_application(
         self,
@@ -52,41 +65,157 @@ class CertificateService:
         )
         return self._serialize_certificate(certificate)
 
+    def prepare_signature(
+        self,
+        certificate_id: int,
+        current_user: CurrentUser,
+        signer_kind: str = "signAny",
+    ) -> dict[str, Any]:
+        self._require_ops(current_user)
+        certificate = self._get_generated_certificate(certificate_id)
+        payload_text = self._build_sign_payload(certificate)
+        payload_bytes = payload_text.encode("utf-8")
+        payload_base64 = base64.b64encode(payload_bytes).decode("ascii")
+        payload_sha256_hex = hashlib.sha256(payload_bytes).hexdigest()
+        operation_id = uuid4().hex
+
+        signature = self._repository.create_signature_operation(
+            operation_id=operation_id,
+            certificate_id=certificate.id,
+            requested_by_subject=current_user.subject,
+            signer_kind=signer_kind,
+            signature_mode="detached",
+            payload_base64=payload_base64,
+            payload_sha256_hex=payload_sha256_hex,
+            validation_result="PREPARED",
+            file_name=f"{certificate.certificate_number.replace('/', '_')}.json",
+            mime_type="application/json",
+        )
+        try:
+            self._repository.commit()
+        except Exception:
+            self._repository.rollback()
+            raise
+
+        return {
+            "certificate": self._serialize_certificate(certificate),
+            "signature_operation": self._serialize_signature(signature),
+        }
+
     def sign_and_publish(
         self,
         certificate_id: int,
         current_user: CurrentUser,
+        operation_id: str,
+        payload_base64: str,
+        payload_sha256_hex: str | None,
+        signature_cms_base64: str,
+        signature_mode: str,
+        client_meta: dict[str, Any] | None = None,
         comment: str | None = None,
     ) -> dict[str, Any]:
         self._require_ops(current_user)
-        certificate = self._repository.get_certificate(certificate_id)
-        if certificate is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate was not found")
-        if certificate.status != "GENERATED":
+        certificate = self._get_generated_certificate(certificate_id)
+        operation = self._repository.get_signature_operation(certificate_id=certificate.id, operation_id=operation_id)
+        if operation is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signature operation was not found")
+        if operation.requested_by_subject != current_user.subject:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Signature operation belongs to another OPS user",
+            )
+        if operation.signature_cms_base64:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Only GENERATED certificate can be signed and published",
+                detail="Signature operation has already been completed",
+            )
+        normalized_payload_base64 = normalize_base64_block(payload_base64)
+        normalized_operation_payload_base64 = normalize_base64_block(operation.payload_base64)
+        normalized_signature_cms_base64 = normalize_base64_block(signature_cms_base64)
+        if signature_mode != operation.signature_mode:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Signature mode does not match prepared operation",
+            )
+        if normalized_payload_base64 != normalized_operation_payload_base64:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Signed payload does not match prepared operation",
+            )
+        expected_hash = operation.payload_sha256_hex
+        if payload_sha256_hex and payload_sha256_hex.lower() != expected_hash.lower():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Payload hash does not match prepared operation",
             )
 
+        validation = self._signature_validator.validate(
+            payload_base64=normalized_payload_base64,
+            signature_cms_base64=normalized_signature_cms_base64,
+            signature_mode=signature_mode,
+        )
+
         now = datetime.now(UTC)
+        operation.signature_cms_base64 = normalized_signature_cms_base64
+        operation.validation_result = (
+            "ACCEPTED_WITHOUT_CRYPTO_VERIFY"
+            if validation.is_valid and validation.accepted_without_crypto_verify
+            else ("VALID" if validation.is_valid else "INVALID")
+        )
+        operation.validation_error_code = validation.validation_error_code
+        operation.validator_name = validation.validator_name
+        operation.revocation_check_mode = validation.revocation_check_mode
+        operation.validated_at = now
+        operation.signer_certificate_subject = validation.signer_subject
+        operation.signer_certificate_serial_number = validation.signer_serial_number
+        operation.signer_iin = validation.signer_iin
+        operation.signer_bin = validation.signer_bin
+        operation.client_meta_json = json.dumps(client_meta or {}, ensure_ascii=False)
+
+        if not validation.is_valid:
+            try:
+                self._repository.commit()
+            except Exception:
+                self._repository.rollback()
+                raise
+            status_code = (
+                status.HTTP_503_SERVICE_UNAVAILABLE
+                if validation.validation_error_code == "validation_backend_unavailable"
+                else status.HTTP_422_UNPROCESSABLE_ENTITY
+            )
+            raise HTTPException(
+                status_code=status_code,
+                detail={
+                    "message": "Certificate signature validation failed",
+                    "error_code": validation.validation_error_code or "validation_internal_error",
+                },
+            )
+
         certificate.signed_by_subject = current_user.subject
         certificate.signed_at = now
-
+        sign_history_comment = comment or "Certificate signed with OPS ECP"
+        if validation.accepted_without_crypto_verify:
+            sign_history_comment = f"{sign_history_comment} (temporary fallback without cryptographic verification)"
         self._repository.add_history(
             certificate_id=certificate.id,
             from_status="GENERATED",
             to_status="SIGNED",
             changed_by_subject=current_user.subject,
-            comment=comment or "Certificate mock-signed by OPS",
+            comment=sign_history_comment,
         )
         certificate.status = "SIGNED"
 
+        publish_history_comment = "Certificate published to internal and public registries after ECP validation"
+        if validation.accepted_without_crypto_verify:
+            publish_history_comment = (
+                "Certificate published after temporary GOST fallback acceptance without cryptographic verification"
+            )
         self._repository.add_history(
             certificate_id=certificate.id,
             from_status="SIGNED",
             to_status="PUBLISHED",
             changed_by_subject=current_user.subject,
-            comment="Certificate published to internal and public registries",
+            comment=publish_history_comment,
         )
         certificate.status = "PUBLISHED"
         certificate.published_at = now
@@ -120,7 +249,11 @@ class CertificateService:
         except Exception:
             self._repository.rollback()
             raise
-        return self._serialize_certificate(certificate)
+
+        return {
+            "certificate": self._serialize_certificate(certificate),
+            "signature_operation": self._serialize_signature(operation),
+        }
 
     def get_certificate(self, certificate_id: int, current_user: CurrentUser) -> dict[str, Any]:
         certificate = self._repository.get_certificate(certificate_id)
@@ -194,6 +327,17 @@ class CertificateService:
             "items": items,
         }
 
+    def _get_generated_certificate(self, certificate_id: int) -> Certificate:
+        certificate = self._repository.get_certificate(certificate_id)
+        if certificate is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate was not found")
+        if certificate.status != "GENERATED":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Only GENERATED certificate can be signed and published",
+            )
+        return certificate
+
     def _assert_owner_or_ops(self, certificate: Certificate, current_user: CurrentUser) -> None:
         if "OPS" in current_user.roles:
             return
@@ -225,6 +369,39 @@ class CertificateService:
             "published_at": certificate.published_at.isoformat() if certificate.published_at else None,
             "created_at": certificate.created_at.isoformat(),
             "updated_at": certificate.updated_at.isoformat(),
+        }
+
+    def _serialize_signature(self, signature: CertificateSignature) -> dict[str, Any]:
+        client_meta = {}
+        if signature.client_meta_json:
+            try:
+                parsed = json.loads(signature.client_meta_json)
+                if isinstance(parsed, dict):
+                    client_meta = parsed
+            except json.JSONDecodeError:
+                client_meta = {}
+        return {
+            "operation_id": signature.operation_id,
+            "certificate_id": signature.certificate_id,
+            "requested_by_subject": signature.requested_by_subject,
+            "signer_kind": signature.signer_kind,
+            "signature_mode": signature.signature_mode,
+            "payload_base64": signature.payload_base64,
+            "payload_sha256_hex": signature.payload_sha256_hex,
+            "file_name": signature.file_name,
+            "mime_type": signature.mime_type,
+            "validation_result": signature.validation_result,
+            "validation_error_code": signature.validation_error_code,
+            "validator_name": signature.validator_name,
+            "revocation_check_mode": signature.revocation_check_mode,
+            "signer_certificate_subject": signature.signer_certificate_subject,
+            "signer_certificate_serial_number": signature.signer_certificate_serial_number,
+            "signer_iin": signature.signer_iin,
+            "signer_bin": signature.signer_bin,
+            "validated_at": signature.validated_at.isoformat() if signature.validated_at else None,
+            "created_at": signature.created_at.isoformat(),
+            "updated_at": signature.updated_at.isoformat(),
+            "client_meta": client_meta,
         }
 
     def _serialize_registry_item(self, certificate: Certificate, include_subject: bool) -> dict[str, Any]:
@@ -286,6 +463,23 @@ class CertificateService:
             },
             "payload": payload,
         }
+
+    def _build_sign_payload(self, certificate: Certificate) -> str:
+        payload = {
+            "schema_version": 1,
+            "entity": "certificate",
+            "operation": "ops_registry_sign",
+            "certificate": {
+                "id": certificate.id,
+                "certificate_number": certificate.certificate_number,
+                "source_application_id": certificate.source_application_id,
+                "source_application_number": certificate.source_application_number,
+                "generated_at": certificate.generated_at.isoformat(),
+                "generated_by_subject": certificate.generated_by_subject,
+            },
+            "snapshot": self._decode_snapshot(certificate.snapshot_json),
+        }
+        return json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
 
     def _new_certificate_number(self, application_id: int) -> str:
         now = datetime.now(UTC)

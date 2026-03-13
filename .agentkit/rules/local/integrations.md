@@ -10,9 +10,12 @@
   - Celery broker/result backend и realtime support.
 - MinIO:
   - объектное хранилище вложений и сгенерированных PDF.
+- Applicant BIN lookup:
+  - backend-mediated GBD UL lookup by `BIN`;
+  - backend-mediated Kompra `IIN -> FIO` enrichment for applicant leader fields;
+  - only when configured through `.env`, without exposing source URLs or tokens to frontend.
 
 ## Forbidden integrations in MVP
-- ГБД ЮЛ (реальное подключение).
 - НУЦ РК и реальная ЭЦП.
 - Внешние государственные реестры.
 - Внешние e-mail/SMS провайдеры.
@@ -20,6 +23,9 @@
 
 ## Integration behavior constraints
 - Все внешние зависимости должны быть конфигурационными (`.env`), без hardcode endpoint/keys.
+- Applicant lookup integrations must be called only from backend:
+  - frontend may call only internal runtime endpoints;
+  - Kompra token must never be shipped to browser runtime config.
 - Смена Keycloak должна выполняться сменой конфигурации, без изменения кода.
 - Если структура ролей/claims внешнего Keycloak отличается:
   - запрещено самовольно придумывать mapping;

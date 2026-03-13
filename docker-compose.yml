@@ -17,6 +17,14 @@ x-runtime-test-env: &runtime-test-env
   CERT_SIGNATURE_OPENSSL_BIN: ${CERT_SIGNATURE_OPENSSL_BIN:-openssl}
   CERT_SIGNATURE_TRUSTED_CA_FILE: ${CERT_SIGNATURE_TRUSTED_CA_FILE:-/app/cert-signing/nuc-ca-chain.pem}
   CERT_SIGNATURE_CRL_FILE: ${CERT_SIGNATURE_CRL_FILE:-}
+  GBD_UL_BASE_URL: ${GBD_UL_BASE_URL:-http://10.0.0.3:7002}
+  GBD_UL_ENV: ${GBD_UL_ENV:-prod}
+  GBD_UL_EXTRACT: ${GBD_UL_EXTRACT:-true}
+  GBD_UL_REQ_XML: ${GBD_UL_REQ_XML:-true}
+  GBD_UL_TIMEOUT_SECONDS: ${GBD_UL_TIMEOUT_SECONDS:-15}
+  KOMPRA_API_BASE_URL: ${KOMPRA_API_BASE_URL:-https://kompra.kz/api/v2}
+  KOMPRA_API_TOKEN: ${KOMPRA_API_TOKEN:-}
+  KOMPRA_TIMEOUT_SECONDS: ${KOMPRA_TIMEOUT_SECONDS:-15}
 
 x-runtime-cert-signing-volume: &runtime-cert-signing-volume
   - ./infra/cert-signing:/app/cert-signing:ro
@@ -145,6 +153,14 @@ services:
       CERT_SIGNATURE_OPENSSL_BIN: ${CERT_SIGNATURE_OPENSSL_BIN:-openssl}
       CERT_SIGNATURE_TRUSTED_CA_FILE: ${CERT_SIGNATURE_TRUSTED_CA_FILE:-/app/cert-signing/nuc-ca-chain.pem}
       CERT_SIGNATURE_CRL_FILE: ${CERT_SIGNATURE_CRL_FILE:-}
+      GBD_UL_BASE_URL: ${GBD_UL_BASE_URL:-http://10.0.0.3:7002}
+      GBD_UL_ENV: ${GBD_UL_ENV:-prod}
+      GBD_UL_EXTRACT: ${GBD_UL_EXTRACT:-true}
+      GBD_UL_REQ_XML: ${GBD_UL_REQ_XML:-true}
+      GBD_UL_TIMEOUT_SECONDS: ${GBD_UL_TIMEOUT_SECONDS:-15}
+      KOMPRA_API_BASE_URL: ${KOMPRA_API_BASE_URL:-https://kompra.kz/api/v2}
+      KOMPRA_API_TOKEN: ${KOMPRA_API_TOKEN:-}
+      KOMPRA_TIMEOUT_SECONDS: ${KOMPRA_TIMEOUT_SECONDS:-15}
     ports:
       - "${GATEWAY_PORT:-8180}:8000"
     volumes: *runtime-cert-signing-volume
@@ -190,6 +206,14 @@ services:
       CERT_SIGNATURE_OPENSSL_BIN: ${CERT_SIGNATURE_OPENSSL_BIN:-openssl}
       CERT_SIGNATURE_TRUSTED_CA_FILE: ${CERT_SIGNATURE_TRUSTED_CA_FILE:-/app/cert-signing/nuc-ca-chain.pem}
       CERT_SIGNATURE_CRL_FILE: ${CERT_SIGNATURE_CRL_FILE:-}
+      GBD_UL_BASE_URL: ${GBD_UL_BASE_URL:-http://10.0.0.3:7002}
+      GBD_UL_ENV: ${GBD_UL_ENV:-prod}
+      GBD_UL_EXTRACT: ${GBD_UL_EXTRACT:-true}
+      GBD_UL_REQ_XML: ${GBD_UL_REQ_XML:-true}
+      GBD_UL_TIMEOUT_SECONDS: ${GBD_UL_TIMEOUT_SECONDS:-15}
+      KOMPRA_API_BASE_URL: ${KOMPRA_API_BASE_URL:-https://kompra.kz/api/v2}
+      KOMPRA_API_TOKEN: ${KOMPRA_API_TOKEN:-}
+      KOMPRA_TIMEOUT_SECONDS: ${KOMPRA_TIMEOUT_SECONDS:-15}
     ports:
       - "${APPLICATIONS_PORT:-8081}:8000"
     volumes: *runtime-cert-signing-volume

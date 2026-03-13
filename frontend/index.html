@@ -1028,6 +1028,25 @@
         color: var(--text-muted);
       }
 
+      .field .hint.applicant-lookup-status {
+        display: block;
+        margin-top: 6px;
+      }
+
+      .field .hint.applicant-lookup-status.is-error {
+        color: #b42318;
+      }
+
+      .field .hint.applicant-lookup-status.is-success {
+        color: var(--brand);
+      }
+
+      .field.sourced label::after {
+        content: " • из источника";
+        color: var(--brand);
+        font-weight: 600;
+      }
+
       .field.error input,
       .field.error select,
       .field.error textarea {
@@ -4463,6 +4482,7 @@
                   <label>БИН <span class="required">*</span></label>
                   <input id="applicant_bin" type="text" placeholder="12 цифр" maxlength="12" />
                   <span class="hint">Формат: 12 цифр</span>
+                  <span class="hint applicant-lookup-status" id="applicantLookupStatus">После ввода 12 цифр данные заявителя подтянутся автоматически.</span>
                 </div>
                 <div class="field" data-field="applicant_head_iin">
                   <label>ИИН руководителя <span class="required">*</span></label>
@@ -5633,6 +5653,7 @@
       };
       const phoneInput = document.getElementById("phone");
       const applicantBinInput = document.getElementById("applicant_bin");
+      const applicantLookupStatus = document.getElementById("applicantLookupStatus");
       const applicantHeadIinInput = document.getElementById("applicant_head_iin");
       const applicantActivityAddressSelect = document.getElementById("applicant_activity_address");
       const manufacturerActivityAddressSelect = document.getElementById("manufacturer_activity_address");
@@ -5749,6 +5770,24 @@
         applicantServices: "applicant-services",
         certificates: "certificates",
       };
+      const APPLICANT_LOOKUP_FIELD_IDS = [
+        "applicant_bin",
+        "applicant_name",
+        "applicant_name_kz",
+        "applicant_head_iin",
+        "applicant_head_name",
+        "applicant_head_position",
+        "applicant_address",
+        "applicant_activity_address",
+        "actual_address",
+      ];
+      const APPLICANT_LOOKUP_MANAGED_FIELDS = new Set(APPLICANT_LOOKUP_FIELD_IDS);
+      let applicantLookupState = {
+        activeBin: null,
+        integrationSnapshot: null,
+      };
+      let applicantLookupDebounceHandle = null;
+      let applicantLookupRequestId = 0;
 
       function writeOutput(title, payload) {
         const body = typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
@@ -5792,6 +5831,7 @@
           }
         });
         formView.classList.toggle("form-readonly", readOnly);
+        syncApplicantLookupLocks();
       }
 
       function getApplicantActionButtons() {
@@ -7006,6 +7046,123 @@
         element.value = value ?? "";
       }
 
+      function setApplicantLookupStatus(message, tone = "neutral") {
+        if (!(applicantLookupStatus instanceof HTMLElement)) {
+          return;
+        }
+        applicantLookupStatus.textContent = message;
+        applicantLookupStatus.classList.toggle("is-error", tone === "error");
+        applicantLookupStatus.classList.toggle("is-success", tone === "success");
+      }
+
+      function hasApplicantLookupSnapshot() {
+        return Boolean(
+          applicantLookupState.integrationSnapshot &&
+            applicantLookupState.integrationSnapshot.source === "gbd_ul_kompra_v1" &&
+            applicantLookupState.activeBin,
+        );
+      }
+
+      function syncApplicantLookupLocks() {
+        const formReadOnly = currentFormMode === "ops" || !currentApplicantCanEdit;
+        const shouldLock = !formReadOnly && hasApplicantLookupSnapshot();
+        APPLICANT_LOOKUP_FIELD_IDS.forEach((fieldId) => {
+          const element = document.getElementById(fieldId);
+          const wrapper = document.querySelector(`.field[data-field="${fieldId}"]`);
+          if (wrapper instanceof HTMLElement) {
+            wrapper.classList.toggle("sourced", shouldLock);
+          }
+          if (!element) {
+            return;
+          }
+          if (element instanceof HTMLSelectElement) {
+            element.disabled = formReadOnly || shouldLock;
+            return;
+          }
+          if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+            element.disabled = formReadOnly;
+            element.readOnly = formReadOnly || shouldLock;
+          }
+        });
+      }
+
+      function clearApplicantLookupState(options = {}) {
+        const keepBin = options.keepBin !== false;
+        applicantLookupRequestId += 1;
+        applicantLookupState = {
+          activeBin: keepBin ? getValue("applicant_bin") : null,
+          integrationSnapshot: null,
+        };
+        APPLICANT_LOOKUP_FIELD_IDS.forEach((fieldId) => {
+          if (fieldId === "applicant_bin" && keepBin) {
+            return;
+          }
+          if (APPLICANT_LOOKUP_MANAGED_FIELDS.has(fieldId)) {
+            setFieldValue(fieldId, "", true);
+          }
+        });
+        syncApplicantAddressVisibility();
+        syncApplicantLookupLocks();
+        setApplicantLookupStatus("После ввода 12 цифр данные заявителя подтянутся автоматически.");
+      }
+
+      function applyApplicantLookupResult(result) {
+        const resolvedFields =
+          result && typeof result === "object" && result.resolved_fields && typeof result.resolved_fields === "object"
+            ? result.resolved_fields
+            : {};
+        Object.entries(resolvedFields).forEach(([fieldId, value]) => {
+          if (APPLICANT_LOOKUP_MANAGED_FIELDS.has(fieldId)) {
+            setFieldValue(fieldId, value ?? "", true);
+          }
+        });
+        applicantLookupState = {
+          activeBin: resolvedFields.applicant_bin || getValue("applicant_bin"),
+          integrationSnapshot:
+            result && typeof result === "object" && result.integration_snapshot && typeof result.integration_snapshot === "object"
+              ? result.integration_snapshot
+              : null,
+        };
+        syncApplicantAddressVisibility();
+        syncApplicantLookupLocks();
+        setApplicantLookupStatus("Данные заявителя подтянуты из ГБД ЮЛ и Kompra.", "success");
+      }
+
+      async function lookupApplicantByBin(binValue) {
+        if (!isApplicantUser() || currentFormMode !== "applicant" || !currentApplicantCanEdit) {
+          return;
+        }
+        const normalizedBin = String(binValue || "").replace(/\D/g, "").slice(0, 12);
+        if (normalizedBin.length !== 12) {
+          clearApplicantLookupState({ keepBin: true });
+          return;
+        }
+        if (hasApplicantLookupSnapshot() && applicantLookupState.activeBin === normalizedBin) {
+          return;
+        }
+        const requestId = ++applicantLookupRequestId;
+        setApplicantLookupStatus("Проверяем БИН в ГБД ЮЛ и Kompra...");
+        try {
+          const result = await callApi("GET", `/applications/lookup/applicant-by-bin?bin=${encodeURIComponent(normalizedBin)}`);
+          if (requestId !== applicantLookupRequestId) {
+            return;
+          }
+          applyApplicantLookupResult(result);
+          if (currentView === "form") {
+            setFormDirty(true);
+          }
+        } catch (error) {
+          if (requestId !== applicantLookupRequestId) {
+            return;
+          }
+          clearApplicantLookupState({ keepBin: true });
+          setApplicantLookupStatus(
+            error instanceof Error ? error.message.replace(/^\d+\s*/, "") : "Не удалось получить данные заявителя.",
+            "error",
+          );
+        }
+      }
+
       function escapeHtml(value) {
         return String(value || "")
           .replace(/&/g, "&amp;")
@@ -7917,6 +8074,15 @@
         currentApplicationHistory = [];
         currentApplicationApplicantSubject = null;
         currentApplicationFileSlots = {};
+        applicantLookupState = {
+          activeBin: null,
+          integrationSnapshot: null,
+        };
+        applicantLookupRequestId += 1;
+        if (applicantLookupDebounceHandle) {
+          window.clearTimeout(applicantLookupDebounceHandle);
+          applicantLookupDebounceHandle = null;
+        }
         setApplicantOpsComment(null);
         setApplicantCommentVisible(false);
         setOpsStatusBannerVisible(false);
@@ -7947,6 +8113,8 @@
         renderAppendixRows([EMPTY_APPENDIX_ROW]);
         syncApplicantAddressVisibility();
         syncManufacturerAddressVisibility();
+        syncApplicantLookupLocks();
+        setApplicantLookupStatus("После ввода 12 цифр данные заявителя подтянутся автоматически.");
         refreshApplicantDocumentStatuses();
         renderStep();
       }
@@ -8436,6 +8604,7 @@
           barcode: getValue("barcode"),
           additional_product_info: getValue("additional_product_info"),
           additional_product_info_kz: getValue("additional_product_info_kz"),
+          integration_snapshot: applicantLookupState.integrationSnapshot,
           file_slots: { ...currentApplicationFileSlots },
           document_package: buildApplicantDocumentPackageSummary(),
           products: productName
@@ -8599,8 +8768,26 @@
         if (agreeProcedure) {
           agreeProcedure.checked = Boolean(data.agree_procedure);
         }
+        if (
+          data.integration_snapshot &&
+          typeof data.integration_snapshot === "object" &&
+          data.integration_snapshot.source === "gbd_ul_kompra_v1"
+        ) {
+          applicantLookupState = {
+            activeBin: data.applicant_bin || data.integration_snapshot?.resolved_fields?.applicant_bin || null,
+            integrationSnapshot: data.integration_snapshot,
+          };
+          setApplicantLookupStatus("Данные заявителя восстановлены из сохраненного источника.", "success");
+        } else {
+          applicantLookupState = {
+            activeBin: data.applicant_bin || null,
+            integrationSnapshot: null,
+          };
+          setApplicantLookupStatus("После ввода 12 цифр данные заявителя подтянутся автоматически.");
+        }
         syncApplicantAddressVisibility();
         syncManufacturerAddressVisibility();
+        syncApplicantLookupLocks();
         refreshApplicantDocumentStatuses();
         if (applicationFormLookupsLoaded) {
           syncOpsRegistryFields({ overwrite: false });
@@ -9221,6 +9408,24 @@
         }
         if (raw.includes("Access denied for this certificate")) {
           return "Нет доступа к этому сертификату.";
+        }
+        if (raw.includes("Applicant lookup integration is not configured")) {
+          return "Интеграция автозаполнения пока не настроена на сервере.";
+        }
+        if (raw.includes("GBD UL lookup is unavailable")) {
+          return "Сервис ГБД ЮЛ временно недоступен.";
+        }
+        if (raw.includes("Kompra lookup is unavailable")) {
+          return "Сервис Kompra временно недоступен.";
+        }
+        if (raw.includes("Applicant BIN was not found in GBD UL")) {
+          return "По указанному БИН данные в ГБД ЮЛ не найдены.";
+        }
+        if (raw.includes("Applicant leader IIN is missing in GBD UL response")) {
+          return "В ответе ГБД ЮЛ отсутствует ИИН руководителя.";
+        }
+        if (raw.includes("Leader FIO was not found in Kompra")) {
+          return "По ИИН руководителя данные в Kompra не найдены.";
         }
         return raw;
       }
@@ -10258,6 +10463,26 @@
         applicantBinInput.addEventListener("input", () => {
           const digits = applicantBinInput.value.replace(/\D/g, "").slice(0, 12);
           applicantBinInput.value = digits;
+          if (applicantLookupDebounceHandle) {
+            window.clearTimeout(applicantLookupDebounceHandle);
+            applicantLookupDebounceHandle = null;
+          }
+          if (digits.length !== 12) {
+            clearApplicantLookupState({ keepBin: true });
+            return;
+          }
+          if (hasApplicantLookupSnapshot() && applicantLookupState.activeBin === digits) {
+            return;
+          }
+          clearApplicantLookupState({ keepBin: true });
+          applicantLookupDebounceHandle = window.setTimeout(() => {
+            lookupApplicantByBin(digits).catch((error) => {
+              setApplicantLookupStatus(
+                error instanceof Error ? error.message : "Не удалось получить данные заявителя.",
+                "error",
+              );
+            });
+          }, 350);
         });
       }
 

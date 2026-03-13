@@ -102,7 +102,8 @@ class ApplicantLookupServiceTests(unittest.TestCase):
         self.assertEqual(resolved["applicant_name"], 'Товарищество с ограниченной ответственностью "Тест"')
         self.assertEqual(resolved["applicant_head_iin"], "890627301030")
         self.assertEqual(resolved["applicant_head_name"], "КАБЫЛОВ МЕЙРАМБЕК МАЛИБЕКОВИЧ")
-        self.assertEqual(resolved["applicant_head_position"], "Руководитель")
+        self.assertEqual(resolved["applicant_head_name_kz"], "КАБЫЛОВ МЕЙРАМБЕК МАЛИБЕКОВИЧ")
+        self.assertNotIn("applicant_head_position", resolved)
         self.assertEqual(resolved["applicant_activity_address"], "legal")
         self.assertEqual(result["integration_snapshot"]["gbd_ul"]["primary_activity_ru"], "Испытания продукции")
 

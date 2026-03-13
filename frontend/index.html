@@ -389,6 +389,7 @@
       .step-item {
         display: flex;
         align-items: center;
+        justify-content: flex-start;
         gap: 8px;
         padding: 8px 10px;
         border: 1px solid var(--line);
@@ -397,6 +398,13 @@
         color: var(--text-muted);
         font-size: var(--font-secondary-size);
         cursor: pointer;
+        text-align: left;
+      }
+
+      .step-item span:last-child {
+        flex: 1;
+        line-height: 1.35;
+        text-align: left;
       }
 
       .step-item.active {
@@ -924,6 +932,16 @@
         padding: 9px 13px;
         background: #f9f9fb;
         font-size: var(--text-body);
+        color: #2c2c2e;
+      }
+
+      .shell.form-shell > #mainPanel .field input::placeholder,
+      .shell.form-shell > #mainPanel .field textarea::placeholder {
+        color: #b6bcc6;
+      }
+
+      .shell.form-shell > #mainPanel .field select.is-placeholder {
+        color: #9aa2ad;
       }
 
       .shell.form-shell > #mainPanel .field input:focus,
@@ -1045,6 +1063,46 @@
         content: " • из источника";
         color: var(--brand);
         font-weight: 600;
+      }
+
+      .field.sourced label {
+        color: #70757d;
+      }
+
+      .shell.form-shell > #mainPanel .field.sourced label {
+        color: #66707d;
+      }
+
+      .shell.form-shell > #mainPanel .field.sourced input,
+      .shell.form-shell > #mainPanel .field.sourced select,
+      .shell.form-shell > #mainPanel .field.sourced textarea {
+        border-color: #c7d0da;
+        background: #e7edf3;
+        color: #4b5563;
+        box-shadow: inset 0 0 0 1px rgba(199, 208, 218, 0.45);
+      }
+
+      .shell.form-shell > #mainPanel .field.sourced input::placeholder,
+      .shell.form-shell > #mainPanel .field.sourced textarea::placeholder {
+        color: #93a0ae;
+      }
+
+      .shell.form-shell > #mainPanel .field.sourced input[readonly],
+      .shell.form-shell > #mainPanel .field.sourced select:disabled,
+      .shell.form-shell > #mainPanel .field.sourced textarea[readonly] {
+        cursor: not-allowed;
+      }
+
+      .shell.form-shell > #mainPanel .field.required-empty:not(.error) label {
+        color: #9f2e2e;
+      }
+
+      .shell.form-shell > #mainPanel .field.required-empty:not(.error) input,
+      .shell.form-shell > #mainPanel .field.required-empty:not(.error) select,
+      .shell.form-shell > #mainPanel .field.required-empty:not(.error) textarea {
+        border-color: #e6a7a7;
+        background: #fff0f0;
+        box-shadow: inset 0 0 0 1px rgba(230, 167, 167, 0.22);
       }
 
       .field.error input,
@@ -4434,7 +4492,7 @@
           <section class="section" data-step="0">
             <div class="section-head">
               <div class="section-title">Заявитель</div>
-              <div class="section-sub">Реквизиты заявителя, руководителя и обязательство заявителя</div>
+              <div class="section-sub">Реквизиты заявителя, руководителя, адрес и обязательство заявителя</div>
             </div>
             <div class="section-body">
               <div class="grid-3">
@@ -4526,26 +4584,7 @@
                   <input id="bik" type="text" placeholder="Например: HSBKKZKX" />
                 </div>
               </div>
-              <div class="field full" style="margin-top: 10px">
-                <label>Обязательство заявителя <span class="required">*</span></label>
-                <textarea id="applicant_obligation_text" readonly>Настоящей заявкой заявитель подтверждает достоверность представленных сведений, обязуется соблюдать процедуру подтверждения соответствия, обеспечивать стабильность показателей сертифицируемой продукции, оплачивать расходы, связанные с проведением работ, и дает согласие на использование и обработку представленных сведений в рамках процедуры подтверждения соответствия.</textarea>
-              </div>
-              <div class="checks">
-                <label>
-                  <input id="agree_procedure" type="checkbox" />
-                  <span>Подтверждаю и принимаю обязательство заявителя</span>
-                </label>
-              </div>
-            </div>
-          </section>
-
-          <section class="section hidden" data-step="1">
-            <div class="section-head">
-              <div class="section-title">Адрес заявителя</div>
-              <div class="section-sub">Юридический, фактический адрес и адрес места осуществления деятельности</div>
-            </div>
-            <div class="section-body">
-              <div class="grid-3">
+              <div class="grid-3" style="margin-top: 18px">
                 <div class="field" data-field="applicant_address">
                   <label>Место нахождения (адрес юридического лица) / Место жительства (адрес физического лица) (юридический адрес) <span class="required">*</span></label>
                   <input id="applicant_address" type="text" placeholder="г. Алматы, ул. ..." />
@@ -4563,10 +4602,20 @@
                   <input id="actual_address" type="text" placeholder="При наличии" />
                 </div>
               </div>
+              <div class="field full" style="margin-top: 10px">
+                <label>Обязательство заявителя <span class="required">*</span></label>
+                <textarea id="applicant_obligation_text" readonly>Настоящей заявкой заявитель подтверждает достоверность представленных сведений, обязуется соблюдать процедуру подтверждения соответствия, обеспечивать стабильность показателей сертифицируемой продукции, оплачивать расходы, связанные с проведением работ, и дает согласие на использование и обработку представленных сведений в рамках процедуры подтверждения соответствия.</textarea>
+              </div>
+              <div class="checks">
+                <label>
+                  <input id="agree_procedure" type="checkbox" />
+                  <span>Подтверждаю и принимаю обязательство заявителя</span>
+                </label>
+              </div>
             </div>
           </section>
 
-          <section class="section hidden" data-step="2">
+          <section class="section hidden" data-step="1">
             <div class="section-head">
               <div class="section-title">ОПС</div>
               <div class="section-sub">Сведения по органу по подтверждению соответствия и аттестату аккредитации</div>
@@ -4644,7 +4693,7 @@
             </div>
           </section>
 
-          <section class="section hidden" data-step="3">
+          <section class="section hidden" data-step="2">
             <div class="section-head">
               <div class="section-title">Схема сертификации</div>
               <div class="section-sub">Схема сертификации и нормативное основание</div>
@@ -4670,7 +4719,7 @@
             </div>
           </section>
 
-          <section class="section hidden" data-step="4">
+          <section class="section hidden" data-step="3">
             <div class="section-head">
               <div class="section-title">Данные по продукции</div>
               <div class="section-sub">Изготовитель, адреса изготовления и идентификация продукции</div>
@@ -4781,7 +4830,7 @@
             </div>
           </section>
 
-          <section class="section hidden" data-step="5">
+          <section class="section hidden" data-step="4">
             <div class="section-head">
               <div class="section-title">Приложение</div>
               <div class="section-sub">Табличное представление продукции по номенклатуре и документации</div>
@@ -4809,7 +4858,7 @@
             </div>
           </section>
 
-          <section class="section hidden" data-step="6">
+          <section class="section hidden" data-step="5">
             <div class="section-head">
               <div class="section-title">Документы для оценки соответствия</div>
               <div class="section-sub">Типизированный пакет документов согласно аналитике Ордер 3</div>
@@ -4870,7 +4919,7 @@
             </div>
           </section>
 
-          <section class="section hidden" data-step="7">
+          <section class="section hidden" data-step="6">
             <div class="section-head">
               <div class="section-title">Примечание</div>
               <div class="section-sub">Примечание и юридически значимое подтверждение</div>
@@ -5245,7 +5294,6 @@
 
       const STEP_TITLES = [
         "Заявитель",
-        "Адрес заявителя",
         "ОПС",
         "Схема сертификации",
         "Данные по продукции",
@@ -5776,7 +5824,7 @@
         "applicant_name_kz",
         "applicant_head_iin",
         "applicant_head_name",
-        "applicant_head_position",
+        "applicant_head_name_kz",
         "applicant_address",
         "applicant_activity_address",
         "actual_address",
@@ -5832,6 +5880,7 @@
         });
         formView.classList.toggle("form-readonly", readOnly);
         syncApplicantLookupLocks();
+        syncRequiredFieldWarnings();
       }
 
       function getApplicantActionButtons() {
@@ -6359,9 +6408,11 @@
         updateHeaderMeta();
         if (showAllSections) {
           stepsNav.innerHTML = "";
+          syncRequiredFieldWarnings();
           return;
         }
         renderStepsNav();
+        syncRequiredFieldWarnings();
       }
 
       function getMenuMode() {
@@ -7104,6 +7155,7 @@
         syncApplicantAddressVisibility();
         syncApplicantLookupLocks();
         setApplicantLookupStatus("После ввода 12 цифр данные заявителя подтянутся автоматически.");
+        syncRequiredFieldWarnings();
       }
 
       function applyApplicantLookupResult(result) {
@@ -7126,6 +7178,7 @@
         syncApplicantAddressVisibility();
         syncApplicantLookupLocks();
         setApplicantLookupStatus("Данные заявителя подтянуты из ГБД ЮЛ и Kompra.", "success");
+        syncRequiredFieldWarnings();
       }
 
       async function lookupApplicantByBin(binValue) {
@@ -7260,6 +7313,7 @@
         if (!showActualAddress) {
           setFieldValue("actual_address", "", true);
         }
+        syncRequiredFieldWarnings();
       }
 
       function syncManufacturerAddressVisibility() {
@@ -7269,6 +7323,7 @@
         if (!showActualAddress) {
           setFieldValue("manufacturer_actual_address", "", true);
         }
+        syncRequiredFieldWarnings();
       }
 
       function createAppendixRow(row = {}) {
@@ -8481,6 +8536,47 @@
           wrapper.classList.remove("error");
         });
         document.querySelectorAll(".error-text").forEach((node) => node.remove());
+        syncRequiredFieldWarnings();
+      }
+
+      function setFieldWarningState(fieldId, showWarning) {
+        const wrapper = document.querySelector(`.field[data-field="${fieldId}"]`);
+        if (!(wrapper instanceof HTMLElement)) {
+          return;
+        }
+        wrapper.classList.toggle("required-empty", showWarning);
+      }
+
+      function syncSelectPlaceholderState(selectNode) {
+        if (!(selectNode instanceof HTMLSelectElement)) {
+          return;
+        }
+        selectNode.classList.toggle("is-placeholder", !String(selectNode.value || "").trim());
+      }
+
+      function syncRequiredFieldWarnings() {
+        document.querySelectorAll(".field.required-empty").forEach((wrapper) => {
+          wrapper.classList.remove("required-empty");
+        });
+        const shouldShowWarnings = currentView === "form" && currentFormMode === "applicant" && currentApplicantCanEdit;
+        if (!shouldShowWarnings) {
+          return;
+        }
+        REQUIRED_FIELDS.forEach((fieldId) => {
+          const value = fieldId === "product_name" ? getValue("product_name") : getValue(fieldId);
+          setFieldWarningState(fieldId, !value);
+        });
+        setFieldWarningState(
+          "actual_address",
+          getValue("applicant_activity_address") === "other" && !getValue("actual_address"),
+        );
+        setFieldWarningState(
+          "manufacturer_actual_address",
+          getValue("manufacturer_activity_address") === "other" && !getValue("manufacturer_actual_address"),
+        );
+        document.querySelectorAll("#sectionsWrap select").forEach((selectNode) => {
+          syncSelectPlaceholderState(selectNode);
+        });
       }
 
       function getValue(id) {
@@ -8792,6 +8888,7 @@
         if (applicationFormLookupsLoaded) {
           syncOpsRegistryFields({ overwrite: false });
         }
+        syncRequiredFieldWarnings();
       }
 
       function validateForSubmit(payload) {
@@ -10441,11 +10538,13 @@
           if (currentView === "form") {
             setFormDirty(true);
           }
+          syncRequiredFieldWarnings();
         });
         element.addEventListener("change", () => {
           if (currentView === "form") {
             setFormDirty(true);
           }
+          syncRequiredFieldWarnings();
         });
       });
 

@@ -21,7 +21,7 @@ LOOKUP_FIELDS = {
     "applicant_name_kz": "Источник ЖШС",
     "applicant_head_iin": "890627301030",
     "applicant_head_name": "КАБЫЛОВ МЕЙРАМБЕК МАЛИБЕКОВИЧ",
-    "applicant_head_position": "Руководитель",
+    "applicant_head_name_kz": "КАБЫЛОВ МЕЙРАМБЕК МАЛИБЕКОВИЧ",
     "applicant_address": "город Алматы, Бостандыкский район, Проспект Абая, здание 10",
     "applicant_activity_address": "legal",
     "actual_address": "",

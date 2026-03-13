@@ -79,7 +79,7 @@ class ApplicantLookupService:
             "applicant_name_kz": str(gbd_payload.get("full_name_kz") or "").strip(),
             "applicant_head_iin": leader_iin,
             "applicant_head_name": leader_full_name,
-            "applicant_head_position": str(gbd_payload.get("leader_position_ru") or "").strip(),
+            "applicant_head_name_kz": leader_full_name,
             "applicant_address": legal_address,
             "applicant_activity_address": activity_address_mode,
             "actual_address": resolved_actual_address,

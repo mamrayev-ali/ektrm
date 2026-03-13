@@ -23,7 +23,7 @@ LOOKUP_FIELDS = {
     "applicant_name_kz": "Источник ЖШС",
     "applicant_head_iin": "890627301030",
     "applicant_head_name": "КАБЫЛОВ МЕЙРАМБЕК МАЛИБЕКОВИЧ",
-    "applicant_head_position": "Руководитель",
+    "applicant_head_name_kz": "КАБЫЛОВ МЕЙРАМБЕК МАЛИБЕКОВИЧ",
     "applicant_address": "город Алматы, Бостандыкский район, Проспект Абая, здание 10",
     "applicant_activity_address": "legal",
     "actual_address": "",
@@ -145,6 +145,7 @@ class ApplicationsApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["resolved_fields"]["applicant_head_name"], LOOKUP_FIELDS["applicant_head_name"])
+        self.assertEqual(payload["resolved_fields"]["applicant_head_name_kz"], LOOKUP_FIELDS["applicant_head_name_kz"])
         self.assertEqual(payload["integration_snapshot"]["source"], "gbd_ul_kompra_v1")
 
     def test_submit_persists_lookup_snapshot_and_normalized_fields(self) -> None:

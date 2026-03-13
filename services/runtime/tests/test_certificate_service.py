@@ -15,7 +15,27 @@ from app.models.base import Base
 from app.repositories.application_repository import ApplicationRepository
 from app.repositories.certificate_repository import CertificateRepository
 from app.services.application_state_service import ApplicationStateService
+from app.services.certificate_signature_validation import SignatureValidationResult, normalize_base64_block
 from app.services.certificate_service import CertificateService
+
+
+class FakeSignatureValidator:
+    def __init__(self, *, accepted_without_crypto_verify: bool = False) -> None:
+        self.last_payload_base64: str | None = None
+        self.last_signature_cms_base64: str | None = None
+        self.accepted_without_crypto_verify = accepted_without_crypto_verify
+
+    def validate(self, *, payload_base64: str, signature_cms_base64: str, signature_mode: str) -> SignatureValidationResult:
+        self.last_payload_base64 = payload_base64
+        self.last_signature_cms_base64 = signature_cms_base64
+        return SignatureValidationResult(
+            is_valid=True,
+            validator_name="fake-validator",
+            revocation_check_mode="TEST",
+            signer_subject="CN=OPS Signer",
+            signer_serial_number="ABC123",
+            accepted_without_crypto_verify=self.accepted_without_crypto_verify,
+        )
 
 
 class CertificateServiceTests(unittest.TestCase):
@@ -34,7 +54,11 @@ class CertificateServiceTests(unittest.TestCase):
         self._session: Session = self._session_factory()
         self._app_repository = ApplicationRepository(self._session)
         self._certificate_repository = CertificateRepository(self._session)
-        self._certificate_service = CertificateService(self._certificate_repository)
+        self._signature_validator = FakeSignatureValidator()
+        self._certificate_service = CertificateService(
+            self._certificate_repository,
+            signature_validator=self._signature_validator,
+        )
         self._application_service = ApplicationStateService(
             repository=self._app_repository,
             certificate_service=self._certificate_service,
@@ -128,37 +152,130 @@ class CertificateServiceTests(unittest.TestCase):
 
     def test_sign_and_publish_sets_active_status_and_metadata(self) -> None:
         certificate = self._approve_with_certificate()
+        prepared = self._certificate_service.prepare_signature(
+            certificate_id=certificate["id"],
+            current_user=self._ops,
+            signer_kind="signAny",
+        )
         signed = self._certificate_service.sign_and_publish(
             certificate_id=certificate["id"],
             current_user=self._ops,
-            comment="Mock signature",
+            operation_id=prepared["signature_operation"]["operation_id"],
+            payload_base64=prepared["signature_operation"]["payload_base64"],
+            payload_sha256_hex=prepared["signature_operation"]["payload_sha256_hex"],
+            signature_cms_base64="ZmFrZS1zaWduYXR1cmU=",
+            signature_mode="detached",
+            comment="Signed with ECP",
         )
-        self.assertEqual(signed["status"], "ACTIVE")
-        self.assertEqual(signed["signed_by_subject"], "ops-1")
-        self.assertIsNotNone(signed["signed_at"])
-        self.assertIsNotNone(signed["published_at"])
+        self.assertEqual(signed["certificate"]["status"], "ACTIVE")
+        self.assertEqual(signed["certificate"]["signed_by_subject"], "ops-1")
+        self.assertIsNotNone(signed["certificate"]["signed_at"])
+        self.assertIsNotNone(signed["certificate"]["published_at"])
+        self.assertEqual(signed["signature_operation"]["validation_result"], "VALID")
 
     def test_sign_and_publish_requires_ops_role(self) -> None:
         certificate = self._approve_with_certificate()
+        prepared = self._certificate_service.prepare_signature(
+            certificate_id=certificate["id"],
+            current_user=self._ops,
+            signer_kind="signAny",
+        )
         with self.assertRaises(HTTPException) as context:
             self._certificate_service.sign_and_publish(
                 certificate_id=certificate["id"],
                 current_user=self._applicant,
+                operation_id=prepared["signature_operation"]["operation_id"],
+                payload_base64=prepared["signature_operation"]["payload_base64"],
+                payload_sha256_hex=prepared["signature_operation"]["payload_sha256_hex"],
+                signature_cms_base64="ZmFrZS1zaWduYXR1cmU=",
+                signature_mode="detached",
             )
         self.assertEqual(context.exception.status_code, 403)
 
     def test_sign_and_publish_rejects_double_sign(self) -> None:
         certificate = self._approve_with_certificate()
+        prepared = self._certificate_service.prepare_signature(
+            certificate_id=certificate["id"],
+            current_user=self._ops,
+            signer_kind="signAny",
+        )
         self._certificate_service.sign_and_publish(
             certificate_id=certificate["id"],
             current_user=self._ops,
+            operation_id=prepared["signature_operation"]["operation_id"],
+            payload_base64=prepared["signature_operation"]["payload_base64"],
+            payload_sha256_hex=prepared["signature_operation"]["payload_sha256_hex"],
+            signature_cms_base64="ZmFrZS1zaWduYXR1cmU=",
+            signature_mode="detached",
         )
         with self.assertRaises(HTTPException) as context:
             self._certificate_service.sign_and_publish(
                 certificate_id=certificate["id"],
                 current_user=self._ops,
+                operation_id=prepared["signature_operation"]["operation_id"],
+                payload_base64=prepared["signature_operation"]["payload_base64"],
+                payload_sha256_hex=prepared["signature_operation"]["payload_sha256_hex"],
+                signature_cms_base64="ZmFrZS1zaWduYXR1cmU=",
+                signature_mode="detached",
             )
         self.assertEqual(context.exception.status_code, 409)
+
+    def test_sign_and_publish_normalizes_whitespace_and_pem_wrapped_signature(self) -> None:
+        certificate = self._approve_with_certificate()
+        prepared = self._certificate_service.prepare_signature(
+            certificate_id=certificate["id"],
+            current_user=self._ops,
+            signer_kind="signAny",
+        )
+        payload_base64 = prepared["signature_operation"]["payload_base64"]
+        normalized_signature = "ZmFrZS1zaWduYXR1cmU="
+        pem_wrapped_signature = "-----BEGIN PKCS7-----\nZmFrZS1zaWdu\nYXR1cmU=\n-----END PKCS7-----"
+
+        signed = self._certificate_service.sign_and_publish(
+            certificate_id=certificate["id"],
+            current_user=self._ops,
+            operation_id=prepared["signature_operation"]["operation_id"],
+            payload_base64=f"{payload_base64[:32]}\n{payload_base64[32:]}",
+            payload_sha256_hex=prepared["signature_operation"]["payload_sha256_hex"],
+            signature_cms_base64=pem_wrapped_signature,
+            signature_mode="detached",
+            comment="Signed with ECP",
+        )
+
+        self.assertEqual(signed["certificate"]["status"], "ACTIVE")
+        self.assertEqual(self._signature_validator.last_payload_base64, normalize_base64_block(payload_base64))
+        self.assertEqual(self._signature_validator.last_signature_cms_base64, normalized_signature)
+
+    def test_sign_and_publish_marks_temporary_fallback_result(self) -> None:
+        self._signature_validator = FakeSignatureValidator(accepted_without_crypto_verify=True)
+        self._certificate_service = CertificateService(
+            self._certificate_repository,
+            signature_validator=self._signature_validator,
+        )
+        self._application_service = ApplicationStateService(
+            repository=self._app_repository,
+            certificate_service=self._certificate_service,
+        )
+        certificate = self._approve_with_certificate()
+        prepared = self._certificate_service.prepare_signature(
+            certificate_id=certificate["id"],
+            current_user=self._ops,
+            signer_kind="signAny",
+        )
+
+        signed = self._certificate_service.sign_and_publish(
+            certificate_id=certificate["id"],
+            current_user=self._ops,
+            operation_id=prepared["signature_operation"]["operation_id"],
+            payload_base64=prepared["signature_operation"]["payload_base64"],
+            payload_sha256_hex=prepared["signature_operation"]["payload_sha256_hex"],
+            signature_cms_base64="ZmFrZS1zaWduYXR1cmU=",
+            signature_mode="detached",
+            comment="Signed with temporary fallback",
+        )
+
+        self.assertEqual(signed["certificate"]["status"], "ACTIVE")
+        self.assertEqual(signed["signature_operation"]["validation_result"], "ACCEPTED_WITHOUT_CRYPTO_VERIFY")
 
 
 if __name__ == "__main__":

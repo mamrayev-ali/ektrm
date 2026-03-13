@@ -20,8 +20,21 @@ from app.models.base import Base
 from app.models.reference_data import ReferenceDictionary, ReferenceDictionaryItem
 from app.routers.applications import router as applications_router
 from app.routers.certificates import router as certificates_router
+from app.routers.certificates import get_signature_validator
 from app.routers.post_issuance import router as post_issuance_router
 from app.routers.registry import router as registry_router
+from app.services.certificate_signature_validation import SignatureValidationResult
+
+
+class FakeSignatureValidator:
+    def validate(self, *, payload_base64: str, signature_cms_base64: str, signature_mode: str) -> SignatureValidationResult:
+        return SignatureValidationResult(
+            is_valid=True,
+            validator_name="fake-validator",
+            revocation_check_mode="TEST",
+            signer_subject="CN=OPS Signer",
+            signer_serial_number="ABC123",
+        )
 
 
 class PostIssuanceApiTests(unittest.TestCase):
@@ -51,6 +64,7 @@ class PostIssuanceApiTests(unittest.TestCase):
                 session.close()
 
         self._app.dependency_overrides[get_session] = _session_override
+        self._app.dependency_overrides[get_signature_validator] = lambda: FakeSignatureValidator()
         self._set_auth_user(
             CurrentUser(
                 subject="applicant-1",
@@ -182,9 +196,25 @@ class PostIssuanceApiTests(unittest.TestCase):
         approved = self._client.post(f"/applications/{app_id}/transitions", json={"to_status": "APPROVED"})
         self.assertEqual(approved.status_code, 200)
         certificate_id = approved.json()["certificate"]["id"]
-        signed = self._client.post(f"/certificates/{certificate_id}/sign", json={"comment": "Активировать сертификат"})
+        prepared = self._client.post(
+            f"/certificates/{certificate_id}/sign/prepare",
+            json={"signer_kind": "signAny"},
+        )
+        self.assertEqual(prepared.status_code, 200)
+        operation = prepared.json()["signature_operation"]
+        signed = self._client.post(
+            f"/certificates/{certificate_id}/sign",
+            json={
+                "operation_id": operation["operation_id"],
+                "signature_mode": "detached",
+                "payload_base64": operation["payload_base64"],
+                "payload_sha256_hex": operation["payload_sha256_hex"],
+                "signature_cms_base64": "ZmFrZS1zaWduYXR1cmU=",
+                "comment": "Активировать сертификат",
+            },
+        )
         self.assertEqual(signed.status_code, 200)
-        self.assertEqual(signed.json()["status"], "ACTIVE")
+        self.assertEqual(signed.json()["certificate"]["status"], "ACTIVE")
         self._set_auth_user(
             CurrentUser(
                 subject="applicant-1",

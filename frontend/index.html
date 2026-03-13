@@ -5072,7 +5072,156 @@
         };
       }
 
+      function normalizeBase64Block(value) {
+        return String(value || "")
+          .replace(/-----BEGIN [^-]+-----/gi, "")
+          .replace(/-----END [^-]+-----/gi, "")
+          .replace(/\s+/g, "")
+          .trim();
+      }
+
       const config = resolveRuntimeConfig();
+
+      class NCALayerUiError extends Error {
+        constructor(message, canceledByUser = false) {
+          super(message);
+          this.name = "NCALayerUiError";
+          this.canceledByUser = canceledByUser;
+        }
+      }
+
+      class EKtrmNCALayerClient {
+        constructor(url = "wss://127.0.0.1:13579") {
+          this.url = url;
+          this.socket = null;
+          this.version = null;
+        }
+
+        async connect() {
+          if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+            return this.version || "unknown";
+          }
+          if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
+            throw new NCALayerUiError("Подключение к NCALayer уже выполняется");
+          }
+
+          this.socket = new WebSocket(this.url);
+          return new Promise((resolve, reject) => {
+            let settled = false;
+
+            const fail = (message) => {
+              if (settled) {
+                return;
+              }
+              settled = true;
+              reject(new NCALayerUiError(message));
+            };
+
+            this.socket.onerror = () => fail("Не удалось подключиться к NCALayer. Убедитесь, что приложение установлено и запущено.");
+            this.socket.onclose = () => fail("NCALayer закрыл соединение.");
+            this.socket.onmessage = (event) => {
+              if (settled) {
+                return;
+              }
+              settled = true;
+              try {
+                const response = JSON.parse(event.data);
+                const version = response && response.result ? response.result.version : null;
+                if (!version) {
+                  reject(new NCALayerUiError("NCALayer вернул неожиданный ответ при подключении."));
+                  return;
+                }
+                this.version = version;
+                resolve(version);
+              } catch (error) {
+                reject(new NCALayerUiError("Не удалось разобрать ответ NCALayer."));
+              }
+            };
+          });
+        }
+
+        async signDetachedCmsBase64(dataBase64, locale = "ru") {
+          if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            await this.connect();
+          }
+
+          const request = {
+            module: "kz.gov.pki.knca.basics",
+            method: "sign",
+            args: {
+              allowedStorages: null,
+              format: "cms",
+              data: dataBase64,
+              signingParams: {
+                decode: true,
+                encapsulate: false,
+                digested: false,
+                tsaProfile: {},
+              },
+              signerParams: {
+                extKeyUsageOids: ["1.3.6.1.5.5.7.3.4"],
+              },
+              locale,
+            },
+          };
+
+          return new Promise((resolve, reject) => {
+            let settled = false;
+            const fail = (message, canceledByUser = false) => {
+              if (settled) {
+                return;
+              }
+              settled = true;
+              reject(new NCALayerUiError(message, canceledByUser));
+            };
+
+            this.socket.onerror = () => fail("Ошибка взаимодействия с NCALayer.");
+            this.socket.onclose = () => fail("NCALayer закрыл соединение.");
+            this.socket.onmessage = (event) => {
+              if (settled) {
+                return;
+              }
+              settled = true;
+              try {
+                const response = JSON.parse(event.data);
+                if (Object.prototype.hasOwnProperty.call(response, "status")) {
+                  if (!response.status) {
+                    fail(`${response.code}: ${response.message} (${response.details || "no-details"})`);
+                    return;
+                  }
+                  if (!response.body || !Object.prototype.hasOwnProperty.call(response.body, "result")) {
+                    fail("Подписание отменено пользователем", true);
+                    return;
+                  }
+                  const result = response.body.result;
+                  resolve(Array.isArray(result) ? result[0] : result);
+                  return;
+                }
+                if (response.code !== "200") {
+                  fail(`${response.code}: ${response.message}`);
+                  return;
+                }
+                resolve(response.responseObject);
+              } catch (error) {
+                fail("Не удалось разобрать ответ NCALayer.");
+              }
+            };
+
+            try {
+              this.socket.send(JSON.stringify(request));
+            } catch (error) {
+              fail("Не удалось отправить команду в NCALayer.");
+            }
+          });
+        }
+
+        close() {
+          if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+            this.socket.close();
+          }
+          this.socket = null;
+        }
+      }
 
       const STEP_TITLES = [
         "Заявитель",
@@ -6597,19 +6746,18 @@
             const signButton = document.createElement("button");
             signButton.type = "button";
             signButton.className = "btn-secondary registry-action";
-            signButton.textContent = "Подписать";
+            signButton.textContent = "Подписать ЭЦП";
             signButton.addEventListener("click", async () => {
+              signButton.disabled = true;
               try {
-                const signed = await callApi("POST", `/certificates/${certificate.id}/sign`, {
-                  comment: "Подписано ОПС (T8)",
-                });
-                await refreshCertificatesWorkspace();
-                writeOutput("Сертификат подписан и опубликован", signed);
+                await signCertificateWithEcp(certificate);
               } catch (error) {
                 writeOutput("Ошибка подписи сертификата", {
                   message: error instanceof Error ? error.message : String(error),
                   certificate_id: certificate.id,
                 });
+              } finally {
+                signButton.disabled = false;
               }
             });
             actionCell.appendChild(signButton);
@@ -9139,6 +9287,64 @@
         window.setTimeout(() => {
           window.URL.revokeObjectURL(objectUrl);
         }, 1000);
+      }
+
+      async function signCertificateWithEcp(certificate) {
+        writeOutput("Подписание ЭЦП", {
+          certificate_id: certificate.id,
+          step: "prepare",
+          message: "Подготавливаем канонический payload для подписи.",
+        });
+
+        const prepared = await callApi("POST", `/certificates/${certificate.id}/sign/prepare`, {
+          signer_kind: "signAny",
+        });
+        const operation = prepared.signature_operation;
+        const ncaClient = new EKtrmNCALayerClient();
+
+        try {
+          const ncalayerVersion = await ncaClient.connect();
+          writeOutput("Подписание ЭЦП", {
+            certificate_id: certificate.id,
+            step: "ncalayer",
+            message: "NCALayer подключен, ожидаем выбор сертификата подписи.",
+            ncalayer_version: ncalayerVersion,
+          });
+
+          const signatureCmsBase64 = normalizeBase64Block(
+            await ncaClient.signDetachedCmsBase64(operation.payload_base64, "ru")
+          );
+          writeOutput("Подписание ЭЦП", {
+            certificate_id: certificate.id,
+            step: "backend-validation",
+            message: "Подпись получена, отправляем на backend для проверки и публикации.",
+          });
+
+          const signed = await callApi("POST", `/certificates/${certificate.id}/sign`, {
+            operation_id: operation.operation_id,
+            signature_mode: operation.signature_mode,
+            payload_base64: operation.payload_base64,
+            payload_sha256_hex: operation.payload_sha256_hex,
+            signature_cms_base64: signatureCmsBase64,
+            comment: "Подписано ОПС через ЭЦП",
+            client_meta: {
+              locale: "ru",
+              ncalayerVersion,
+              signerKind: "signAny",
+              userAgent: navigator.userAgent,
+            },
+          });
+
+          await refreshCertificatesWorkspace();
+          writeOutput("Сертификат подписан и опубликован", signed);
+        } catch (error) {
+          if (error instanceof NCALayerUiError && error.canceledByUser) {
+            throw new Error("Подписание отменено пользователем.");
+          }
+          throw error;
+        } finally {
+          ncaClient.close();
+        }
       }
 
       async function saveCabinetProfile() {

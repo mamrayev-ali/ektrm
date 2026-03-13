@@ -55,6 +55,11 @@ class Certificate(Base):
         cascade="all, delete-orphan",
         order_by="CertificateRegistryPublication.published_at",
     )
+    signatures: Mapped[list["CertificateSignature"]] = relationship(
+        back_populates="certificate",
+        cascade="all, delete-orphan",
+        order_by="CertificateSignature.created_at",
+    )
     post_issuance_applications: Mapped[list["PostIssuanceApplication"]] = relationship(
         back_populates="source_certificate",
         cascade="all, delete-orphan",
@@ -96,6 +101,45 @@ class CertificateRegistryPublication(Base):
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     certificate: Mapped[Certificate] = relationship(back_populates="registry_publications")
+
+
+class CertificateSignature(Base):
+    __tablename__ = "certificate_signature"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    operation_id: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    certificate_id: Mapped[int] = mapped_column(
+        ForeignKey("certificate.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    requested_by_subject: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    signer_kind: Mapped[str] = mapped_column(String(32), nullable=False, server_default=text("'signAny'"))
+    signature_mode: Mapped[str] = mapped_column(String(16), nullable=False)
+    payload_base64: Mapped[str] = mapped_column(Text, nullable=False)
+    payload_sha256_hex: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    file_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    mime_type: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    signature_cms_base64: Mapped[str | None] = mapped_column(Text, nullable=True)
+    signer_certificate_subject: Mapped[str | None] = mapped_column(Text, nullable=True)
+    signer_certificate_serial_number: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    signer_iin: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    signer_bin: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    validation_result: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    validation_error_code: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    revocation_check_mode: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    validator_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    client_meta_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    certificate: Mapped[Certificate] = relationship(back_populates="signatures")
 
 
 from app.models import post_issuance as _post_issuance_models  # noqa: E402,F401

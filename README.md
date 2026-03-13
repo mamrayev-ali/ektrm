@@ -17,7 +17,7 @@
 - files-service API для типизированного слота `protocol_test_report` с загрузкой в MinIO и возвратом metadata для привязки к заявке.
 - baseline Ордер 4: автогенерация сертификата из `APPROVED` заявки, immutable snapshot и базовая история статусов сертификата (`GENERATED`).
 - read API сертификатов: `GET /certificates/{id}` и `GET /certificates/by-application/{application_id}`.
-- действие `Подписать` (mock-sign) для роли `OPS` с автоматической публикацией сертификата во внутренний/публичный реестры.
+- действие `Подписать ЭЦП` для роли `OPS`: frontend готовит detached CMS через NCALayer, backend валидирует доступным verifier path и после успешной проверки публикует сертификат во внутренний/публичный реестры.
 - registry API:
   - `GET /registry/internal` (Applicant: только свои, OPS: все),
   - `GET /registry/public` (без авторизации, read-only только опубликованные).
@@ -237,15 +237,19 @@ Demo users:
    - Applicant не может читать чужой сертификат (`403`);
    - snapshot не меняется при последующих изменениях payload заявки.
 
-## T8 Mock Signing, Publication and Registry: как проверить
+## T8 OPS ECP Signing, Publication and Registry: как проверить
 
 1. Войти как `ops.demo / Ops123456!` и убедиться, что есть сертификат в статусе `GENERATED` (после `APPROVED` в Ордер 3).
 2. Подписать сертификат:
-   - UI: раздел `Реестр сертификатов` -> действие `Подписать`;
-   - API: `POST http://localhost:8180/certificates/{certificate_id}/sign` с body `{"comment":"..."}`.
+   - UI: раздел `Реестр сертификатов` -> действие `Подписать ЭЦП`;
+   - API flow:
+     - `POST http://localhost:8180/certificates/{certificate_id}/sign/prepare` с body `{"signer_kind":"signAny"}`;
+     - frontend подписывает `payloadBase64` через NCALayer;
+     - `POST http://localhost:8180/certificates/{certificate_id}/sign` с `operation_id`, `payload_base64`, `payload_sha256_hex`, `signature_cms_base64`, `signature_mode`.
 3. Проверить результат подписи:
    - статус становится `ACTIVE`;
-   - заполнены поля `signed_by_subject`, `signed_at`, `published_at`.
+    - заполнены поля `signed_by_subject`, `signed_at`, `published_at`.
+   - в БД появляется запись `certificate_signature` с validation metadata.
 4. Проверить внутренний реестр:
    - `GET http://localhost:8180/registry/internal` (Bearer required);
    - роль `OPS` видит все записи, роль `Applicant` видит только свои.
@@ -316,9 +320,21 @@ Windows (PowerShell):
 - files: `docker compose --profile test run --rm files-test`
 - точечный файл: `docker compose --profile test run --rm applications-test python -m unittest discover -s tests -p "test_applications_api.py"`
 
+Дополнительная конфигурация backend verifier:
+- `CERT_SIGNATURE_VALIDATOR_MODE` — режим backend verifier:
+  - `openssl` — strict CMS verification через OpenSSL;
+  - `temporary_gost_fallback` — dev/demo-only fallback для GOST CMS без server-side cryptographic verification.
+- `CERT_SIGNATURE_OPENSSL_BIN` — путь к `openssl` внутри runtime environment;
+- `CERT_SIGNATURE_TRUSTED_CA_FILE` — chain/CA bundle для проверки CMS;
+- `CERT_SIGNATURE_CRL_FILE` — optional CRL file для `crl_check`.
+- trust artifacts монтируются из `infra/cert-signing/` в контейнеры как `/app/cert-signing`.
+
+Если verifier backend не настроен, операция подписи завершится ошибкой `validation_backend_unavailable` и сертификат не будет опубликован.
+В локальном `docker-compose` по умолчанию включен `temporary_gost_fallback`, чтобы GOST-подпись через NCALayer проходила end-to-end как рабочий dev/demo flow. Этот режим сохраняет CMS и проверяет только техническую корректность контейнера подписи, но не выполняет полноценную криптографическую проверку цепочки НУЦ, отзыва и срока действия.
+
 ## Ограничения текущего этапа
 
-- Ордер 3 для заявителя и OPS API-уровня реализован (wizard + draft/submit/delete + OPS queue/review/protocol attachment), Ордер 4 baseline T7+T8 покрывает генерацию, mock-sign и публикацию в реестры.
+- Ордер 3 для заявителя и OPS API-уровня реализован (wizard + draft/submit/delete + OPS queue/review/protocol attachment), Ордер 4 покрывает генерацию сертификата, OPS ECP signing flow и публикацию в реестры.
 - Расширенный поиск/фильтрация публичного реестра и расширенные карточки сертификатов пока не реализованы.
-- Внешние интеграции (ГБД ЮЛ, НУЦ, госреестры) отключены.
-- Реальная ЭЦП не реализуется.
+- Внешние интеграции (ГБД ЮЛ, госреестры) отключены.
+- Клиентское подписание через NCALayer реализуется, но полнота production-grade серверной проверки ЭЦП зависит от настроенного verifier toolchain и trust store.
